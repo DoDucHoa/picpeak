@@ -4209,7 +4209,8 @@
   },
   "legal": {
     "impressum": "Impressum",
-    "datenschutz": "Datenschutzerklärung"
+    "datenschutz": "Datenschutzerklärung",
+    "back": "Zurück"
   },
   "toast": {
     "saveSuccess": "Änderungen erfolgreich gespeichert",

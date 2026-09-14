@@ -8,7 +8,7 @@ export default defineConfig({
   // the extractor own them would fill each file with ~2700 empty-string values, and
   // i18next's default `returnEmptyString: true` renders those as blank UI instead of
   // falling back to English.
-  locales: ['en', 'de'],
+  locales: ['en', 'de', 'vi'],
 
   extract: {
     input: ['src/**/*.{ts,tsx,js,jsx}'],

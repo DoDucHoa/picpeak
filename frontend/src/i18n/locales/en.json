@@ -3756,7 +3756,8 @@
   },
   "legal": {
     "impressum": "Legal Notice",
-    "datenschutz": "Privacy Policy"
+    "datenschutz": "Privacy Policy",
+    "back": "Back"
   },
   "toast": {
     "saveSuccess": "Changes saved successfully",

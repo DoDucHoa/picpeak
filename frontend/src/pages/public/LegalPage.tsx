@@ -35,7 +35,7 @@ const sanitizeExternalUrl = (url: string): string | null => {
 
 export const LegalPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   
   // Extract page slug from pathname if not in params (for static routes like /impressum)
@@ -121,7 +121,7 @@ export const LegalPage: React.FC = () => {
             className="inline-flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {i18n.language === 'de' ? 'Zurück' : 'Back'}
+            {t('legal.back')}
           </button>
         </div>
       </header>
@@ -167,14 +167,14 @@ export const LegalPage: React.FC = () => {
               to="/impressum"
               className="text-neutral-600 hover:text-neutral-900"
             >
-              {lang === 'de' ? 'Impressum' : 'Legal Notice'}
+              {t('legal.impressum')}
             </Link>
             <span className="text-neutral-400">•</span>
             <Link
               to="/datenschutz"
               className="text-neutral-600 hover:text-neutral-900"
             >
-              {lang === 'de' ? 'Datenschutz' : 'Privacy Policy'}
+              {t('legal.datenschutz')}
             </Link>
           </div>
           <p className="text-sm text-neutral-500 mt-4">
