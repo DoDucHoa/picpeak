@@ -799,6 +799,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', require('./src/middleware/productUsage').productUsage);
 app.use('/api/admin/usage', require('./src/routes/adminUsage'));
 app.use('/api/admin/external-media', require('./src/routes/adminExternalMedia'));
+app.use('/api/admin', require('./src/routes/adminDownloadQuota'));
 // Gallery routes - main routes first, then feedback routes
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/gallery', require('./src/routes/galleryFeedback'));
