@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image } from 'lucide-react';
+import { Download, Image } from 'lucide-react';
 import type { Event } from '../../../types';
 import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
 import type { EventDetailsTab } from './types';
@@ -58,6 +58,17 @@ export const EventTabs: React.FC<EventTabsProps> = ({
           }`}
         >
           {t('events.categories')}
+        </button>
+        <button
+          onClick={() => setActiveTab('downloads')}
+          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+            activeTab === 'downloads'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+          }`}
+        >
+          <Download className="w-4 h-4" />
+          <span>{t('downloadQuotaAdmin.ledger.tab', 'Downloads')}</span>
         </button>
         {eventFeedbackSettings?.identity_mode === 'guest' && (
           <button

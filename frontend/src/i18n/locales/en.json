@@ -7002,6 +7002,21 @@
       "saved": "Download allowance saved.",
       "saveError": "Could not save the download allowance.",
       "invalidNumber": "Enter a whole number of zero or more, or leave the field empty to inherit."
+    },
+    "ledger": {
+      "tab": "Downloads",
+      "title": "Delivered photos",
+      "loading": "Loading the download ledger",
+      "help": "One row per photo that has left this gallery at least once. A photo already listed here costs no further allowance, however often it is downloaded again.",
+      "empty": "No photo has been downloaded from this gallery yet.",
+      "photo": "Photo",
+      "firstDownloaded": "First downloaded",
+      "accessLevel": "Downloaded by",
+      "deletedPhoto": "Photo deleted, slot still spent",
+      "unknownAccess": "Unknown",
+      "pageOf": "Page {{page}} of {{lastPage}}, {{total}} photos",
+      "previous": "Previous",
+      "next": "Next"
     }
   },
   "eventReminderOverride": {

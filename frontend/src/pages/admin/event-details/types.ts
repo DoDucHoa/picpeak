@@ -1,4 +1,4 @@
-export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests';
+export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads';
 
 export type EditFormState = {
   welcome_message: string;

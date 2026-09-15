@@ -7003,6 +7003,21 @@
       "saved": "Download-Kontingent gespeichert.",
       "saveError": "Das Download-Kontingent konnte nicht gespeichert werden.",
       "invalidNumber": "Geben Sie eine ganze Zahl ab 0 ein oder lassen Sie das Feld leer, um die Vorgabe zu übernehmen."
+    },
+    "ledger": {
+      "tab": "Downloads",
+      "title": "Ausgelieferte Fotos",
+      "loading": "Download-Journal wird geladen",
+      "help": "Eine Zeile je Foto, das diese Galerie mindestens einmal verlassen hat. Ein hier gelistetes Foto kostet kein weiteres Kontingent, egal wie oft es erneut geladen wird.",
+      "empty": "Aus dieser Galerie wurde noch kein Foto heruntergeladen.",
+      "photo": "Foto",
+      "firstDownloaded": "Erstmals geladen",
+      "accessLevel": "Geladen von",
+      "deletedPhoto": "Foto gelöscht, Platz bleibt verbraucht",
+      "unknownAccess": "Unbekannt",
+      "pageOf": "Seite {{page}} von {{lastPage}}, {{total}} Fotos",
+      "previous": "Zurück",
+      "next": "Weiter"
     }
   },
   "eventReminderOverride": {

@@ -7002,6 +7002,21 @@
       "saved": "Đã lưu hạn mức tải ảnh.",
       "saveError": "Không lưu được hạn mức tải ảnh.",
       "invalidNumber": "Nhập một số nguyên từ 0 trở lên, hoặc để trống để kế thừa mặc định."
+    },
+    "ledger": {
+      "tab": "Lượt tải",
+      "title": "Ảnh đã giao",
+      "loading": "Đang tải sổ cái",
+      "help": "Mỗi dòng là một ảnh đã rời khỏi gallery ít nhất một lần. Ảnh đã có trong danh sách này không tốn thêm hạn mức, dù khách tải lại bao nhiêu lần.",
+      "empty": "Chưa có ảnh nào được tải từ gallery này.",
+      "photo": "Ảnh",
+      "firstDownloaded": "Tải lần đầu",
+      "accessLevel": "Người tải",
+      "deletedPhoto": "Ảnh đã xoá, hạn mức vẫn đã trừ",
+      "unknownAccess": "Không rõ",
+      "pageOf": "Trang {{page}} trên {{lastPage}}, {{total}} ảnh",
+      "previous": "Trước",
+      "next": "Sau"
     }
   },
   "eventReminderOverride": {

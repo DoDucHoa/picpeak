@@ -22,8 +22,9 @@ import { EventTabs } from './event-details/EventTabs';
 import { OverviewTab } from './event-details/OverviewTab';
 import { PhotosTab } from './event-details/PhotosTab';
 import { CategoriesTab } from './event-details/CategoriesTab';
+import { DownloadLedgerTab } from '../../components/admin/DownloadLedgerTab';
 
-const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests'];
+const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests', 'downloads'];
 
 function isValidTab(value: string | null): value is EventDetailsTab {
   return value !== null && (ALL_TAB_KEYS as string[]).includes(value);
@@ -765,6 +766,11 @@ export const EventDetailsPage: React.FC = () => {
       {/* Guests Tab (only visible when identity_mode === 'guest') */}
       {activeTab === 'guests' && eventFeedbackSettings?.identity_mode === 'guest' && (
         <AdminGuestsList eventId={parseInt(id!)} eventName={event.event_name} />
+      )}
+
+      {/* Download ledger (migration 214) */}
+      {activeTab === 'downloads' && (
+        <DownloadLedgerTab eventId={parseInt(id!)} />
       )}
 
       {/* Password Reset Modal */}
