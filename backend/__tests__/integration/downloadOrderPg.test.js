@@ -44,12 +44,17 @@ maybe('download quota orders on Postgres', () => {
   }
 
   beforeAll(async () => {
-    pgDb = knex({ client: 'pg', connection: PG_URL, pool: { min: 0, max: 5 } });
+    // Own schema, because jest runs suites in parallel workers and the other
+    // quota suites create the same four tables. Sharing the public schema meant
+    // whichever suite started second dropped the tables the first was using.
+    const admin = knex({ client: 'pg', connection: PG_URL, pool: { min: 0, max: 2 } });
+    await admin.raw('DROP SCHEMA IF EXISTS quota_order_test CASCADE');
+    await admin.raw('CREATE SCHEMA quota_order_test');
+    await admin.destroy();
 
-    await pgDb.raw('DROP TABLE IF EXISTS download_quota_orders');
-    await pgDb.raw('DROP TABLE IF EXISTS event_photo_downloads');
-    await pgDb.raw('DROP TABLE IF EXISTS download_packages');
-    await pgDb.raw('DROP TABLE IF EXISTS event_download_quota_settings');
+    pgDb = knex({
+      client: 'pg', connection: PG_URL, searchPath: ['quota_order_test'], pool: { min: 0, max: 5 },
+    });
 
     for (const [table, build] of [
       ['events', (t) => t.increments('id').primary()],
