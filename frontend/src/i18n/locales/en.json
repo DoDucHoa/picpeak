@@ -1239,7 +1239,16 @@
       "autoLabelCount_one": "{{count}} photo",
       "autoLabelCount_other": "{{count}} photos",
       "pendingTitle": "Your order is waiting for approval",
-      "pendingHint": "Your photographer reviews each order by hand. Contact them directly if it is urgent."
+      "pendingHint": "Your photographer reviews each order by hand. Contact them directly if it is urgent.",
+      "order": {
+        "title": "Add downloads",
+        "hint": "Your photographer approves the order by hand. The extra downloads appear in this gallery once they do.",
+        "confirm": "Confirm order",
+        "back": "Back to the gallery",
+        "duplicate": "You already have an order waiting for approval.",
+        "failed": "Your order could not be placed. Please try again.",
+        "unknownPackage": "That package is no longer available."
+      }
     },
     "people": {
       "title": "People in this gallery",

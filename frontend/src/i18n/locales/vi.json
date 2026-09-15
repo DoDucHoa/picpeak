@@ -1239,7 +1239,16 @@
       "autoLabelCount_one": "{{count}} ảnh",
       "autoLabelCount_other": "{{count}} ảnh",
       "pendingTitle": "Đơn của bạn đang chờ duyệt",
-      "pendingHint": "Nhiếp ảnh gia duyệt từng đơn bằng tay. Hãy liên hệ trực tiếp nếu bạn cần gấp."
+      "pendingHint": "Nhiếp ảnh gia duyệt từng đơn bằng tay. Hãy liên hệ trực tiếp nếu bạn cần gấp.",
+      "order": {
+        "title": "Mua thêm lượt tải",
+        "hint": "Nhiếp ảnh gia sẽ duyệt đơn bằng tay. Số lượt tải thêm sẽ xuất hiện trong bộ sưu tập này ngay sau đó.",
+        "confirm": "Xác nhận đặt đơn",
+        "back": "Quay lại bộ sưu tập",
+        "duplicate": "Bạn đã có một đơn đang chờ duyệt.",
+        "failed": "Không đặt được đơn của bạn. Vui lòng thử lại.",
+        "unknownPackage": "Gói này không còn khả dụng."
+      }
     },
     "people": {
       "title": "Những người trong bộ sưu tập ảnh này",

@@ -1741,7 +1741,16 @@
       "autoLabelCount_one": "{{count}} Foto",
       "autoLabelCount_other": "{{count}} Fotos",
       "pendingTitle": "Ihre Bestellung wartet auf Freigabe",
-      "pendingHint": "Ihre Fotografin oder Ihr Fotograf prüft jede Bestellung persönlich. Melden Sie sich direkt, wenn es eilig ist."
+      "pendingHint": "Ihre Fotografin oder Ihr Fotograf prüft jede Bestellung persönlich. Melden Sie sich direkt, wenn es eilig ist.",
+      "order": {
+        "title": "Downloads erweitern",
+        "hint": "Ihre Fotografin oder Ihr Fotograf gibt die Bestellung persönlich frei. Danach stehen die zusätzlichen Downloads in dieser Galerie bereit.",
+        "confirm": "Bestellung bestätigen",
+        "back": "Zurück zur Galerie",
+        "duplicate": "Sie haben bereits eine Bestellung, die auf Freigabe wartet.",
+        "failed": "Ihre Bestellung konnte nicht aufgegeben werden. Bitte erneut versuchen.",
+        "unknownPackage": "Dieses Paket ist nicht mehr verfügbar."
+      }
     },
     "people": {
       "title": "Personen in dieser Galerie",
