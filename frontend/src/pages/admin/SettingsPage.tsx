@@ -56,11 +56,12 @@ import { CMSPage } from './CMSPage';
 // CRM (#TBD)
 import { SettingsBusinessProfilePage } from './settings/SettingsBusinessProfilePage';
 import { CrmSettingsPage } from './settings/CrmSettingsPage';
+import { SettingsDownloadQuotaPage } from './settings/SettingsDownloadQuotaPage';
 import { ReminderTemplatesPage } from './settings/ReminderTemplatesPage';
 import { BlockLibraryPage } from './contracts/BlockLibraryPage';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import { Briefcase, Receipt, ScrollText, Landmark, Smartphone, MonitorPlay } from 'lucide-react';
+import { Briefcase, Receipt, ScrollText, Landmark, Smartphone, MonitorPlay, ShoppingCart } from 'lucide-react';
 
 // Tab keys driving the inner-nav. Must include every key used in
 // `navGroups` below and in the switch at the bottom of the component.
@@ -74,6 +75,7 @@ type TabType =
   | 'categories'
   | 'thumbnails'
   | 'downloads'
+  | 'downloadQuota'
   | 'styling'
   | 'cms'
   | 'email'
@@ -111,7 +113,7 @@ interface NavGroup {
 const ALL_TAB_KEYS: TabType[] = [
   'usage',
   'features', 'general', 'events', 'eventTypes',
-  'branding', 'categories', 'thumbnails', 'downloads', 'styling', 'cms',
+  'branding', 'categories', 'thumbnails', 'downloads', 'downloadQuota', 'styling', 'cms',
   'email', 'moderation',
   'security', 'sso', 'imageSecurity', 'seo',
   'apiTokens', 'webhooks',
@@ -141,6 +143,7 @@ const TAB_PERMISSIONS: Record<TabType, string[]> = {
   categories:        ['settings.view'],
   thumbnails:        ['settings.view'],
   downloads:         ['settings.view'],
+  downloadQuota:     ['settings.view', 'events.edit'],
   styling:           ['settings.view', 'branding.edit'],
   cms:               ['settings.view', 'cms.view', 'cms.edit'],
   email:             ['settings.view', 'email.view', 'email.edit'],
@@ -327,6 +330,7 @@ export const SettingsPage: React.FC = () => {
         { key: 'categories', label: t('settings.categories.title'),                 icon: Tags },
         { key: 'thumbnails', label: t('settings.thumbnails.title', 'Thumbnails'),  icon: ImageIcon },
         { key: 'downloads', label: t('settings.downloads.title', 'Download resolutions'), icon: DownloadIcon },
+        { key: 'downloadQuota', label: t('downloadQuotaAdmin.packages.tab', 'Download packages'), icon: ShoppingCart },
         { key: 'styling',    label: t('settings.styling.title',    'Custom CSS'),  icon: Code },
         { key: 'cms',        label: t('settings.cms.title',        'CMS Pages'),   icon: FileText },
         ...(flags.slideshow
@@ -590,6 +594,7 @@ export const SettingsPage: React.FC = () => {
           {activeTab === 'imageSecurity' && <ImageSecurityTab />}
           {activeTab === 'thumbnails' && <ThumbnailsTab />}
           {activeTab === 'downloads' && <DownloadsTab />}
+          {activeTab === 'downloadQuota' && <SettingsDownloadQuotaPage />}
           {activeTab === 'categories' && <CategoriesTab />}
 
           {activeTab === 'analytics' && (
