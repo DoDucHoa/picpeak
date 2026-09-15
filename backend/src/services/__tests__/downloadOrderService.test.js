@@ -65,6 +65,28 @@ describe('createOrder', () => {
     expect(payload.origin).toBe('client');
   });
 
+  // The admin route sends 'photographer' for a goodwill grant. An earlier
+  // revision collapsed anything it did not recognise into 'client', which
+  // stored every manual grant as if the client had ordered and owed money for
+  // it: the exact audit trail this column exists to keep.
+  test('keeps a photographer placed order distinguishable from a client one', async () => {
+    const { insert } = mockInsert();
+    await svc.createOrder({
+      eventId: 1, packageId: 1, req: { accessLevel: 'client' }, origin: 'photographer',
+    });
+
+    expect(insert.mock.calls[0][0].origin).toBe('photographer');
+  });
+
+  test('an unrecognised origin falls back to client rather than being stored raw', async () => {
+    const { insert } = mockInsert();
+    await svc.createOrder({
+      eventId: 1, packageId: 1, req: { accessLevel: 'client' }, origin: 'nonsense',
+    });
+
+    expect(insert.mock.calls[0][0].origin).toBe('client');
+  });
+
   test('reads the currency from the business profile, not from app_settings', async () => {
     const { insert } = mockInsert();
     await svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' });

@@ -110,7 +110,12 @@ async function createOrder({ eventId, packageId, req, origin = 'client', conn = 
     requested_photo_count: snapshot.kind === 'unlimited' ? null : snapshot.photo_count,
     grants_unlimited: false,
     status: 'pending',
-    origin: origin === 'admin' ? 'admin' : 'client',
+    // Two origins only, and 'photographer' is the spelling the admin route and
+    // the spec both use. Collapsing an unknown value into 'client' would erase
+    // the audit trail behind a manual grant, which is the only reason the
+    // column exists: a goodwill allowance has to stay distinguishable from
+    // something the client ordered and is expected to pay for.
+    origin: origin === 'photographer' ? 'photographer' : 'client',
     actor: JSON.stringify(actorSnapshot(req)),
     expires_at: new Date(now.getTime() + expiryDays * DAY_MS),
     created_at: now,
