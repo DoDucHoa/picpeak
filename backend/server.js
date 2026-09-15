@@ -80,6 +80,7 @@ const { startTransferCleanup } = require('./src/services/transferCleanupService'
 const { startDownloadJobCleanup } = require('./src/services/downloadJobCleanupService');
 const { startRevealScheduler } = require('./src/services/revealScheduler');
 const { startInvoiceScheduler } = require('./src/services/invoiceSchedulerService');
+const { startDownloadOrderExpiryChecker } = require('./src/services/downloadOrderExpiryChecker');
 const { initializeTransporter, startEmailQueueProcessor } = require('./src/services/emailProcessor');
 const emailWebhookTransport = require('./src/services/emailWebhookTransport');
 const { startBackupService } = require('./src/services/backupService');
@@ -1146,7 +1147,11 @@ async function startServer() {
     // + run the overdue reminder ladder. No-op when the `bills` feature
     // flag is OFF (the service short-circuits on empty result sets).
     startInvoiceScheduler();
-    
+    // Download quota: closes orders nobody acted on. A lapsed order otherwise
+    // holds the gallery's single pending slot and blocks the client from
+    // ordering again, which is the one thing they cannot fix themselves.
+    startDownloadOrderExpiryChecker();
+
     // Initialize email transporter and start queue processor.
     // Skipped under the webhook transport (#1225): an install that switched to
     // it may still carry an old, now-unreachable SMTP row, and nodemailer's
