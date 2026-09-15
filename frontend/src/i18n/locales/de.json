@@ -7030,6 +7030,52 @@
       "pageOf": "Seite {{page}} von {{lastPage}}, {{total}} Fotos",
       "previous": "Zurück",
       "next": "Weiter"
+    },
+    "orders": {
+      "title": "Download-Bestellungen",
+      "subtitle": "Nach der Freigabe wächst das Kontingent der Galerie sofort. Rechnung und Nachricht an den Kunden laufen ausserhalb von PicPeak.",
+      "loading": "Download-Bestellungen werden geladen",
+      "empty": "Zu diesem Filter gibt es keine Download-Bestellung.",
+      "waitingBadge": "{{count}} offen",
+      "filters": {
+        "pending": "Offen",
+        "approved": "Freigegeben",
+        "rejected": "Abgelehnt",
+        "expired": "Abgelaufen",
+        "all": "Alle"
+      },
+      "status": {
+        "pending": "Offen",
+        "approved": "Freigegeben",
+        "rejected": "Abgelehnt",
+        "expired": "Abgelaufen"
+      },
+      "originClient": "Vom Kunden bestellt. Stellen Sie die Rechnung vor der Freigabe selbst.",
+      "originPhotographer": "Von Ihnen für den Kunden angelegt. Nichts einzufordern.",
+      "unlimitedPackage": "Unbegrenzte Downloads",
+      "countPackage": "{{count}} Fotos",
+      "placedAt": "Bestellt {{when}}",
+      "reasonGiven": "Begründung: {{reason}}",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "cancel": "Abbrechen",
+      "approveTitle": "Diese Bestellung freigeben",
+      "approveHelp": "Die Freigabe erhöht das Kontingent von {{event}} sofort. Zahlung einziehen und den Kunden informieren müssen Sie selbst.",
+      "grantLabel": "Freizugebende Fotos",
+      "grantHelp": "Vorbelegt mit der Bestellung des Kunden. Ändern Sie die Zahl, um eine andere Menge freizugeben.",
+      "grantsUnlimited": "Dieses Paket hebt das Limit vollständig auf, es gibt also keine Zahl einzutragen.",
+      "approveConfirm": "Bestellung freigeben",
+      "approved": "Bestellung freigegeben. Sagen Sie dem Kunden, dass das Kontingent aufgestockt ist.",
+      "approveError": "Die Bestellung konnte nicht freigegeben werden.",
+      "rejectTitle": "Diese Bestellung ablehnen",
+      "reasonLabel": "Begründung, die der Kunde sieht",
+      "reasonPlaceholder": "Begründen Sie es in Worten, die der Kunde lesen wird.",
+      "rejectConfirm": "Bestellung ablehnen",
+      "rejected": "Bestellung abgelehnt.",
+      "rejectError": "Die Bestellung konnte nicht abgelehnt werden.",
+      "pageOf": "Seite {{page}} von {{lastPage}}, {{total}} Bestellungen",
+      "previous": "Zurück",
+      "next": "Weiter"
     }
   },
   "eventReminderOverride": {

@@ -17,6 +17,7 @@ export { CustomerManagementPage } from './CustomerManagementPage';
 export { CustomerDetailPage } from './CustomerDetailPage';
 export { EventTypesPage } from './EventTypesPage';
 export { WebhookDeliveriesPage } from './WebhookDeliveriesPage';
+export { DownloadOrdersPage } from './downloadOrders/DownloadOrdersPage';
 
 // CRM (Quotes + Invoices) — gated by the `quotes` / `bills` feature flags.
 export { QuotesListPage } from './quotes/QuotesListPage';

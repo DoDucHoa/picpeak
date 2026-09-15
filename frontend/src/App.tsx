@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { GalleryPage } from './pages/GalleryPage';
 import { ClientAccessPage } from './pages/ClientAccessPage';
 import { PreviewPage } from './pages/gallery/PreviewPage';
+import { DownloadOrderPage } from './pages/gallery/DownloadOrderPage';
 const SlideshowPage = lazy(() => import('./pages/gallery/SlideshowPage').then((m) => ({ default: m.SlideshowPage })));
 import { LegalPage } from './pages/public/LegalPage';
 import {
@@ -20,6 +21,7 @@ import {
   EventDetailsPage,
   EventFeedbackPage,
   ArchivesPage,
+  DownloadOrdersPage,
   AnalyticsPage,
   SettingsPage,
   SystemHealthPage,
@@ -224,6 +226,13 @@ function App() {
                       <ClientAccessPage />
                     </GalleryAuthProvider>
                   } />
+                  {/* Before the catch-all below, which would otherwise match
+                      "order" as :token and hand the guest the gallery. */}
+                  <Route path="/gallery/:slug/order" element={
+                    <GalleryAuthProvider>
+                      <DownloadOrderPage />
+                    </GalleryAuthProvider>
+                  } />
                   <Route path="/gallery/:slug/:token?" element={
                     <GalleryAuthProvider>
                       <GalleryPage />
@@ -247,6 +256,9 @@ function App() {
                       <Route path="events/:id" element={<EventDetailsPage />} />
                       <Route path="events/:id/feedback" element={<EventFeedbackPage />} />
                       <Route path="archives" element={<ArchivesPage />} />
+                      {/* Download orders (migration 214) — the queue a client
+                          lands in once a gallery runs out of free downloads. */}
+                      <Route path="download-orders" element={<DownloadOrdersPage />} />
                       {/* PicTransfer (#997) — cross-event file transfers.
                           Gated by the `transfers` flag (strictly opt-in). */}
                       <Route element={<RequireFeature flag="transfers" />}>

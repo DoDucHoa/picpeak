@@ -17,6 +17,7 @@ import {
   PanelLeftOpen,
   Github,
   Send,
+  ShoppingCart,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -78,6 +79,9 @@ export const adminNavigation: NavItem[] = [
   { nameKey: 'navigation.dashboard', href: '/admin/dashboard', icon: LayoutDashboard, permission: false },
   { nameKey: 'navigation.events',    href: '/admin/events',    icon: Calendar,        permission: 'events.view' },
   { nameKey: 'navigation.archives',  href: '/admin/archives',  icon: Archive,         permission: 'archives.view' },
+  // Download orders (migration 214). Gated on events.view, the same read the
+  // backend applies to /admin/download-orders.
+  { nameKey: 'navigation.downloadOrders', href: '/admin/download-orders', icon: ShoppingCart, permission: 'events.view' },
   { nameKey: 'navigation.transfers', href: '/admin/transfers', icon: Send,            permission: 'events.view', featureFlag: 'transfers' },
   { nameKey: 'navigation.messages',  href: '/admin/messages', icon: Mail,             permission: 'email.view',     featureFlag: 'messaging' },
   { nameKey: 'admin.analytics',      href: '/admin/analytics', icon: BarChart3,       permission: 'analytics.view', featureFlag: 'analytics' },

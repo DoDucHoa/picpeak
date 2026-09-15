@@ -7029,6 +7029,52 @@
       "pageOf": "Trang {{page}} trên {{lastPage}}, {{total}} ảnh",
       "previous": "Trước",
       "next": "Sau"
+    },
+    "orders": {
+      "title": "Đơn tải ảnh",
+      "subtitle": "Duyệt đơn là hạn mức của gallery tăng ngay. Việc lập hoá đơn và nhắn cho khách nằm ngoài PicPeak.",
+      "loading": "Đang tải danh sách đơn",
+      "empty": "Không có đơn tải ảnh nào khớp bộ lọc này.",
+      "waitingBadge": "{{count}} đơn chờ",
+      "filters": {
+        "pending": "Đang chờ",
+        "approved": "Đã duyệt",
+        "rejected": "Đã từ chối",
+        "expired": "Đã hết hạn",
+        "all": "Tất cả"
+      },
+      "status": {
+        "pending": "Đang chờ",
+        "approved": "Đã duyệt",
+        "rejected": "Đã từ chối",
+        "expired": "Đã hết hạn"
+      },
+      "originClient": "Khách tự đặt đơn này. Hãy lập hoá đơn và thu tiền trước khi duyệt.",
+      "originPhotographer": "Bạn tạo đơn này thay khách. Không có khoản nào phải thu.",
+      "unlimitedPackage": "Tải không giới hạn",
+      "countPackage": "{{count}} ảnh",
+      "placedAt": "Đặt lúc {{when}}",
+      "reasonGiven": "Lý do: {{reason}}",
+      "approve": "Duyệt",
+      "reject": "Từ chối",
+      "cancel": "Huỷ",
+      "approveTitle": "Duyệt đơn này",
+      "approveHelp": "Duyệt xong là hạn mức của {{event}} tăng ngay. Việc thu tiền và báo cho khách do bạn tự làm.",
+      "grantLabel": "Số ảnh cấp thêm",
+      "grantHelp": "Điền sẵn theo gói khách đặt. Sửa lại nếu bạn muốn cấp số khác.",
+      "grantsUnlimited": "Gói này bỏ hẳn giới hạn nên không cần nhập số nào.",
+      "approveConfirm": "Duyệt đơn",
+      "approved": "Đã duyệt đơn. Hãy báo cho khách biết hạn mức đã được nâng.",
+      "approveError": "Không duyệt được đơn.",
+      "rejectTitle": "Từ chối đơn này",
+      "reasonLabel": "Lý do hiển thị cho khách",
+      "reasonPlaceholder": "Nêu lý do bằng câu chữ mà khách sẽ đọc.",
+      "rejectConfirm": "Từ chối đơn",
+      "rejected": "Đã từ chối đơn.",
+      "rejectError": "Không từ chối được đơn.",
+      "pageOf": "Trang {{page}} trên {{lastPage}}, {{total}} đơn",
+      "previous": "Trước",
+      "next": "Sau"
     }
   },
   "eventReminderOverride": {
