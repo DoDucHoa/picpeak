@@ -119,10 +119,16 @@ async function recordDelivered(eventId, photoIds, req, conn = db) {
     access_level: req?.accessLevel || null,
     actor: JSON.stringify(actorSnapshot(req)),
   }));
+  // `.returning('id')` is what makes the count truthful. Without it Postgres
+  // hands back a pg Result object rather than an array of rows, so the caller
+  // is told nothing was charged even when photos were: the gallery would then
+  // under-report every delivery. With it, conflicting rows are skipped and only
+  // the genuinely new ones come back.
   const inserted = await conn('event_photo_downloads')
     .insert(rows)
     .onConflict(['event_id', 'photo_id'])
-    .ignore();
+    .ignore()
+    .returning('id');
   return Array.isArray(inserted) ? inserted.length : 0;
 }
 

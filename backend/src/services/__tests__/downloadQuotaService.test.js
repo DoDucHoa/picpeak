@@ -131,7 +131,11 @@ describe('recordDelivered', () => {
   });
 
   test('ignores a photo already in the ledger instead of failing', async () => {
-    const ignore = jest.fn(async () => [{ id: 1 }]);
+    // The chain must end in .returning('id'): without it Postgres hands back a
+    // Result object rather than rows and the charged count silently reads zero.
+    // Proven against a real database in __tests__/integration/downloadQuotaLedgerPg.
+    const returning = jest.fn(async () => [{ id: 1 }]);
+    const ignore = jest.fn(() => ({ returning }));
     const onConflict = jest.fn(() => ({ ignore }));
     const insert = jest.fn(() => ({ onConflict }));
     db.mockImplementation((table) => {
