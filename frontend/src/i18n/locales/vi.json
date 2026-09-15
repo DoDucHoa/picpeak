@@ -3143,6 +3143,8 @@
       "galleryOpened": "Một khách xem ảnh đã mở bộ sưu tập ảnh “{{eventName}}”",
       "galleryDownloaded": "Một khách xem ảnh đã tải xuống ảnh từ “{{eventName}}”",
       "galleryDownloadedCustomer": "Khách hàng đã tải xuống ảnh từ “{{eventName}}”",
+      "downloadOrderCreated": "Đơn mua thêm {{count}} ảnh của “{{eventName}}” đang chờ bạn duyệt",
+      "downloadOrderCreatedUnlimited": "Đơn mở khoá toàn bộ ảnh của “{{eventName}}” đang chờ bạn duyệt",
       "photoFavorite": "Một ảnh trong “{{eventName}}” đã được yêu thích",
       "systemActivity": "Hoạt động hệ thống: {{type}}",
       "adminProfileUpdated": "Hồ sơ quản trị viên đã được cập nhật bởi {{actorName}}",

@@ -1,6 +1,6 @@
 'use strict';
 
-const { db } = require('../database/db');
+const { db, logActivity } = require('../database/db');
 const { getAppSetting } = require('../utils/appSettings');
 const { resolvePackages } = require('./downloadPackagePricing');
 const { getProfile } = require('./businessProfileService');
@@ -129,6 +129,21 @@ async function createOrder({ eventId, packageId, req, origin = 'client', conn = 
     // `.returning('*')` is not decoration: without it knex hands back no rows on
     // Postgres and the caller is given nothing to show the client.
     const [row] = await conn('download_quota_orders').insert(payload).returning('*');
+
+    // The only automated link in the whole chain. The client now waits for a
+    // human to approve, and the photographer learns there is something to
+    // approve from this notification alone: no reminder email follows it. If it
+    // stops firing, orders sit untouched until they expire and nobody notices.
+    // Deliberately not awaited: a notification failure must not undo an order
+    // the client has already been told was placed.
+    Promise.resolve(logActivity('download_order_created', {
+      package_kind: snapshot.kind,
+      photo_count: snapshot.photo_count,
+      price: snapshot.price,
+      currency: snapshot.currency,
+      origin: payload.origin,
+    }, eventId, actorSnapshot(req))).catch(() => {});
+
     return row;
   } catch (err) {
     if (isPendingClash(err)) throw new PendingOrderExistsError();

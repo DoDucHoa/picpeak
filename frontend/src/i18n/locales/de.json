@@ -3613,6 +3613,8 @@
       "galleryOpened": "Ein Gast hat die Galerie „{{eventName}}“ geöffnet",
       "galleryDownloaded": "Ein Gast hat Fotos aus „{{eventName}}“ heruntergeladen",
       "galleryDownloadedCustomer": "Kunde hat Fotos aus „{{eventName}}“ heruntergeladen",
+      "downloadOrderCreated": "Bestellung über {{count}} weitere Fotos aus „{{eventName}}“ wartet auf Ihre Freigabe",
+      "downloadOrderCreatedUnlimited": "Bestellung zur Freischaltung aller Fotos in „{{eventName}}“ wartet auf Ihre Freigabe",
       "photoFavorite": "Ein Foto in „{{eventName}}“ wurde favorisiert",
       "systemActivity": "Systemaktivität: {{type}}",
       "adminProfileUpdated": "Admin-Profil aktualisiert von {{actorName}}",

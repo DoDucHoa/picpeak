@@ -3,7 +3,7 @@ jest.mock('../../utils/appSettings');
 jest.mock('../downloadPackagePricing');
 jest.mock('../businessProfileService');
 
-const { db } = require('../../database/db');
+const { db, logActivity } = require('../../database/db');
 const { getAppSetting } = require('../../utils/appSettings');
 const { resolvePackages } = require('../downloadPackagePricing');
 const { getProfile } = require('../businessProfileService');
@@ -63,6 +63,30 @@ describe('createOrder', () => {
     expect(payload.requested_photo_count).toBe(20);
     expect(payload.status).toBe('pending');
     expect(payload.origin).toBe('client');
+  });
+
+  // No reminder email follows this notification, so if it stops firing the
+  // photographer never learns an order is waiting and it silently expires.
+  test('tells the photographer an order is waiting, since nothing else will', async () => {
+    mockInsert();
+    await svc.createOrder({ eventId: 7, packageId: 1, req: { accessLevel: 'client' }, origin: 'client' });
+
+    expect(logActivity).toHaveBeenCalledTimes(1);
+    const [type, metadata, eventId] = logActivity.mock.calls[0];
+    expect(type).toBe('download_order_created');
+    expect(eventId).toBe(7);
+    expect(metadata).toEqual(expect.objectContaining({
+      package_kind: 'quantity', photo_count: 20, price: 18, currency: 'EUR',
+    }));
+  });
+
+  test('a failed notification does not undo an order the client was told was placed', async () => {
+    mockInsert();
+    logActivity.mockRejectedValueOnce(new Error('bell service down'));
+
+    await expect(svc.createOrder({
+      eventId: 7, packageId: 1, req: { accessLevel: 'client' }, origin: 'client',
+    })).resolves.toBeDefined();
   });
 
   // The admin route sends 'photographer' for a goodwill grant. An earlier

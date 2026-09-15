@@ -3143,6 +3143,8 @@
       "galleryOpened": "A guest opened the gallery “{{eventName}}”",
       "galleryDownloaded": "A guest downloaded photos from “{{eventName}}”",
       "galleryDownloadedCustomer": "Customer downloaded photos from “{{eventName}}”",
+      "downloadOrderCreated": "Download order for {{count}} more photos from “{{eventName}}” is waiting for your approval",
+      "downloadOrderCreatedUnlimited": "Order to unlock all photos in “{{eventName}}” is waiting for your approval",
       "photoFavorite": "A photo in “{{eventName}}” was favorited",
       "systemActivity": "System activity: {{type}}",
       "adminProfileUpdated": "Admin profile updated by {{actorName}}",

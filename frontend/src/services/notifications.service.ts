@@ -168,6 +168,18 @@ export const notificationsService = {
           ? t('admin.notificationMessages.galleryDownloadedCustomer', { eventName: notification.eventName })
           : t('admin.notificationMessages.galleryDownloaded', { eventName: notification.eventName });
 
+      // A download order waits for a human to approve it and no reminder
+      // follows, so this line is the photographer's only prompt to act.
+      case 'download_order_created':
+        return notification.metadata?.package_kind === 'unlimited'
+          ? t('admin.notificationMessages.downloadOrderCreatedUnlimited', {
+            eventName: notification.eventName,
+          })
+          : t('admin.notificationMessages.downloadOrderCreated', {
+            eventName: notification.eventName,
+            count: notification.metadata?.photo_count,
+          });
+
       // ---- Customer portal (#354) -----------------------------------------
       case 'customer_login':
         return t('admin.notificationMessages.customerLogin', {
@@ -445,6 +457,8 @@ export const notificationsService = {
         return { icon: 'Eye', color: 'text-blue-600' };
       case 'gallery_downloaded':
         return { icon: 'Download', color: 'text-green-600' };
+      case 'download_order_created':
+        return { icon: 'ShoppingCart', color: 'text-amber-600' };
       case 'photo_favorite':
         return { icon: 'Heart', color: 'text-pink-600' };
       default:
