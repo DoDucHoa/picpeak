@@ -35,6 +35,9 @@ import { GuestRecoveryModal } from './GuestRecoveryModal';
 import { PeopleStrip } from './PeopleStrip';
 import { PeopleSheet } from './PeopleSheet';
 import { GuestIdentityProvider } from '../../contexts/GuestIdentityContext';
+import { DownloadedPhotosProvider } from '../../contexts/DownloadedPhotosContext';
+import { DownloadQuotaBadge } from './DownloadQuotaBadge';
+import { useDownloadQuota } from '../../hooks/useDownloadQuota';
 import type { FilterType, FeedbackFilterType } from './GalleryFilter';
 import { analyticsService } from '../../services/analytics.service';
 import { useDevToolsProtection } from '../../hooks/useDevToolsProtection';
@@ -297,6 +300,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   
   // Data updates are handled by React Query
   const downloadAllMutation = useDownloadAllPhotos();
+
+  // Download allowance (#download-quota). One query feeds the header badge,
+  // the delivered marks on the grid and the package offer below.
+  const { quota: downloadQuota, downloadedIds: deliveredPhotoIds } = useDownloadQuota(slug);
 
   // Handle window resize
   useEffect(() => {
@@ -1256,6 +1263,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
   return (
     <GuestIdentityProvider slug={slug} identityMode={identityMode}>
+    <DownloadedPhotosProvider value={deliveredPhotoIds}>
     <>
       <GuestNamePromptModal requireEmail={!!feedbackSettings?.require_name_email} />
       <GuestRecoveryModal />
@@ -1355,7 +1363,13 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
         onHeaderDownload={handleDownloadAll}
         headerExtra={(() => {
           const items = [];
-          
+
+          // Gated here as well as inside the badge: an empty `items` must stay
+          // empty, or every gallery gains a headerExtra wrapper it never had.
+          if (downloadQuota?.enabled) {
+            items.push(<DownloadQuotaBadge key="download-quota" quota={downloadQuota} />);
+          }
+
           if (daysUntilExpiration !== null && daysUntilExpiration <= 1 && daysUntilExpiration > 0 && event.expires_at) {
             items.push(
               <CountdownTimer key="countdown" expiresAt={event.expires_at} className="mr-2" />
@@ -1670,6 +1684,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
         )}
       </GalleryLayout>
     </>
+    </DownloadedPhotosProvider>
     </GuestIdentityProvider>
   );
 };

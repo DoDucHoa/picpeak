@@ -1224,6 +1224,11 @@
     "downloadNow": "Tải xuống",
     "downloadPrepFailed": "Chuẩn bị thất bại",
     "downloadPrepTimeout": "Việc này đang mất nhiều thời gian hơn dự kiến. Vui lòng thử lại.",
+    "downloadQuota": {
+      "remaining": "Còn {{remaining}} trên {{total}} lượt tải",
+      "unlimited": "Tải xuống không giới hạn",
+      "delivered": "Đã tải"
+    },
     "people": {
       "title": "Những người trong bộ sưu tập ảnh này",
       "showAll": "Hiện tất cả {{count}}",
@@ -6978,6 +6983,26 @@
     "saveTemplate": "Lưu mẫu",
     "saved": "Đã lưu mẫu.",
     "saveError": "Không thể lưu mẫu."
+  },
+  "downloadQuotaAdmin": {
+    "card": {
+      "title": "Hạn mức tải ảnh",
+      "loading": "Đang tải hạn mức",
+      "enableLabel": "Tính hạn mức tải cho gallery này",
+      "help": "Khách được tải miễn phí một số ảnh nhất định. Hết hạn mức, khách đặt gói và bạn duyệt tại đây. Để trống một ô nghĩa là kế thừa mặc định hệ thống.",
+      "progress": "Đã giao {{used}} trên {{total}} ảnh",
+      "progressUnlimited": "Đã giao {{used}} ảnh, không giới hạn",
+      "pendingOrder": "Gallery này có đơn đang chờ bạn duyệt.",
+      "freeLimitLabel": "Số ảnh tải miễn phí của gallery này",
+      "freeLimitHelp": "Để trống là kế thừa mặc định hệ thống. Nhập 0 nghĩa là không cho tải miễn phí tấm nào.",
+      "priceLabel": "Giá mỗi ảnh tải thêm ({{currency}})",
+      "priceHelp": "Dùng để tính phần tiết kiệm của gói. Để trống là kế thừa mặc định hệ thống.",
+      "inheritPlaceholder": "Kế thừa {{value}}",
+      "save": "Lưu hạn mức",
+      "saved": "Đã lưu hạn mức tải ảnh.",
+      "saveError": "Không lưu được hạn mức tải ảnh.",
+      "invalidNumber": "Nhập một số nguyên từ 0 trở lên, hoặc để trống để kế thừa mặc định."
+    }
   },
   "eventReminderOverride": {
     "title": "Lời nhắc trước sự kiện",

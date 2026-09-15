@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Download, Maximize2, Check, MessageSquare, Heart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Download, Maximize2, Check, MessageSquare, Heart, CheckCheck } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { AuthenticatedImage } from '../common';
+import { useIsPhotoDelivered } from '../../contexts/DownloadedPhotosContext';
 import { thumbnailUrlForTile } from './imageTiers';
 import { FeedbackIdentityModal } from './FeedbackIdentityModal';
 import { feedbackService } from '../../services/feedback.service';
@@ -115,7 +117,10 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
   afterOverlay,
   children,
 }) => {
+  const { t } = useTranslation();
   const guestIdentity = useGuestIdentityOptional();
+  // Already spent a slot, so re-downloading it costs nothing (#download-quota).
+  const delivered = useIsPhotoDelivered(photo.id);
   const [overlayVisible, setOverlayVisible] = useState(false);
   // #1275 — the input in use right now, not what the device is capable of.
   // On a hybrid the two disagree, and acting on the device's primary pointer
@@ -397,6 +402,22 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
             colorLabel={photo.my_color_label}
             otherColorLabels={photo.other_color_labels}
           />
+
+          {/* Already delivered, so downloading it again is free. Bottom-right
+              is the one corner no layout has claimed: top-left carries the
+              colour label, top-right the selection checkbox, bottom-left the
+              timestamp and media-type chips. */}
+          {delivered && (
+            <span
+              data-testid="photo-delivered-mark"
+              className="absolute bottom-2 right-2 z-10 pointer-events-none flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600/90 shadow"
+            >
+              <CheckCheck className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+              <span className="sr-only">
+                {t('gallery.downloadQuota.delivered', 'Already downloaded')}
+              </span>
+            </span>
+          )}
 
           {beforeOverlay}
 

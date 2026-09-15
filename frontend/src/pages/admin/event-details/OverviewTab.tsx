@@ -5,6 +5,7 @@ import { PermissionGate } from '../../../components/admin/PermissionGate';
 import { EventReminderOverrideCard } from '../../../components/admin/EventReminderOverrideCard';
 import { SlideshowSettingsCard } from '../../../components/admin/SlideshowSettingsCard';
 import { DownloadResolutionCard } from '../../../components/admin/DownloadResolutionCard';
+import { DownloadQuotaCard } from '../../../components/admin/DownloadQuotaCard';
 import { FaceRecognitionCard } from '../../../components/admin/FaceRecognitionCard';
 import { ShortUrlsCard } from '../../../components/admin/ShortUrlsCard';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
@@ -172,6 +173,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             onSaved={() => refetchEvent()}
           />
         )}
+
+        {/* Download allowance (migration 214). Always mounted: the card owns
+            its own on-off switch, and the ledger it reports on survives the
+            feature being switched off, so hiding it would hide history. */}
+        <PermissionGate permissions={['events.view', 'events.edit']}>
+          <DownloadQuotaCard eventId={event.id} />
+        </PermissionGate>
 
         {/* Actions */}
         {!event.is_archived && (

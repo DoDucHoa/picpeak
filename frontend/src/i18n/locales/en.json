@@ -1224,6 +1224,11 @@
     "downloadNow": "Download",
     "downloadPrepFailed": "Preparation failed",
     "downloadPrepTimeout": "This is taking longer than expected. Please try again.",
+    "downloadQuota": {
+      "remaining": "{{remaining}} of {{total}} downloads left",
+      "unlimited": "Unlimited downloads",
+      "delivered": "Already downloaded"
+    },
     "people": {
       "title": "People in this gallery",
       "showAll": "Show all {{count}}",
@@ -6978,6 +6983,26 @@
     "saveTemplate": "Save template",
     "saved": "Template saved.",
     "saveError": "Could not save template."
+  },
+  "downloadQuotaAdmin": {
+    "card": {
+      "title": "Download allowance",
+      "loading": "Loading download allowance",
+      "enableLabel": "Meter downloads for this gallery",
+      "help": "The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.",
+      "progress": "{{used}} of {{total}} photos delivered",
+      "progressUnlimited": "{{used}} photos delivered, no limit",
+      "pendingOrder": "This gallery has an order waiting for your approval.",
+      "freeLimitLabel": "Free downloads for this gallery",
+      "freeLimitHelp": "Empty inherits the system default. Type 0 to grant no free download at all.",
+      "priceLabel": "Price per extra photo ({{currency}})",
+      "priceHelp": "Used to work out what a package saves the client. Empty inherits the system default.",
+      "inheritPlaceholder": "Inherits {{value}}",
+      "save": "Save allowance",
+      "saved": "Download allowance saved.",
+      "saveError": "Could not save the download allowance.",
+      "invalidNumber": "Enter a whole number of zero or more, or leave the field empty to inherit."
+    }
   },
   "eventReminderOverride": {
     "title": "Pre-event reminder",

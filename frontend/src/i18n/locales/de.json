@@ -1726,6 +1726,11 @@
     "downloadNow": "Herunterladen",
     "downloadPrepFailed": "Vorbereitung fehlgeschlagen",
     "downloadPrepTimeout": "Das dauert länger als erwartet. Bitte erneut versuchen.",
+    "downloadQuota": {
+      "remaining": "Noch {{remaining}} von {{total}} Downloads",
+      "unlimited": "Unbegrenzte Downloads",
+      "delivered": "Bereits heruntergeladen"
+    },
     "people": {
       "title": "Personen in dieser Galerie",
       "showAll": "Alle {{count}} anzeigen",
@@ -6979,6 +6984,26 @@
     "saveTemplate": "Vorlage speichern",
     "saved": "Vorlage gespeichert.",
     "saveError": "Vorlage konnte nicht gespeichert werden."
+  },
+  "downloadQuotaAdmin": {
+    "card": {
+      "title": "Download-Kontingent",
+      "loading": "Download-Kontingent wird geladen",
+      "enableLabel": "Downloads für diese Galerie zählen",
+      "help": "Der Kunde lädt eine festgelegte Anzahl Fotos kostenlos herunter. Danach bestellt er ein Paket, das Sie hier freigeben. Ein leeres Feld übernimmt die Systemvorgabe.",
+      "progress": "{{used}} von {{total}} Fotos ausgeliefert",
+      "progressUnlimited": "{{used}} Fotos ausgeliefert, ohne Limit",
+      "pendingOrder": "Für diese Galerie wartet eine Bestellung auf Ihre Freigabe.",
+      "freeLimitLabel": "Kostenlose Downloads für diese Galerie",
+      "freeLimitHelp": "Leer übernimmt die Systemvorgabe. Eine 0 erlaubt keinen einzigen kostenlosen Download.",
+      "priceLabel": "Preis pro zusätzlichem Foto ({{currency}})",
+      "priceHelp": "Dient der Berechnung der Paketersparnis. Leer übernimmt die Systemvorgabe.",
+      "inheritPlaceholder": "Übernimmt {{value}}",
+      "save": "Kontingent speichern",
+      "saved": "Download-Kontingent gespeichert.",
+      "saveError": "Das Download-Kontingent konnte nicht gespeichert werden.",
+      "invalidNumber": "Geben Sie eine ganze Zahl ab 0 ein oder lassen Sie das Feld leer, um die Vorgabe zu übernehmen."
+    }
   },
   "eventReminderOverride": {
     "title": "Erinnerung vor dem Event",
