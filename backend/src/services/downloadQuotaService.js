@@ -94,4 +94,53 @@ async function checkAllowance(eventId, photoIds, conn = db) {
   return { allowed: missingSlots === 0, state, newPhotoIds, missingSlots };
 }
 
-module.exports = { getQuotaState, checkAllowance, getDownloadedPhotoIds, isPayingClient };
+function actorSnapshot(req) {
+  const isCustomer = isPayingClient(req);
+  return { type: isCustomer ? 'customer' : 'guest' };
+}
+
+/**
+ * Called only after the response actually finished, on the set of photos that
+ * really made it into the transfer. A gallery with the feature off writes
+ * nothing, so switching the feature on later starts from an empty ledger and
+ * historical downloads are ignored. Switching it off and on again never clears
+ * what is already there.
+ */
+async function recordDelivered(eventId, photoIds, req, conn = db) {
+  const state = await getQuotaState(eventId, conn);
+  if (!state.enabled) return 0;
+  if (req?.isAdminPreview) return 0;
+  const ids = normaliseIds(photoIds);
+  if (!ids.length) return 0;
+
+  const rows = ids.map((photo_id) => ({
+    event_id: eventId,
+    photo_id,
+    access_level: req?.accessLevel || null,
+    actor: JSON.stringify(actorSnapshot(req)),
+  }));
+  const inserted = await conn('event_photo_downloads')
+    .insert(rows)
+    .onConflict(['event_id', 'photo_id'])
+    .ignore();
+  return Array.isArray(inserted) ? inserted.length : 0;
+}
+
+async function assertDownloadAccess(req, eventId, conn = db) {
+  const state = await getQuotaState(eventId, conn);
+  if (!state.enabled) return { ok: true, state };
+  if (req?.isAdminPreview) return { ok: true, state };
+  if (!isPayingClient(req)) {
+    return { ok: false, status: 403, code: 'DOWNLOAD_NOT_ALLOWED_FOR_GUEST', state };
+  }
+  return { ok: true, state };
+}
+
+module.exports = {
+  getQuotaState,
+  checkAllowance,
+  getDownloadedPhotoIds,
+  isPayingClient,
+  recordDelivered,
+  assertDownloadAccess,
+};
