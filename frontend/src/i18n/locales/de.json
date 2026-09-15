@@ -7099,6 +7099,7 @@
       "nameColumn": "Name für den Kunden",
       "autoName": "Aus Anzahl und Preis erzeugt",
       "savingsColumn": "Ersparnis",
+      "savingsUnknown": "Hier nicht berechnet",
       "remove": "Entfernen",
       "removeAria": "Paket {{n}} entfernen",
       "add": "Paket hinzufügen",

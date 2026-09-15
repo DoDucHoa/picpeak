@@ -242,7 +242,9 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
                     none, which is the case for the global list: it has no per
                     photo price to compare against. */}
                 <span className="text-neutral-700 dark:text-neutral-300">
-                  {row.savingsPercent == null ? '—' : `${row.savingsPercent}%`}
+                  {row.savingsPercent == null
+                    ? t('downloadQuotaAdmin.packages.savingsUnknown', 'Not calculated here')
+                    : `${row.savingsPercent}%`}
                 </span>
               </div>
               <Button

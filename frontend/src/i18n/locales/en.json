@@ -7098,6 +7098,7 @@
       "nameColumn": "Name shown to the client",
       "autoName": "Generated from the count and price",
       "savingsColumn": "Saves",
+      "savingsUnknown": "Not calculated here",
       "remove": "Remove",
       "removeAria": "Remove package {{n}}",
       "add": "Add package",

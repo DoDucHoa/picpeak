@@ -7098,6 +7098,7 @@
       "nameColumn": "Tên hiển thị cho khách",
       "autoName": "Tự sinh từ số lượng và giá",
       "savingsColumn": "Tiết kiệm",
+      "savingsUnknown": "Không tính ở đây",
       "remove": "Xoá",
       "removeAria": "Xoá gói {{n}}",
       "add": "Thêm gói",
