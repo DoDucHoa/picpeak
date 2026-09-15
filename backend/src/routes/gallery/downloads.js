@@ -22,6 +22,8 @@ const {
   parseResolution,
 } = require('../../utils/downloadResolutions');
 const { applyPhotoVisibilityFilter, canSeeHiddenPhotos } = require('../../utils/photoVisibility');
+const { passesQuotaGate, passesWholeGalleryGate } = require('./downloadQuotaGate');
+const { recordDelivered } = require('../../services/downloadQuotaService');
 const {
   getUseOriginalFilenames,
   pickRawDownloadName,
@@ -157,6 +159,10 @@ router.get('/:slug/download/:photoId', verifyGalleryAccess, denySlideshowToken, 
       return res.end();
     }
 
+    // Quota gate, placed below the HEAD branch on purpose: a metadata probe is
+    // not a delivery and must not be refused for want of an allowance.
+    if (!(await passesQuotaGate(req, res, [Number(photoId)]))) return;
+
     // Admin preview (#868) downloads are excluded from the download count +
     // guest analytics — kept out of client-facing stats.
     if (!req.isAdminPreview) {
@@ -178,6 +184,11 @@ router.get('/:slug/download/:photoId', verifyGalleryAccess, denySlideshowToken, 
     // next real one for an hour (codex review of #849).
     res.on('finish', () => {
       if (res.statusCode < 400 && !req.isAdminPreview) notifySinglePhotoDownload(req.event, req);
+      // Charge the allowance only once the transfer actually completed, for the
+      // same reason the notification waits here.
+      if (res.statusCode < 400) {
+        recordDelivered(req.event.id, [Number(photoId)], req).catch(() => {});
+      }
     });
     
     // #493: if the admin enabled "use original filenames", surface the
@@ -415,6 +426,12 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
       return res.status(403).json({ error: 'Downloads are disabled for this gallery' });
     }
 
+    // Quota gate for the whole gallery. Runs before the prebuilt-zip branch
+    // below, which returns early and would otherwise deliver everything without
+    // ever passing a gate.
+    const wholeGallery = await passesWholeGalleryGate(req, res);
+    if (!wholeGallery.ok) return;
+
     // Try to serve pre-generated zip (instant download with Content-Length).
     // Guests may use the prebuilt cache ONLY when the event has no hidden
     // photos: a cache built before a photo was hidden — or before this
@@ -455,6 +472,11 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
         // downloads that then broke mid-transfer (codex review of #849).
         res.on('finish', () => {
           if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'all' }, req.event.id, galleryActor(req));
+          // The prebuilt archive holds exactly the set the gate resolved, so
+          // that is what gets charged.
+          if (res.statusCode < 400 && wholeGallery.photoIds) {
+            recordDelivered(req.event.id, wholeGallery.photoIds, req).catch(() => {});
+          }
         });
       }
       return;
@@ -611,6 +633,11 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     if (!req.isAdminPreview) {
       res.on('finish', () => {
         if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'all' }, req.event.id, galleryActor(req));
+        // appendedIds, not the requested set: a photo whose source was missing
+        // never reached the client and must not be charged.
+        if (res.statusCode < 400 && appendedIds.length > 0) {
+          recordDelivered(req.event.id, appendedIds, req).catch(() => {});
+        }
       });
     }
     if (cancelled) return;
@@ -685,6 +712,11 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     if (photos.length === 0) {
       return res.status(404).json({ error: 'No photos found for selected IDs' });
     }
+
+    // Gate on what this viewer would actually receive, not on what they asked
+    // for: ids filtered out above are never delivered and must not be counted
+    // against the allowance.
+    if (!(await passesQuotaGate(req, res, photos.map((photo) => photo.id)))) return;
 
     // Download resolution (#858). Resolve BEFORE any header goes out — once
     // the archive starts streaming we can no longer return a JSON error.
@@ -792,6 +824,11 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     if (!req.isAdminPreview) {
       res.on('finish', () => {
         if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'selected', photo_count: photoIds.length }, req.event.id, galleryActor(req));
+        // appendedIds, not the requested set: a photo whose source was missing
+        // never reached the client and must not be charged.
+        if (res.statusCode < 400 && appendedIds.length > 0) {
+          recordDelivered(req.event.id, appendedIds, req).catch(() => {});
+        }
       });
     }
     if (selectedCancelled) return;
@@ -854,6 +891,14 @@ router.post('/:slug/download-jobs', verifyGalleryAccess, denySlideshowToken, blo
       if (photoIds.length === 0) {
         return res.status(400).json({ error: 'No valid photo IDs provided' });
       }
+    }
+
+    // Gate at job creation, not at collection: building an archive the client
+    // is not allowed to take would burn minutes of CPU for a guaranteed 402.
+    if (photoIds) {
+      if (!(await passesQuotaGate(req, res, photoIds))) return;
+    } else if (!(await passesWholeGalleryGate(req, res)).ok) {
+      return;
     }
 
     let job;
@@ -959,6 +1004,8 @@ router.get('/:slug/download-jobs/:token/file', verifyGalleryAccess, denySlidesho
       } catch (_) { /* malformed row — skip counting rather than fail */ }
       if (ids.length > 0) {
         db('photos').whereIn('id', ids).increment('download_count', 1).catch(() => {});
+        // Same delivered set the counter above uses, for the same reason.
+        recordDelivered(req.event.id, ids, req).catch(() => {});
       }
       db('access_logs').insert({
         event_id: req.event.id,
