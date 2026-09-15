@@ -37,11 +37,14 @@ import { PeopleSheet } from './PeopleSheet';
 import { GuestIdentityProvider } from '../../contexts/GuestIdentityContext';
 import { DownloadedPhotosProvider } from '../../contexts/DownloadedPhotosContext';
 import { DownloadQuotaBadge } from './DownloadQuotaBadge';
+import { DownloadQuotaDialog } from './DownloadQuotaDialog';
+import { shouldOfferFullPackage, readQuotaExceeded } from './downloadQuotaOffer';
 import { useDownloadQuota } from '../../hooks/useDownloadQuota';
+import type { QuotaExceededPayload } from '../../services/downloadQuota.service';
 import type { FilterType, FeedbackFilterType } from './GalleryFilter';
 import { analyticsService } from '../../services/analytics.service';
 import { useDevToolsProtection } from '../../hooks/useDevToolsProtection';
-import { Upload, Menu, Eye, EyeOff, Shield, X, Download, ChevronLeft } from 'lucide-react';
+import { Upload, Menu, Eye, EyeOff, Shield, X, Download, ChevronLeft, ShoppingBag } from 'lucide-react';
 import { galleryService } from '../../services/gallery.service';
 import { feedbackService, type ColorLabel } from '../../services/feedback.service';
 import { useWatermarkSettings } from '../../hooks/useWatermarkSettings';
@@ -303,7 +306,35 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
   // Download allowance (#download-quota). One query feeds the header badge,
   // the delivered marks on the grid and the package offer below.
-  const { quota: downloadQuota, downloadedIds: deliveredPhotoIds } = useDownloadQuota(slug);
+  const {
+    quota: downloadQuota,
+    downloadedIds: deliveredPhotoIds,
+    packages: downloadPackages,
+    pendingOrder: pendingDownloadOrder,
+    currency: downloadCurrency,
+    refetch: refetchDownloadQuota,
+  } = useDownloadQuota(slug);
+
+  // Open with the 402 body when a download was refused, and with null when the
+  // guest opened the offer themselves from the header.
+  const [quotaOffer, setQuotaOffer] = useState<{ exceeded: QuotaExceededPayload | null } | null>(
+    null,
+  );
+
+  /**
+   * Turns a refused download into the package offer. Returns false for any
+   * other failure so the caller can keep its existing error path: a network
+   * error must never be dressed up as a sales pitch.
+   */
+  const handleDownloadFailure = useCallback(async (error: unknown): Promise<boolean> => {
+    const exceeded = await readQuotaExceeded(error);
+    if (!exceeded) return false;
+    setQuotaOffer({ exceeded });
+    // The refusal carries the server's current counters, so the badge behind
+    // the dialog agrees with the dialog in front of it.
+    refetchDownloadQuota();
+    return true;
+  }, [refetchDownloadQuota]);
 
   // Handle window resize
   useEffect(() => {
@@ -730,6 +761,21 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     ? (data.event.download_resolution.choices || [])
     : [];
 
+  // Photos the gallery has not delivered yet. This, not the gallery size, is
+  // what a "download all" would actually spend: a photo already handed over
+  // costs nothing to take again.
+  const notDeliveredCount = useMemo(() => {
+    if (!data?.photos) return 0;
+    return data.photos.filter((photo) => !deliveredPhotoIds.has(photo.id)).length;
+  }, [data?.photos, deliveredPhotoIds]);
+
+  // Swap the header's download button for the package offer only when the
+  // whole gallery genuinely no longer fits. Comparing the gallery against the
+  // FREE limit instead would keep selling to a client who already bought more.
+  const offerFullPackage =
+    Boolean(downloadQuota?.enabled) &&
+    shouldOfferFullPackage(notDeliveredCount, downloadQuota?.remaining ?? null);
+
   const handleDownloadAll = () => {
     // Prevent downloads if gallery is expired or downloads disabled
     if (!allowDownloads) {
@@ -742,8 +788,11 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       return;
     }
 
-    downloadAllMutation.mutate({ slug, zipReady: data?.event?.download_zip_ready });
-    
+    downloadAllMutation.mutate(
+      { slug, zipReady: data?.event?.download_zip_ready },
+      { onError: (error) => { void handleDownloadFailure(error); } },
+    );
+
     // Track download all action
     analyticsService.trackGalleryEvent('bulk_download', {
       gallery: slug,
@@ -777,10 +826,18 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     });
     
     // Download each selected photo
-    for (const photo of selectedPhotosList) {
-      await galleryService.downloadPhoto(slug, photo.id, photo.filename);
+    try {
+      for (const photo of selectedPhotosList) {
+        await galleryService.downloadPhoto(slug, photo.id, photo.filename);
+      }
+    } catch (error) {
+      // The selection is deliberately left standing on a quota refusal: the
+      // dialog asks the guest to drop photos themselves, which it cannot do
+      // if the selection has already been cleared out from under them.
+      if (await handleDownloadFailure(error)) return;
+      throw error;
     }
-    
+
     // Clear selection after download
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
@@ -817,7 +874,12 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       photo_count: peopleDownloadableIds.length,
     });
 
-    await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
+    try {
+      await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
+    } catch (error) {
+      if (await handleDownloadFailure(error)) return;
+      throw error;
+    }
   };
 
   // Download just the open folder (#1160). The event-wide "download all" still
@@ -865,7 +927,12 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       photo_count: folderDownloadIds.length,
     });
 
-    await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
+    try {
+      await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
+    } catch (error) {
+      if (await handleDownloadFailure(error)) return;
+      throw error;
+    }
   };
 
   // Calculate photo counts per category
@@ -1359,7 +1426,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
             </Button>
           ) : undefined
         }
-        showHeaderDownload={allowDownloads}
+        // `showDownloadAll` above is the OLD header button and is hard-wired
+        // off; this is the live one, so this is the flag the package offer has
+        // to swap (#download-quota).
+        showHeaderDownload={allowDownloads && !offerFullPackage}
         onHeaderDownload={handleDownloadAll}
         headerExtra={(() => {
           const items = [];
@@ -1368,6 +1438,22 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
           // empty, or every gallery gains a headerExtra wrapper it never had.
           if (downloadQuota?.enabled) {
             items.push(<DownloadQuotaBadge key="download-quota" quota={downloadQuota} />);
+          }
+
+          // Replaces the download button rather than joining it, so the guest
+          // is not offered a bulk download the server would refuse outright.
+          if (offerFullPackage && allowDownloads) {
+            items.push(
+              <Button
+                key="download-quota-offer"
+                variant="primary"
+                size="sm"
+                leftIcon={<ShoppingBag className="w-4 h-4" />}
+                onClick={() => setQuotaOffer({ exceeded: null })}
+              >
+                {t('gallery.downloadQuota.getAll', 'Get all photos')}
+              </Button>
+            );
           }
 
           if (daysUntilExpiration !== null && daysUntilExpiration <= 1 && daysUntilExpiration > 0 && event.expires_at) {
@@ -1667,6 +1753,19 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
               setShowResolutionPicker(false);
               setResolutionPickerIds(null);
             }}
+          />
+        )}
+
+        {/* Out of allowance (#download-quota). Raised by a refused download,
+            or opened from the header when the gallery no longer fits. */}
+        {quotaOffer && (
+          <DownloadQuotaDialog
+            slug={slug}
+            exceeded={quotaOffer.exceeded}
+            packages={downloadPackages}
+            currency={downloadCurrency}
+            pendingOrder={pendingDownloadOrder}
+            onClose={() => setQuotaOffer(null)}
           />
         )}
 

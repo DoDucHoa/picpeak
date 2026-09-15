@@ -101,7 +101,11 @@ export const useDownloadAllPhotos = () => {
     onSuccess: () => {
       toast.success('Download started');
     },
-    onError: () => {
+    onError: (error) => {
+      // A download refused for want of allowance is answered by the gallery's
+      // package dialog. A generic failure toast on top of it tells the guest
+      // something went wrong when in fact the server explained itself.
+      if ((error as { response?: { status?: number } })?.response?.status === 402) return;
       toast.error('Failed to download photos');
     },
   });

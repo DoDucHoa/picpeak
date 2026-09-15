@@ -829,6 +829,7 @@
     "settings": "Einstellungen",
     "systemHealth": "Systemzustand",
     "archives": "Archive",
+    "downloadOrders": "Download-Bestellungen",
     "transfers": "PicTransfer",
     "emailSettings": "E-Mail-Einstellungen",
     "branding": "Markenidentität",
@@ -1729,7 +1730,18 @@
     "downloadQuota": {
       "remaining": "Noch {{remaining}} von {{total}} Downloads",
       "unlimited": "Unbegrenzte Downloads",
-      "delivered": "Bereits heruntergeladen"
+      "delivered": "Bereits heruntergeladen",
+      "getAll": "Alle Fotos erhalten",
+      "dialogTitle": "Sie haben Ihr Downloadlimit erreicht",
+      "dialogHint": "Erweitern Sie die Downloads dieser Galerie, oder wählen Sie weniger Fotos aus.",
+      "missingSlots": "{{missing}} mehr, als Ihr Kontingent abdeckt",
+      "adjustSelection": "Auswahl anpassen",
+      "savings": "{{percent}}% sparen",
+      "autoLabelAll": "Alle Fotos",
+      "autoLabelCount_one": "{{count}} Foto",
+      "autoLabelCount_other": "{{count}} Fotos",
+      "pendingTitle": "Ihre Bestellung wartet auf Freigabe",
+      "pendingHint": "Ihre Fotografin oder Ihr Fotograf prüft jede Bestellung persönlich. Melden Sie sich direkt, wenn es eilig ist."
     },
     "people": {
       "title": "Personen in dieser Galerie",

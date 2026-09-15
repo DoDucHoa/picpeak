@@ -826,6 +826,7 @@
     "dashboard": "Bảng điều khiển",
     "events": "Sự kiện",
     "archives": "Lưu trữ",
+    "downloadOrders": "Đơn tải ảnh",
     "transfers": "PicTransfer",
     "messages": "Tin nhắn",
     "settings": "Cài đặt",
@@ -1227,7 +1228,18 @@
     "downloadQuota": {
       "remaining": "Còn {{remaining}} trên {{total}} lượt tải",
       "unlimited": "Tải xuống không giới hạn",
-      "delivered": "Đã tải"
+      "delivered": "Đã tải",
+      "getAll": "Lấy toàn bộ ảnh",
+      "dialogTitle": "Bạn đã dùng hết hạn mức tải",
+      "dialogHint": "Mua thêm lượt tải cho bộ sưu tập này, hoặc quay lại và chọn ít ảnh hơn.",
+      "missingSlots": "Nhiều hơn {{missing}} ảnh so với hạn mức của bạn",
+      "adjustSelection": "Chỉnh lại lựa chọn",
+      "savings": "Tiết kiệm {{percent}}%",
+      "autoLabelAll": "Toàn bộ ảnh",
+      "autoLabelCount_one": "{{count}} ảnh",
+      "autoLabelCount_other": "{{count}} ảnh",
+      "pendingTitle": "Đơn của bạn đang chờ duyệt",
+      "pendingHint": "Nhiếp ảnh gia duyệt từng đơn bằng tay. Hãy liên hệ trực tiếp nếu bạn cần gấp."
     },
     "people": {
       "title": "Những người trong bộ sưu tập ảnh này",
