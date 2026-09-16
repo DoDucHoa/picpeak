@@ -90,7 +90,10 @@ services:
   backend:
     # Use pre-built image from GitHub Container Registry
     # PICPEAK_CHANNEL: 'stable' (default), 'beta', or specific version like 'v2.3.0'
-    image: ghcr.io/picpeak/picpeak/backend:${PICPEAK_CHANNEL:-stable}
+    # PICPEAK_IMAGE_NS: the registry namespace to pull from. Defaults to
+    # upstream so an unmodified .env keeps working; a fork sets it to its own
+    # namespace (see .env.example) to deploy the images its CI builds.
+    image: ${PICPEAK_IMAGE_NS:-ghcr.io/picpeak/picpeak}/backend:${PICPEAK_CHANNEL:-stable}
     container_name: picpeak-backend
     env_file: .env
     environment:
@@ -173,7 +176,7 @@ services:
   # FACE_ML_URL's default. Renaming it breaks that default for every install
   # that never set the variable.
   picpeak-ml:
-    image: ghcr.io/picpeak/picpeak/ml:${PICPEAK_CHANNEL:-stable}
+    image: ${PICPEAK_IMAGE_NS:-ghcr.io/picpeak/picpeak}/ml:${PICPEAK_CHANNEL:-stable}
     container_name: picpeak-ml
     profiles:
       - faces
@@ -198,7 +201,7 @@ services:
   frontend:
     # Use pre-built image from GitHub Container Registry
     # Uses same channel as backend for consistency
-    image: ghcr.io/picpeak/picpeak/frontend:${PICPEAK_CHANNEL:-stable}
+    image: ${PICPEAK_IMAGE_NS:-ghcr.io/picpeak/picpeak}/frontend:${PICPEAK_CHANNEL:-stable}
     container_name: picpeak-frontend
     # Note: Pre-built frontend uses Nginx to proxy /api to backend:3000.
     # Prefer keeping API base as '/api' in builds to avoid CORS.
