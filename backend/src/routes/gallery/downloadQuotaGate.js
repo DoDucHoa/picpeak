@@ -4,31 +4,22 @@ const { db } = require('../../database/db');
 const {
   assertDownloadAccess, reserveSlots, releaseReservation, checkAllowance, getQuotaState,
 } = require('../../services/downloadQuotaService');
-const { applyPhotoVisibilityFilter } = require('../../utils/photoVisibility');
+const { downloadablePhotosQuery } = require('../../utils/photoVisibility');
 const logger = require('../../utils/logger');
 
 /**
  * The ids a "download everything" request would actually deliver to THIS
- * viewer: the same visibility and per-category filter the archive builder
- * applies further down downloads.js.
+ * viewer.
  *
- * It is duplicated rather than shared because the builder needs whole rows and
- * this needs only ids, and because the prebuilt-zip branch returns before the
- * builder's query ever runs. If the filter there changes, change it here too:
- * a mismatch would charge the client for photos they never received.
+ * Shares one query with the archive builder further down downloads.js, because
+ * pricing a download off a different set than the one it delivers charges the
+ * client for photos they never receive. This needs only ids and the builder
+ * needs whole rows, which is exactly why the shared helper hands back a query
+ * rather than its rows.
  */
 async function deliverablePhotoIds(req) {
-  const rows = await applyPhotoVisibilityFilter(
-    db('photos')
-      .leftJoin('photo_categories', 'photos.category_id', 'photo_categories.id')
-      .where('photos.event_id', req.event.id)
-      .where(function () {
-        this.whereNull('photos.category_id')
-          .orWhere('photo_categories.allow_downloads', true)
-          .orWhereNull('photo_categories.allow_downloads');
-      }),
-    req.accessLevel
-  ).select('photos.id');
+  const rows = await downloadablePhotosQuery(req.event.id, req.accessLevel, db)
+    .select('photos.id');
   return rows.map((row) => Number(row.id));
 }
 

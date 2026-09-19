@@ -21,7 +21,9 @@ const {
   pickRequestedResolution,
   parseResolution,
 } = require('../../utils/downloadResolutions');
-const { applyPhotoVisibilityFilter, canSeeHiddenPhotos } = require('../../utils/photoVisibility');
+const {
+  canSeeHiddenPhotos, downloadablePhotosQuery,
+} = require('../../utils/photoVisibility');
 const {
   passesQuotaGate, passesWholeGalleryGate, settleReservation,
 } = require('./downloadQuotaGate');
@@ -502,20 +504,10 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
       );
     }
 
-    // Fetch photos — exclude photos in categories that disabled downloads (#640).
-    // Uncategorised photos are always included; categories without the column
-    // (pre-migration-135) fall through the LEFT JOIN's null and are included.
-    const photos = await applyPhotoVisibilityFilter(
-      db('photos')
-        .leftJoin('photo_categories', 'photos.category_id', 'photo_categories.id')
-        .where('photos.event_id', req.event.id)
-        .where(function () {
-          this.whereNull('photos.category_id')
-            .orWhere('photo_categories.allow_downloads', true)
-            .orWhereNull('photo_categories.allow_downloads');
-        }),
-      req.accessLevel
-    )
+    // The same query the quota gate priced this download with, so the archive
+    // cannot contain a different set than the client was charged for (#640
+    // category rule and the guest visibility rule both live in there).
+    const photos = await downloadablePhotosQuery(req.event.id, req.accessLevel, db)
       .select('photos.*')
       .orderBy('photos.type', 'asc')
       .orderBy('photos.uploaded_at', 'desc');
@@ -699,20 +691,11 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
       return res.status(400).json({ error: 'No valid photo IDs provided' });
     }
 
-    // Fetch photos — exclude photos in categories that disabled downloads (#640).
-    // Same LEFT JOIN pattern as the download-all endpoint.
-    const photos = await applyPhotoVisibilityFilter(
-      db('photos')
-        .leftJoin('photo_categories', 'photos.category_id', 'photo_categories.id')
-        .where('photos.event_id', req.event.id)
-        .whereIn('photos.id', photoIds)
-        .where(function () {
-          this.whereNull('photos.category_id')
-            .orWhere('photo_categories.allow_downloads', true)
-            .orWhereNull('photo_categories.allow_downloads');
-        }),
-      req.accessLevel
-    )
+    // The same deliverable-photos query the whole-gallery paths use, narrowed to
+    // the requested ids. Ids the filter drops here are never charged either: the
+    // gate below prices what this query returned, not what the client asked for.
+    const photos = await downloadablePhotosQuery(req.event.id, req.accessLevel, db)
+      .whereIn('photos.id', photoIds)
       .select('photos.*')
       .orderBy('photos.uploaded_at', 'desc');
 

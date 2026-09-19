@@ -39,8 +39,43 @@ function isPhotoHiddenFromViewer(photo, accessLevel) {
   return !!photo && photo.visibility === 'hidden' && !canSeeHiddenPhotos(accessLevel);
 }
 
+/**
+ * The photos a download would actually deliver to a viewer of this gallery.
+ *
+ * Two rules, and they are easy to get subtly wrong apart from each other. A
+ * photo is excluded when its category has switched downloads off (#640); a
+ * photo with no category, or in a category predating the column, is included,
+ * which is why the join is a LEFT one and why NULL counts as allowed. On top of
+ * that sits the ordinary visibility filter, so a guest never sees a hidden
+ * photo and a client always does.
+ *
+ * It lives here, and returns the query rather than its rows, because the caller
+ * decides what to select: the quota gate prices the download off `photos.id`,
+ * the archive builder fills it off `photos.*` with its own ordering. That is
+ * the whole reason this is one function. It used to be two copies with a
+ * comment between them asking whoever edited one to edit the other, and a
+ * divergence there charges the client for photos they never receive.
+ *
+ * `conn` is a parameter so this module keeps no connection of its own, the same
+ * way the rest of the file takes the query it is given.
+ */
+function downloadablePhotosQuery(eventId, accessLevel, conn) {
+  return applyPhotoVisibilityFilter(
+    conn('photos')
+      .leftJoin('photo_categories', 'photos.category_id', 'photo_categories.id')
+      .where('photos.event_id', eventId)
+      .where(function () {
+        this.whereNull('photos.category_id')
+          .orWhere('photo_categories.allow_downloads', true)
+          .orWhereNull('photo_categories.allow_downloads');
+      }),
+    accessLevel
+  );
+}
+
 module.exports = {
   canSeeHiddenPhotos,
   applyPhotoVisibilityFilter,
   isPhotoHiddenFromViewer,
+  downloadablePhotosQuery,
 };
