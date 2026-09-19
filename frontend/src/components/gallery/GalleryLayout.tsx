@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 import { Button, MarkdownContent, PoweredBy } from '../common';
 import { DynamicFavicon } from '../common/DynamicFavicon';
+import { LanguageSelector } from '../common/LanguageSelector';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGuestIdentityOptional } from '../../contexts/GuestIdentityContext';
 import { buildResourceUrl } from '../../utils/url';
@@ -333,6 +334,14 @@ export const GalleryLayout: React.FC<GalleryLayoutProps> = ({
     <div className="gallery-page min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
       {/* Dynamic Favicon */}
       <DynamicFavicon />
+
+      {/* Floating rather than built into one header variant: this component has
+          four separate header layouts (standard/banner, minimal, none, hero) and
+          a fixed overlay covers all of them without duplicating the button four
+          times. z-50 clears the header's sticky z-40. */}
+      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50">
+        <LanguageSelector />
+      </div>
 
       {/* Header structure */}
       <header className={`gallery-header bg-surface border-b border-surface sticky top-0 z-40 ${isHeroHeader || isBannerHeader ? 'shadow-sm' : ''}`}>

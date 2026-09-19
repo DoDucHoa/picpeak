@@ -7,6 +7,7 @@ import { useLocalizedDate } from '../hooks/useLocalizedDate';
 import { usePublicSettings } from '../hooks/usePublicSettings';
 
 import { Card, CardContent, Input, Button, ReCaptcha, CMSContentBlock, PoweredBy } from '../components/common';
+import { LanguageSelector } from '../components/common/LanguageSelector';
 import { useGalleryAuth, useTheme } from '../contexts';
 import { useGalleryInfo } from '../hooks/useGallery';
 import { GalleryView } from '../components/gallery';
@@ -21,7 +22,7 @@ import { detectInAppBrowser } from '../utils/inAppBrowser';
 export const GalleryPage: React.FC = () => {
   const { slug: rawSlug, token: rawToken } = useParams<{ slug: string; token?: string }>();
   const { isAuthenticated, login, event } = useGalleryAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { format } = useLocalizedDate();
   const { setTheme } = useTheme();
   const [password, setPassword] = useState('');
@@ -126,13 +127,6 @@ export const GalleryPage: React.FC = () => {
   }, [resolvedSlug]);
   
   const { data: settingsData, isLoading: isLoadingSettings } = usePublicSettings();
-  
-  // Set language from admin settings when on login page
-  React.useEffect(() => {
-    if (!isAuthenticated && settingsData?.default_language) {
-      i18n.changeLanguage(settingsData.default_language);
-    }
-  }, [settingsData, isAuthenticated, i18n]);
 
   // Apply theme for gallery (both login page and authenticated view)
   React.useEffect(() => {
@@ -462,7 +456,12 @@ export const GalleryPage: React.FC = () => {
 
   // Show login form
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background, #fafafa)' }}>
+    <div className="relative min-h-screen" style={{ backgroundColor: 'var(--color-background, #fafafa)' }}>
+      {/* Guest's own browser/prior choice governs the language now (i18next-browser-languagedetector),
+          so this is the only place left to override it on purpose. */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+        <LanguageSelector />
+      </div>
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
           {/* Logo/Header. The logo can be hidden per gallery (#894). */}
