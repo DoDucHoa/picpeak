@@ -1772,7 +1772,8 @@
       "searching": "Searching…",
       "noResultsCanCreate": "No matches. Use “Create new customer” to add one.",
       "noResultsNoPermission": "No matches, and your role cannot create customers. Ask an administrator to add this customer."
-    }
+    },
+    "downloadsDisabledNotice": "Downloads are switched off for this gallery, so these settings have no effect. Turn on \"Allow photo downloads\" under Download Protection to use them."
   },
   "settings": {
     "title": "System Settings",
@@ -5187,7 +5188,8 @@
     "setPin": "Set PIN",
     "linkLabel": "Client Access Link",
     "regenerateToken": "Regenerate link",
-    "tokenRegenerated": "Client access link regenerated"
+    "tokenRegenerated": "Client access link regenerated",
+    "linkAfterCreate": "The client access link appears on the event page as soon as the event is created."
   },
   "export": {
     "button": "Export",
@@ -7012,7 +7014,7 @@
     "card": {
       "title": "Download allowance",
       "loading": "Loading download allowance",
-      "enableLabel": "Meter downloads for this gallery",
+      "enableLabel": "Limit downloads for this gallery",
       "help": "The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.",
       "progress": "{{used}} of {{total}} photos delivered",
       "progressUnlimited": "{{used}} photos delivered, no limit",

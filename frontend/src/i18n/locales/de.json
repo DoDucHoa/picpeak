@@ -2274,7 +2274,8 @@
       "searching": "Wird gesucht…",
       "noResultsCanCreate": "Keine Treffer. Legen Sie über „Neuen Kunden anlegen“ einen an.",
       "noResultsNoPermission": "Keine Treffer, und Ihre Rolle darf keine Kunden anlegen. Bitten Sie eine Administratorin oder einen Administrator, diesen Kunden anzulegen."
-    }
+    },
+    "downloadsDisabledNotice": "Downloads sind für diese Galerie ausgeschaltet, diese Einstellungen haben daher keine Wirkung. Aktivieren Sie \"Fotodownloads erlauben\" unter Download-Schutz, um sie zu nutzen."
   },
   "settings": {
     "title": "Systemeinstellungen",
@@ -5015,7 +5016,8 @@
     "setPin": "PIN festlegen",
     "linkLabel": "Kundenzugangs-Link",
     "regenerateToken": "Link neu generieren",
-    "tokenRegenerated": "Kundenzugangs-Link neu generiert"
+    "tokenRegenerated": "Kundenzugangs-Link neu generiert",
+    "linkAfterCreate": "Der Link für den Kundenzugang erscheint auf der Event-Seite, sobald das Event angelegt ist."
   },
   "setup": {
     "title": "Willkommen bei PicPeak",
@@ -7013,7 +7015,7 @@
     "card": {
       "title": "Download-Kontingent",
       "loading": "Download-Kontingent wird geladen",
-      "enableLabel": "Downloads für diese Galerie zählen",
+      "enableLabel": "Download-Limit für diese Galerie aktivieren",
       "help": "Der Kunde lädt eine festgelegte Anzahl Fotos kostenlos herunter. Danach bestellt er ein Paket, das Sie hier freigeben. Ein leeres Feld übernimmt die Systemvorgabe.",
       "progress": "{{used}} von {{total}} Fotos ausgeliefert",
       "progressUnlimited": "{{used}} Fotos ausgeliefert, ohne Limit",

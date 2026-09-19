@@ -1772,7 +1772,8 @@
       "searching": "Đang tìm kiếm…",
       "noResultsCanCreate": "Không có kết quả khớp. Dùng “Tạo khách hàng mới” để thêm khách hàng.",
       "noResultsNoPermission": "Không có kết quả khớp, và vai trò của bạn không thể tạo khách hàng. Hãy nhờ quản trị viên thêm khách hàng này."
-    }
+    },
+    "downloadsDisabledNotice": "Gallery này đang tắt tải ảnh nên các thiết lập ở đây không có tác dụng. Bật \"Allow photo downloads\" trong mục Download Protection để dùng được."
   },
   "settings": {
     "title": "Cài đặt hệ thống",
@@ -5187,7 +5188,8 @@
     "setPin": "Đặt mã PIN",
     "linkLabel": "Liên kết truy cập dành cho khách hàng",
     "regenerateToken": "Tạo lại liên kết",
-    "tokenRegenerated": "Liên kết truy cập dành cho khách hàng đã được tạo lại"
+    "tokenRegenerated": "Liên kết truy cập dành cho khách hàng đã được tạo lại",
+    "linkAfterCreate": "Link truy cập của khách hàng sẽ xuất hiện ở trang chi tiết event ngay sau khi tạo."
   },
   "export": {
     "button": "Xuất",
@@ -7012,7 +7014,7 @@
     "card": {
       "title": "Hạn mức tải ảnh",
       "loading": "Đang tải hạn mức",
-      "enableLabel": "Tính hạn mức tải cho gallery này",
+      "enableLabel": "Giới hạn số lượt tải cho gallery này",
       "help": "Khách được tải miễn phí một số ảnh nhất định. Hết hạn mức, khách đặt gói và bạn duyệt tại đây. Để trống một ô nghĩa là kế thừa mặc định hệ thống.",
       "progress": "Đã giao {{used}} trên {{total}} ảnh",
       "progressUnlimited": "Đã giao {{used}} ảnh, không giới hạn",
