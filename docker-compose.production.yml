@@ -134,6 +134,11 @@ services:
       - ${APP_STORAGE:-./storage}:/app/storage
       - ${LOGS:-./logs}:/app/logs
       - ${APP_DATA:-./data}:/app/data
+      # The application's own backup service writes to backup_destination_path,
+      # which defaults to /backup/picpeak. Without this mount that path lives in
+      # the container's writable layer, so every backup it takes is destroyed by
+      # the next deploy: the feature appears to work and protects nothing.
+      - ${BACKUPS:-./backups}:/backup
       - picpeak-secrets:/run/secrets:ro
     ports:
       - "${BACKEND_PORT:-3001}:3000"
