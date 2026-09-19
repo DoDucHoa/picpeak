@@ -8,7 +8,11 @@ jest.mock('../../src/utils/appSettings', () => ({
   getAppSetting: jest.fn(),
 }));
 jest.mock('../../src/config/storage', () => ({
-  getStoragePath: jest.fn(() => '/app/storage'),
+  // Built for the running platform, not hardcoded POSIX. resolveLogoFile joins
+  // this root with path.join, so on Windows a '/app/storage/...' literal never
+  // equals what it produces, every mocked existsSync lookup misses and the
+  // resolver reads back null: the string was wrong, not the resolver.
+  getStoragePath: jest.fn(() => require('path').join(require('path').sep, 'app', 'storage')),
 }));
 jest.mock('../../src/utils/logger', () => ({
   info: jest.fn(),
@@ -17,8 +21,12 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 const fs = require('fs');
+const path = require('path');
 const { resolveLogoFile } = require('../../src/utils/resolveLogoFile');
 const { getAppSetting } = require('../../src/utils/appSettings');
+
+/** Same root the storage mock above returns, in this platform's separators. */
+const storagePath = (...parts) => path.join(path.sep, 'app', 'storage', ...parts);
 
 describe('resolveLogoFile', () => {
   let existsSpy, statSpy;
@@ -44,36 +52,36 @@ describe('resolveLogoFile', () => {
 
   it('prefers business_profile.logo_path over branding fallbacks', async () => {
     // The profile path exists, branding doesn't.
-    existsSpy.mockImplementation((p) => p === '/app/storage/uploads/logos/profile.png');
+    existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', 'profile.png'));
     getAppSetting.mockResolvedValue('/uploads/logos/branding.png');
     const out = await resolveLogoFile({
       logo_path: 'uploads/logos/profile.png',
     });
-    expect(out).toBe('/app/storage/uploads/logos/profile.png');
+    expect(out).toBe(storagePath('uploads', 'logos', 'profile.png'));
   });
 
   it('falls back to branding_logo_path when profile is empty', async () => {
-    existsSpy.mockImplementation((p) => p === '/app/storage/uploads/logos/branding.png');
+    existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', 'branding.png'));
     getAppSetting.mockImplementation(async (key) => {
-      if (key === 'branding_logo_path') return '/app/storage/uploads/logos/branding.png';
+      if (key === 'branding_logo_path') return storagePath('uploads', 'logos', 'branding.png');
       return null;
     });
     const out = await resolveLogoFile({ logo_path: '' });
-    expect(out).toBe('/app/storage/uploads/logos/branding.png');
+    expect(out).toBe(storagePath('uploads', 'logos', 'branding.png'));
   });
 
   it('falls back to branding_logo_url when branding_logo_path is absent', async () => {
-    existsSpy.mockImplementation((p) => p === '/app/storage/uploads/logos/branding.png');
+    existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', 'branding.png'));
     getAppSetting.mockImplementation(async (key) => {
       if (key === 'branding_logo_url') return '/uploads/logos/branding.png';
       return null;
     });
     const out = await resolveLogoFile({});
-    expect(out).toBe('/app/storage/uploads/logos/branding.png');
+    expect(out).toBe(storagePath('uploads', 'logos', 'branding.png'));
   });
 
   it('skips SVG (PDFKit cannot embed)', async () => {
-    existsSpy.mockImplementation((p) => p === '/app/storage/uploads/logos/logo.svg');
+    existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', 'logo.svg'));
     getAppSetting.mockResolvedValue(null);
     const out = await resolveLogoFile({ logo_path: 'uploads/logos/logo.svg' });
     expect(out).toBeNull();
@@ -83,7 +91,7 @@ describe('resolveLogoFile', () => {
     for (const ext of ['webp', 'gif', 'tif', 'tiff']) {
       existsSpy.mockReturnValue(true);
       statSpy.mockImplementation(() => ({ isFile: () => true }));
-      existsSpy.mockImplementation((p) => p === `/app/storage/uploads/logos/logo.${ext}`);
+      existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', `logo.${ext}`));
       getAppSetting.mockResolvedValue(null);
       const out = await resolveLogoFile({ logo_path: `uploads/logos/logo.${ext}` });
       expect(out).toBeNull();
@@ -92,10 +100,10 @@ describe('resolveLogoFile', () => {
 
   it('accepts PNG and JPEG', async () => {
     for (const ext of ['png', 'jpg', 'jpeg', 'PNG', 'JPG']) {
-      existsSpy.mockImplementation((p) => p === `/app/storage/uploads/logos/logo.${ext}`);
+      existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', `logo.${ext}`));
       getAppSetting.mockResolvedValue(null);
       const out = await resolveLogoFile({ logo_path: `uploads/logos/logo.${ext}` });
-      expect(out).toBe(`/app/storage/uploads/logos/logo.${ext}`);
+      expect(out).toBe(storagePath('uploads', 'logos', `logo.${ext}`));
     }
   });
 
@@ -112,9 +120,9 @@ describe('resolveLogoFile', () => {
   it('still accepts an absolute path INSIDE the storage root', async () => {
     // The legitimate case: multer stores the uploaded logo under
     // storage/uploads/logos with an absolute path — that stays resolvable.
-    existsSpy.mockImplementation((p) => p === '/app/storage/uploads/logos/logo.png');
+    existsSpy.mockImplementation((p) => p === storagePath('uploads', 'logos', 'logo.png'));
     getAppSetting.mockResolvedValue(null);
-    const out = await resolveLogoFile({ logo_path: '/app/storage/uploads/logos/logo.png' });
-    expect(out).toBe('/app/storage/uploads/logos/logo.png');
+    const out = await resolveLogoFile({ logo_path: storagePath('uploads', 'logos', 'logo.png') });
+    expect(out).toBe(storagePath('uploads', 'logos', 'logo.png'));
   });
 });

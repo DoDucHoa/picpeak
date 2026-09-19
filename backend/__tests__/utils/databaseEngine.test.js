@@ -112,8 +112,15 @@ describe('resolveSqlitePath', () => {
   });
 
   test('honours an absolute DATABASE_PATH', () => {
-    process.env.DATABASE_PATH = '/var/lib/picpeak/db.sqlite';
-    expect(resolveSqlitePath()).toBe('/var/lib/picpeak/db.sqlite');
+    // Built for the running platform. A bare '/var/lib/...' is absolute on
+    // Windows too, so the resolver correctly passes it through, but normalising
+    // it there yields backslashes and a hardcoded POSIX expectation fails
+    // against a resolver that did nothing wrong. What the test is actually
+    // about is that an absolute path is used as given, not joined onto the
+    // backend's own data directory, and that holds on either platform.
+    const absolute = path.resolve(path.sep, 'var', 'lib', 'picpeak', 'db.sqlite');
+    process.env.DATABASE_PATH = absolute;
+    expect(resolveSqlitePath()).toBe(absolute);
   });
 });
 

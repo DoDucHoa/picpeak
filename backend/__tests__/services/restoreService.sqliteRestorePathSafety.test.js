@@ -79,26 +79,36 @@ describe('restoreService — sqlite restore path safety (GHSA-xfvx)', () => {
     });
   });
 
+  // The second argument is `resolvedRoots`: the helper resolves the candidate
+  // but takes the roots already resolved, which is what getConfiguredBackupRoots
+  // hands it in production. Passing a bare '/backup' relied on that being its
+  // own resolved form, true on Linux and not on Windows, where the candidate
+  // resolves to a drive-qualified path and can never start with it. Building
+  // both sides the same way keeps the containment rule itself untouched.
   describe('isContainedInRoots', () => {
+    const ROOT = path.resolve(path.sep, 'backup');
+    const OUTSIDE = path.resolve(path.sep, 'etc');
+    const SIBLING = path.resolve(path.sep, 'backup-evil');
+
     it('accepts a path inside a root', () => {
-      expect(_internal.isContainedInRoots('/backup/database/x.sql', ['/backup'])).toBe(true);
+      expect(_internal.isContainedInRoots(path.join(ROOT, 'database', 'x.sql'), [ROOT])).toBe(true);
     });
 
     it('accepts a root path equal to the root itself', () => {
-      expect(_internal.isContainedInRoots('/backup', ['/backup'])).toBe(true);
+      expect(_internal.isContainedInRoots(ROOT, [ROOT])).toBe(true);
     });
 
     it('rejects a path outside every root', () => {
-      expect(_internal.isContainedInRoots('/etc/passwd', ['/backup'])).toBe(false);
+      expect(_internal.isContainedInRoots(path.join(OUTSIDE, 'passwd'), [ROOT])).toBe(false);
     });
 
     it('rejects a sibling directory that merely shares a prefix', () => {
       // '/backup-evil' starts with the string '/backup' but is NOT inside it.
-      expect(_internal.isContainedInRoots('/backup-evil/x.sql', ['/backup'])).toBe(false);
+      expect(_internal.isContainedInRoots(path.join(SIBLING, 'x.sql'), [ROOT])).toBe(false);
     });
 
     it('rejects a `..`-traversal path that resolves outside the root', () => {
-      expect(_internal.isContainedInRoots('/backup/../etc/passwd', ['/backup'])).toBe(false);
+      expect(_internal.isContainedInRoots(path.join(ROOT, '..', 'etc', 'passwd'), [ROOT])).toBe(false);
     });
   });
 

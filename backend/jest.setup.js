@@ -1,3 +1,21 @@
+// Pin the database engine for the whole suite, at module scope so it lands
+// before the test file is evaluated and therefore before anything requires
+// src/database/db, which reads knexfile at module-init time.
+//
+// knexfile calls dotenv.config(), so backend/.env reaches the tests, and the
+// documented local setup sets DATABASE_CLIENT=pg. Without this line the test
+// environment resolves to Postgres and the suites that boot a database run
+// every core migration against the real development database: they abort at
+// CREATE TABLE "migrations" only because that table already exists. It is also
+// why the backend suite looks healthy inside a git worktree and collapses in
+// the main checkout, a worktree having no backend/.env of its own.
+//
+// The Postgres integration suites are unaffected: they build their own knex
+// from PICPEAK_PG_TEST_URL against a throwaway database and never use the
+// application's connection.
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_CLIENT = 'sqlite3';
+
 // Supertest 6 binds an IPv6 wildcard listener but hardcodes an IPv4 URL.
 // macOS can allocate that IPv6 port while a different IPv4 service owns it.
 // Address the listener's actual family so a test cannot reach that service.

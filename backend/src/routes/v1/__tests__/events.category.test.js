@@ -80,7 +80,12 @@ jest.mock('multer', () => {
   const fakeUpload = {
     single: () => (req, _res, next) => {
       req.file = {
-        path: '/tmp/fake-v1-upload.jpg',
+        // os.tmpdir(), not '/tmp': on Windows a bare '/tmp' resolves to the
+        // current drive's 	mp, which does not exist, so the writeFileSync
+        // below threw before the handler ran and the happy path surfaced as a
+        // misleading 500. Computed inline because jest hoists this factory
+        // above every const in the file.
+        path: require('path').join(require('os').tmpdir(), 'fake-v1-upload.jpg'),
         originalname: 'fake.jpg',
         size: 1,
         mimetype: 'image/jpeg',
@@ -127,6 +132,8 @@ jest.mock('../../../services/webhookService', () => ({
 }));
 
 const fsSync = require('fs');
+const os = require('os');
+const nodePath = require('path');
 const { db } = require('../../../database/db');
 const eventsRouter = require('../events');
 
@@ -195,7 +202,7 @@ describe('v1 POST /events/:id/photos — category scoping', () => {
 });
 
 describe('v1 POST /events/:id/photos — happy path (#525)', () => {
-  const FAKE_TMP = '/tmp/fake-v1-upload.jpg';
+  const FAKE_TMP = nodePath.join(os.tmpdir(), 'fake-v1-upload.jpg');
 
   beforeEach(() => {
     jest.clearAllMocks();

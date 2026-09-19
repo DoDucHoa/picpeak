@@ -1,7 +1,14 @@
 const { db } = require('../../database/db');
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
+
+// These cases write real files, so they need a directory that exists. '/tmp' is
+// not one on Windows: Node resolves it to the current drive's 	mp, which is
+// absent, and every write failed with ENOENT long before the code under test
+// was reached.
+const tmpPath = (...parts) => path.join(os.tmpdir(), ...parts);
 
 // Mock dependencies
 jest.mock('../../database/db');
@@ -34,7 +41,7 @@ describe('DatabaseBackupService', () => {
   afterEach(async () => {
     // Cleanup test files
     try {
-      await fs.rmdir('/tmp/test-backup', { recursive: true });
+      await fs.rmdir(tmpPath('test-backup'), { recursive: true });
     } catch (e) {
       // Ignore
     }
@@ -42,7 +49,7 @@ describe('DatabaseBackupService', () => {
 
   describe('calculateChecksum', () => {
     it('should calculate SHA256 checksum of a file', async () => {
-      const testFile = '/tmp/test-checksum.txt';
+      const testFile = tmpPath('test-checksum.txt');
       const testContent = 'Hello, World!';
       await fs.writeFile(testFile, testContent);
 
@@ -61,29 +68,53 @@ describe('DatabaseBackupService', () => {
   });
 
   describe('getTableChecksums', () => {
-    it('should get checksums for all tables', async () => {
-      // Mock getTables
+    // `dbType` is pinned per case instead of being left to the ambient config.
+    // The service reads it from knexfile at construction, so which branch ran
+    // depended on whether the machine had a Postgres .env: this case feeds
+    // SQLite-shaped rows and, on a developer box configured for Postgres, they
+    // went into the Postgres branch, which read `.rows` off a plain array.
+    // Pinning also means both branches are covered everywhere, rather than each
+    // machine silently testing whichever one its config selected.
+    it('builds a checksum per table on SQLite', async () => {
+      service.dbType = 'sqlite';
       service.getTables = jest.fn().mockResolvedValue(['events', 'photos']);
-      
+
       // SQLite has no row-to-text cast, so the query builds its length sum from
-      // the column list — the service asks the query builder for it per table.
+      // the column list: the service asks the query builder for it per table.
       db.mockReturnValue({
         columnInfo: jest.fn().mockResolvedValue({ id: {}, name: {} })
       });
 
-      // Mock SQLite response
       db.raw = jest.fn()
         .mockResolvedValueOnce([{ row_count: 10, data_sum: 1000 }])
         .mockResolvedValueOnce([{ row_count: 20, data_sum: 2000 }]);
-      
+
       const checksums = await service.getTableChecksums();
-      
+
       expect(checksums).toHaveProperty('events');
       expect(checksums).toHaveProperty('photos');
       expect(checksums.events.rowCount).toBe(10);
       expect(checksums.photos.rowCount).toBe(20);
       expect(checksums.events.checksum).toBeDefined();
       expect(checksums.photos.checksum).toBeDefined();
+    });
+
+    it('builds a checksum per table on PostgreSQL', async () => {
+      service.dbType = 'postgresql';
+      service.getTables = jest.fn().mockResolvedValue(['events', 'photos']);
+
+      // Postgres hands back a pg Result, so the rows sit under `.rows` and the
+      // count arrives as a string.
+      db.raw = jest.fn()
+        .mockResolvedValueOnce({ rows: [{ row_count: '10', checksum: 'abc' }] })
+        .mockResolvedValueOnce({ rows: [{ row_count: '20', checksum: null }] });
+
+      const checksums = await service.getTableChecksums();
+
+      expect(checksums.events).toEqual({ rowCount: 10, checksum: 'abc' });
+      // An empty table aggregates to NULL, which has to read as 'empty' rather
+      // than put a null into the backup manifest.
+      expect(checksums.photos).toEqual({ rowCount: 20, checksum: 'empty' });
     });
   });
 
@@ -154,8 +185,8 @@ describe('DatabaseBackupService', () => {
 
   describe('compressFile', () => {
     it('should compress file and return stats', async () => {
-      const testFile = '/tmp/test-compress.txt';
-      const compressedFile = '/tmp/test-compress.txt.gz';
+      const testFile = tmpPath('test-compress.txt');
+      const compressedFile = tmpPath('test-compress.txt.gz');
       
       // Create test file with repetitive content (compresses well)
       const testContent = 'Hello, World! '.repeat(1000);
