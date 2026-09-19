@@ -202,6 +202,12 @@
         "public_site"
       ],
       "reason": "Admin page editing capability/public-site enabled only; no HTML, slugs or traffic."
+    },
+    "downloadQuota": {
+      "signals": [
+        "gallery_downloads_restricted"
+      ],
+      "reason": "Only whether an allowance restricts gallery downloads. No limits, prices, package names, order states or amounts consumed."
     }
   },
   "reviewed_picpeak_base": "a5ff9264 (3.124.1-beta.0)",
@@ -319,6 +325,20 @@
         "DELETE /bank-accounts/:id"
       ]
     },
+    "adminCMS.js": {
+      "decision": "partial",
+      "signals": [
+        "cms_content_editing"
+      ],
+      "reason": "Admin CMS page CRUD only. Public page traffic, slug, HTML, text, links and media excluded.",
+      "route_signatures": [
+        "GET /pages",
+        "GET /pages/:slug",
+        "PUT /pages/:slug",
+        "POST /pages/:slug/logo",
+        "DELETE /pages/:slug/logo"
+      ]
+    },
     "adminCalendar.js": {
       "decision": "partial",
       "signals": [
@@ -347,20 +367,6 @@
         "POST /reorder",
         "DELETE /reorder/:eventId",
         "POST /reorder-global"
-      ]
-    },
-    "adminCMS.js": {
-      "decision": "partial",
-      "signals": [
-        "cms_content_editing"
-      ],
-      "reason": "Admin CMS page CRUD only. Public page traffic, slug, HTML, text, links and media excluded.",
-      "route_signatures": [
-        "GET /pages",
-        "GET /pages/:slug",
-        "PUT /pages/:slug",
-        "POST /pages/:slug/logo",
-        "DELETE /pages/:slug/logo"
       ]
     },
     "adminContracts.js": {
@@ -499,6 +505,27 @@
         "POST /send-test-email"
       ]
     },
+    "adminDownloadQuota.js": {
+      "decision": "configuration",
+      "signals": [
+        "gallery_downloads_restricted"
+      ],
+      "reason": "Only whether a gallery restricts downloads by way of an allowance, which is the same configuration-only fact the events tab already discloses. No free limit, price, package, order, ledger row, photo id or customer is reported, and neither is how much of an allowance has been spent.",
+      "route_signatures": [
+        "GET /events/:id/download-quota",
+        "PUT /events/:id/download-quota",
+        "GET /events/:id/download-ledger",
+        "POST /events/:id/download-orders",
+        "GET /download-orders",
+        "POST /download-orders/:orderId/approve",
+        "POST /download-orders/:orderId/reject",
+        "GET /download-packages",
+        "PUT /download-packages",
+        "GET /events/:id/download-packages",
+        "PUT /events/:id/download-packages",
+        "POST /download-packages/import"
+      ]
+    },
     "adminEmail.js": {
       "decision": "partial",
       "signals": [
@@ -549,6 +576,22 @@
       "route_signatures": [
         "POST /:eventId/rename",
         "POST /:eventId/validate-rename"
+      ]
+    },
+    "adminEventTypes.js": {
+      "decision": "partial",
+      "signals": [
+        "event_type_editing"
+      ],
+      "reason": "Admin event-type CRUD; preset contents/names excluded.",
+      "route_signatures": [
+        "GET /",
+        "GET /active",
+        "GET /:id",
+        "POST /",
+        "PUT /:id",
+        "DELETE /:id",
+        "POST /reorder"
       ]
     },
     "adminEvents/archiveBulk.js": {
@@ -698,22 +741,6 @@
         "POST /:id/slideshow/generate",
         "POST /:id/slideshow/disable",
         "PATCH /:id/slideshow"
-      ]
-    },
-    "adminEventTypes.js": {
-      "decision": "partial",
-      "signals": [
-        "event_type_editing"
-      ],
-      "reason": "Admin event-type CRUD; preset contents/names excluded.",
-      "route_signatures": [
-        "GET /",
-        "GET /active",
-        "GET /:id",
-        "POST /",
-        "PUT /:id",
-        "DELETE /:id",
-        "POST /reorder"
       ]
     },
     "adminExpenses.js": {
@@ -1416,6 +1443,101 @@
       "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
       "route_signatures": []
     },
+    "gallery/downloadQuotaGate.js": {
+      "decision": "composition",
+      "signals": [],
+      "reason": "Router composition / helpers; decisions are recorded for each mounted family.",
+      "route_signatures": []
+    },
+    "gallery/downloads.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/download/:photoId",
+        "GET /:slug/download-all",
+        "POST /:slug/download-selected",
+        "POST /:slug/download-jobs",
+        "GET /:slug/download-jobs/:token",
+        "GET /:slug/download-jobs/:token/file"
+      ]
+    },
+    "gallery/media.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "POST /:slug/photo/:photoId/view",
+        "GET /:slug/photo/:photoId",
+        "GET /:slug/thumbnail/:photoId",
+        "GET /:slug/hero/:photoId",
+        "GET /:slug/preview/:photoId"
+      ]
+    },
+    "gallery/metadata.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /resolve/:identifier",
+        "GET /:slug/verify-token/:token",
+        "GET /:slug/info"
+      ]
+    },
+    "gallery/photos.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/photos",
+        "GET /:slug/people",
+        "PATCH /:slug/photos/:photoId/visibility",
+        "PATCH /:slug/photos/visibility/bulk"
+      ]
+    },
+    "gallery/quota.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/download-quota",
+        "POST /:slug/download-orders"
+      ]
+    },
+    "gallery/slideshow.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/show/:token/session",
+        "GET /:slug/show/:token/state"
+      ]
+    },
+    "gallery/stats.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/stats"
+      ]
+    },
+    "gallery/styles.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "GET /:slug/css-template"
+      ]
+    },
+    "gallery/uploads.js": {
+      "decision": "excluded",
+      "signals": [],
+      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
+      "route_signatures": [
+        "POST /:eventId/upload",
+        "GET /:slug/uploads/status"
+      ]
+    },
     "galleryFeedback.js": {
       "decision": "excluded",
       "signals": [],
@@ -1578,86 +1700,6 @@
         "POST /events/:id/photos",
         "GET /events/:id/share-link",
         "GET /events/:id/photos"
-      ]
-    },
-    "gallery/downloads.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/download/:photoId",
-        "GET /:slug/download-all",
-        "POST /:slug/download-selected",
-        "POST /:slug/download-jobs",
-        "GET /:slug/download-jobs/:token",
-        "GET /:slug/download-jobs/:token/file"
-      ]
-    },
-    "gallery/media.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "POST /:slug/photo/:photoId/view",
-        "GET /:slug/photo/:photoId",
-        "GET /:slug/thumbnail/:photoId",
-        "GET /:slug/hero/:photoId",
-        "GET /:slug/preview/:photoId"
-      ]
-    },
-    "gallery/metadata.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /resolve/:identifier",
-        "GET /:slug/verify-token/:token",
-        "GET /:slug/info"
-      ]
-    },
-    "gallery/photos.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/photos",
-        "GET /:slug/people",
-        "PATCH /:slug/photos/:photoId/visibility",
-        "PATCH /:slug/photos/visibility/bulk"
-      ]
-    },
-    "gallery/slideshow.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/show/:token/session",
-        "GET /:slug/show/:token/state"
-      ]
-    },
-    "gallery/stats.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/stats"
-      ]
-    },
-    "gallery/styles.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/css-template"
-      ]
-    },
-    "gallery/uploads.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "POST /:eventId/upload",
-        "GET /:slug/uploads/status"
       ]
     }
   },

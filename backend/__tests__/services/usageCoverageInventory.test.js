@@ -17,7 +17,11 @@ test('every route family and literal route declaration has an explicit privacy d
       if (entry.isDirectory()) walk(file);
       else if (entry.name.endsWith('.js')) {
         const source = fs.readFileSync(file, 'utf8');
-        actual[path.relative(root, file)] = [...source.matchAll(/router\.(get|post|put|patch|delete)\(\s*(['"])([^'"]+)\2/g)]
+        // Forward slashes, always. The inventory keys are repo-relative paths in
+        // their canonical form; path.relative hands back backslashes on Windows,
+        // so every file in a subdirectory looked absent and eleven documented
+        // families read as undocumented ones.
+        actual[path.relative(root, file).split(path.sep).join('/')] = [...source.matchAll(/router\.(get|post|put|patch|delete)\(\s*(['"])([^'"]+)\2/g)]
           .map((m) => `${m[1].toUpperCase()} ${m[3]}`);
       }
     }

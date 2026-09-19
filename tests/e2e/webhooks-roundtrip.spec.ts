@@ -18,8 +18,11 @@ import crypto from 'crypto';
  *   - Admin credentials in env (ADMIN_EMAIL / ADMIN_PASSWORD)
  */
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@picpeak.local';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+// The same fallback every other spec uses. This file had its own pair, so a
+// developer who seeded the account the rest of the suite expects still watched
+// this one fail to log in, for a reason nothing on screen explained.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin!234';
 const GALLERY_PASSWORD = process.env.GALLERY_PASSWORD || 'PlaywrightGallery123!';
 const RECEIVER_HOST_URL = process.env.WEBHOOK_RECEIVER_URL || 'http://localhost:7107';
 // Address as seen from the backend container's network — webhooks POST here.

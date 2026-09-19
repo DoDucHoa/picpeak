@@ -48,7 +48,13 @@ async function getConfiguredBackupRoots(trustedRoot) {
   } catch (_) {
     // best effort — fall through to whatever roots we already have
   }
-  for (const extra of (process.env.RESTORE_ALLOWED_ROOTS || '').split(':')) {
+  // path.delimiter, not a literal ':'. On Linux the two are the same character,
+  // so nothing about production changes. On Windows a literal ':' splits the
+  // drive letter off every entry, so 'C:\\backups' became the two roots 'C' and
+  // '\\backups', which path.resolve below then turned into <cwd>/C and the
+  // drive root: two directories the operator never allowed, quietly added to an
+  // allowlist whose whole job is to keep a restore inside known ground.
+  for (const extra of (process.env.RESTORE_ALLOWED_ROOTS || '').split(path.delimiter)) {
     if (extra.trim()) roots.push(extra.trim());
   }
   return roots.map((r) => path.resolve(r));

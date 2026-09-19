@@ -24,7 +24,12 @@ const { bootCrmDb, seedMinimal, assignAdminRole, mintAdminToken } = require('../
 const vault = require('../../src/utils/galleryPasswordVault');
 
 const PASSWORD = 'Meadow-Lark-77!';
-const PIN = '4321';
+// Six characters minimum, because client_password has required that since the
+// rule landed in adminEvents/crud.js: client access used to accept a weaker
+// credential than the gallery password guarding the same gallery. This file
+// predates it and still sent a four digit PIN, so every case here died on a
+// 400 from validation before reaching anything about recoverable passwords.
+const PIN = '431295';
 
 describe('recoverable gallery passwords', () => {
   let db; let cleanup; let app; let token; let adminId;
@@ -137,10 +142,12 @@ describe('recoverable gallery passwords', () => {
     });
 
     it('editing the client PIN and the gallery password updates the copies', async () => {
-      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ client_password: '9999', password: 'Quiet-River-33!' });
+      // Same six character rule as on create: the update route declares the
+      // identical validator chain.
+      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ client_password: '999917', password: 'Quiet-River-33!' });
       expect(res.status).toBe(200);
       const row = await stored(id);
-      expect(vault.decryptPassword(row.client_password_recoverable)).toBe('9999');
+      expect(vault.decryptPassword(row.client_password_recoverable)).toBe('999917');
       expect(vault.decryptPassword(row.password_recoverable)).toBe('Quiet-River-33!');
     });
 

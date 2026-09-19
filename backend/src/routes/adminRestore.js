@@ -781,7 +781,8 @@ async function getBackupConfig() {
  * (`backup_destination_path` + `backup_manifest_path`), so the disaster-
  * recovery flow is untouched: an operator restoring from a rescued mount
  * already has to point those settings at it for the backup to be listed.
- * RESTORE_ALLOWED_ROOTS (colon-separated) is an escape hatch for unusual
+ * RESTORE_ALLOWED_ROOTS (separated by the platform's path delimiter, so a
+ * colon on Linux) is an escape hatch for unusual
  * layouts. S3 sources are URLs, not paths, and are validated elsewhere.
  *
  * @returns {Promise<string|null>} an error message, or null when acceptable
@@ -806,7 +807,13 @@ async function checkRestorePathsAllowed({ source, manifestPath }) {
   const roots = [];
   if (config.backup_destination_path) roots.push(config.backup_destination_path);
   if (config.backup_manifest_path) roots.push(config.backup_manifest_path);
-  for (const extra of (process.env.RESTORE_ALLOWED_ROOTS || '').split(':')) {
+  // path.delimiter, not a literal ':'. On Linux the two are the same character,
+  // so nothing about production changes. On Windows a literal ':' splits the
+  // drive letter off every entry, so 'C:\\backups' became the two roots 'C' and
+  // '\\backups', which path.resolve below then turned into <cwd>/C and the
+  // drive root: two directories the operator never allowed, quietly added to an
+  // allowlist whose whole job is to keep a restore inside known ground.
+  for (const extra of (process.env.RESTORE_ALLOWED_ROOTS || '').split(path.delimiter)) {
     if (extra.trim()) roots.push(extra.trim());
   }
   if (roots.length === 0) {
