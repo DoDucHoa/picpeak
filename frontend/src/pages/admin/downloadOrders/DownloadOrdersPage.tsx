@@ -226,7 +226,8 @@ export const DownloadOrdersPage: React.FC = () => {
                     <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
                       {packageLabel(order)}
                       {order.package_snapshot ? (
-                        <span className="ml-2 text-neutral-500 dark:text-neutral-400">
+                        <span className="text-neutral-500 dark:text-neutral-400">
+                          {' · '}
                           {`${order.package_snapshot.price} ${order.package_snapshot.currency}`}
                         </span>
                       ) : null}
