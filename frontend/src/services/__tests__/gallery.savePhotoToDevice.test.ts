@@ -169,3 +169,68 @@ describe('galleryService.savePhotoToDevice — iOS gating (#554)', () => {
     expect(galleryService.triggerBrowserDownload).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('galleryService.savePhotoToDevice — quotaAware (download-quota bug fix)', () => {
+  // A direct `<a download>` navigation is a browser-native fetch: JS never
+  // sees the response, so a 402/403 the quota gate returns still "succeeds"
+  // as a download of the JSON error body. `quotaAware: true` routes even a
+  // non-iOS viewer through the observable blob path instead, so a refusal
+  // can be caught and handled rather than silently downloaded.
+  beforeEach(async () => {
+    vi.resetModules();
+    galleryService = (await import('../gallery.service')).galleryService;
+
+    vi.spyOn(galleryService, 'fetchPhotoBlob').mockResolvedValue(fetchedBlob as any);
+    vi.spyOn(galleryService, 'triggerBrowserDownload').mockImplementation(() => undefined);
+    vi.spyOn(galleryService, 'triggerDirectDownload').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (navigator as any).share;
+    delete (navigator as any).canShare;
+  });
+
+  it('uses the blob path on desktop when quotaAware is true, instead of the fast direct-nav path', async () => {
+    installNavigator({ userAgent: DESKTOP_UA });
+
+    await galleryService.savePhotoToDevice('slug', 5, 'fallback.jpg', { quotaAware: true });
+
+    expect(galleryService.fetchPhotoBlob).toHaveBeenCalledWith('slug', 5);
+    expect(galleryService.triggerBrowserDownload).toHaveBeenCalledTimes(1);
+    expect(galleryService.triggerDirectDownload).not.toHaveBeenCalled();
+  });
+
+  it('lets a refusal from the blob path propagate instead of swallowing it', async () => {
+    installNavigator({ userAgent: DESKTOP_UA });
+    const refusal = Object.assign(new Error('quota exceeded'), {
+      response: { status: 402, data: { code: 'DOWNLOAD_QUOTA_EXCEEDED' } },
+    });
+    (galleryService.fetchPhotoBlob as any).mockRejectedValue(refusal);
+
+    await expect(
+      galleryService.savePhotoToDevice('slug', 5, 'fallback.jpg', { quotaAware: true }),
+    ).rejects.toBe(refusal);
+    expect(galleryService.triggerBrowserDownload).not.toHaveBeenCalled();
+  });
+
+  it('still takes the fast direct-nav path when quotaAware is false/omitted (unaffected galleries)', async () => {
+    installNavigator({ userAgent: DESKTOP_UA });
+
+    await galleryService.savePhotoToDevice('slug', 5, 'fallback.jpg');
+
+    expect(galleryService.fetchPhotoBlob).not.toHaveBeenCalled();
+    expect(galleryService.triggerDirectDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps iOS on the Web Share path even when quotaAware is true', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn().mockReturnValue(true);
+    installNavigator({ userAgent: IOS_UA, share, canShare });
+
+    await galleryService.savePhotoToDevice('slug', 5, 'fallback.jpg', { quotaAware: true });
+
+    expect(share).toHaveBeenCalledTimes(1);
+    expect(galleryService.triggerBrowserDownload).not.toHaveBeenCalled();
+  });
+});

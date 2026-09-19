@@ -309,7 +309,7 @@ const PhotoThumbnail: React.FC<PhotoThumbnailProps> = ({
                     e.stopPropagation();
                     onClick(e);
                   }}
-                  aria-label="View full size"
+                  aria-label={t('gallery.viewFullSize', 'View full size')}
                 >
                   <Maximize2 className="w-5 h-5 text-theme" />
                 </button>
@@ -322,7 +322,7 @@ const PhotoThumbnail: React.FC<PhotoThumbnailProps> = ({
                       e.stopPropagation();
                       onDownload(e);
                     }}
-                    aria-label="Download photo"
+                    aria-label={t('gallery.downloadPhoto', 'Download photo')}
                   >
                     <Download className="w-5 h-5 text-theme" />
                   </button>

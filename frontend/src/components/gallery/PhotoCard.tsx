@@ -433,7 +433,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                     onClick(e);
                     hideOverlay();
                   }}
-                  aria-label="View full size"
+                  aria-label={t('gallery.viewFullSize', 'View full size')}
                 >
                   <Maximize2 className={actionIconClass} />
                 </button>
@@ -446,7 +446,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                       onDownload(e);
                       hideOverlay();
                     }}
-                    aria-label="Download photo"
+                    aria-label={t('gallery.downloadPhoto', 'Download photo')}
                   >
                     <Download className={actionIconClass} />
                   </button>

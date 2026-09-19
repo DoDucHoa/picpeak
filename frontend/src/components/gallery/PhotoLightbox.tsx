@@ -15,6 +15,8 @@ import { FeedbackIdentityModal } from './FeedbackIdentityModal';
 import { VideoPlayer } from './VideoPlayer';
 import { useGuestIdentityOptional } from '../../contexts/GuestIdentityContext';
 import { useFeedbackLimitModal } from '../../hooks/useFeedbackLimitModal';
+import { useDownloadGate } from '../../contexts/DownloadGateContext';
+import { canDownloadPhotoNow } from './downloadQuotaOffer';
 
 interface PhotoLightboxProps {
   photos: Photo[];
@@ -167,6 +169,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   // otherwise have to chain Files → unzip → save (#531). Desktop and
   // unsupported browsers fall through to a regular <a download>.
   const downloadPhotoMutation = useSavePhotoToDevice();
+  const downloadGate = useDownloadGate();
   // Fall back to the last photo when the list shrinks under us: clearing
   // your rating under the "Rated" feedback filter (#884) — like unliking
   // under "Likes" — refetches the gallery and can drop the current photo,
@@ -565,11 +568,31 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
 
   const handleDownload = () => {
     if (!photoAllowsDownload) return;
-    downloadPhotoMutation.mutate({
-      slug,
-      photoId: currentPhoto.id,
-      filename: currentPhoto.filename,
-    });
+
+    if (!canDownloadPhotoNow(
+      currentPhoto.id,
+      downloadGate.quotaEnabled,
+      downloadGate.isClient,
+      downloadGate.remaining,
+      downloadGate.downloadedIds,
+    )) {
+      if (downloadGate.isClient) {
+        downloadGate.offerForBlockedDownload();
+      } else {
+        downloadGate.notifyGuestBlocked();
+      }
+      return;
+    }
+
+    downloadPhotoMutation.mutate(
+      {
+        slug,
+        photoId: currentPhoto.id,
+        filename: currentPhoto.filename,
+        quotaAware: downloadGate.quotaEnabled,
+      },
+      { onError: (error) => { void downloadGate.reportDownloadFailure(error); } },
+    );
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {

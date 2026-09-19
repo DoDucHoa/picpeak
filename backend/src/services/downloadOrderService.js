@@ -90,7 +90,7 @@ function freezePackage(pkg, currency) {
   };
 }
 
-async function createOrder({ eventId, packageId, req, origin = 'client', conn = db }) {
+async function createOrder({ eventId, packageId, req, origin = 'client', reason, conn = db }) {
   const packages = await resolvePackages(eventId, conn);
   const pkg = (packages || []).find((p) => Number(p.id) === Number(packageId));
   if (!pkg) throw new UnknownPackageError();
@@ -116,6 +116,10 @@ async function createOrder({ eventId, packageId, req, origin = 'client', conn = 
     // column exists: a goodwill allowance has to stay distinguishable from
     // something the client ordered and is expected to pay for.
     origin: origin === 'photographer' ? 'photographer' : 'client',
+    // Reused from the rejection column: a client order never sets it here, but
+    // a photographer's goodwill grant is worth a note for whoever reviews the
+    // order list later, and the list already renders `reason` when present.
+    reason: typeof reason === 'string' && reason.trim() ? reason.trim() : null,
     actor: JSON.stringify(actorSnapshot(req)),
     expires_at: new Date(now.getTime() + expiryDays * DAY_MS),
     created_at: now,

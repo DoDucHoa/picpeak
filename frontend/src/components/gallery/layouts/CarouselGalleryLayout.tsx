@@ -1,5 +1,6 @@
 import { usePhotoSelection } from '../../../hooks/usePhotoSelection';
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, Maximize2, Play, Pause, Heart, MessageSquare } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { AuthenticatedImage, Button } from '../../common';
@@ -19,6 +20,7 @@ export const CarouselGalleryLayout: React.FC<BaseGalleryLayoutProps> = ({
   feedbackEnabled = false,
   feedbackOptions
 }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { currentPhoto, currentIndex, setCurrentIndex } = usePhotoSelection(photos);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -160,7 +162,7 @@ export const CarouselGalleryLayout: React.FC<BaseGalleryLayoutProps> = ({
                 size="sm"
                 onClick={(e) => onDownload(currentPhoto, e)}
                 className="text-white hover:bg-white/20"
-                title="Download photo"
+                title={t('gallery.downloadPhoto', 'Download photo')}
               >
                 <Download className="w-5 h-5" />
               </Button>

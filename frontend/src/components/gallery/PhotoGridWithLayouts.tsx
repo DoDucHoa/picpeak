@@ -11,6 +11,8 @@ import { Button } from '../common';
 import { galleryService } from '../../services/gallery.service';
 import { analyticsService } from '../../services/analytics.service';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDownloadGate } from '../../contexts/DownloadGateContext';
+import { canDownloadPhotoNow } from './downloadQuotaOffer';
 
 // Import all layouts
 import {
@@ -149,7 +151,8 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
   // Non-null while the resolution picker is open (#858); holds the ids it applies to.
   const [resolutionPickerIds, setResolutionPickerIds] = useState<number[] | null>(null);
   const downloadPhotoMutation = useDownloadPhoto();
-  
+  const downloadGate = useDownloadGate();
+
   // Use parent state if provided, otherwise use local state
   const selectedPhotos = parentSelectedPhotos ?? localSelectedPhotos;
   const isSelectionMode = parentSelectionMode ?? localSelectionMode;
@@ -191,15 +194,32 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
 
   const handleDownload = (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
+    // Ask the same question the header's bulk button already answers before
+    // ever hitting the network: a guest, or a client with nothing left, would
+    // only get refused — show the offer/notice for it directly instead.
+    if (!canDownloadPhotoNow(
+      photo.id,
+      downloadGate.quotaEnabled,
+      downloadGate.isClient,
+      downloadGate.remaining,
+      downloadGate.downloadedIds,
+    )) {
+      if (downloadGate.isClient) {
+        downloadGate.offerForBlockedDownload();
+      } else {
+        downloadGate.notifyGuestBlocked();
+      }
+      return;
+    }
+
     // Track individual photo download
     analyticsService.trackDownload(photo.id, slug, false);
-    
-    downloadPhotoMutation.mutate({
-      slug,
-      photoId: photo.id,
-      filename: photo.filename,
-    });
+
+    downloadPhotoMutation.mutate(
+      { slug, photoId: photo.id, filename: photo.filename },
+      { onError: (error) => { void downloadGate.reportDownloadFailure(error); } },
+    );
   };
 
 

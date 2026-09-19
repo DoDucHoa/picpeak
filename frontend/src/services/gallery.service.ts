@@ -158,8 +158,22 @@ export const galleryService = {
   // feedback, prompting users to re-click and produce duplicate
   // downloads (#554 follow-up). Direct navigation eliminates the
   // latency outright rather than masking it with a spinner.
-  async savePhotoToDevice(slug: string, photoId: number, filename: string): Promise<void> {
-    if (!isIOS()) {
+  //
+  // `quotaAware` opts out of that fast path. A direct `<a download>`
+  // navigation is a browser-native fetch: JS never sees the response, so a
+  // 402/403 the download-quota gate returns still "succeeds" as a download of
+  // the JSON error body. Every gallery with the allowance switched on passes
+  // `quotaAware: true` and gets the observable, error-handleable blob path
+  // instead — the ~5s-latency fix stays exactly where it was aimed, on
+  // galleries that never enabled the feature.
+  async savePhotoToDevice(
+    slug: string,
+    photoId: number,
+    filename: string,
+    options?: { quotaAware?: boolean },
+  ): Promise<void> {
+    const ios = isIOS();
+    if (!ios && !options?.quotaAware) {
       this.triggerDirectDownload(
         withAdminPreview(api.getUri({ url: `/gallery/${slug}/download/${photoId}` })),
         filename,
@@ -170,28 +184,30 @@ export const galleryService = {
     const fetched = await this.fetchPhotoBlob(slug, photoId);
     const resolvedFilename = fetched.serverFilename || filename;
 
-    // canShare() returns false on browsers without Web Share file
-    // support. Probe with a representative File so the negotiation
-    // is accurate — `canShare({ files: [] })` returns true on some
-    // browsers that don't actually accept files at share() time.
-    const file = new File([fetched.blob], resolvedFilename, {
-      type: fetched.blob.type || 'image/jpeg',
-    });
-    const canShareFile =
-      typeof navigator !== 'undefined' &&
-      typeof navigator.canShare === 'function' &&
-      navigator.canShare({ files: [file] });
+    if (ios) {
+      // canShare() returns false on browsers without Web Share file
+      // support. Probe with a representative File so the negotiation
+      // is accurate — `canShare({ files: [] })` returns true on some
+      // browsers that don't actually accept files at share() time.
+      const file = new File([fetched.blob], resolvedFilename, {
+        type: fetched.blob.type || 'image/jpeg',
+      });
+      const canShareFile =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [file] });
 
-    if (canShareFile) {
-      try {
-        await navigator.share({ files: [file], title: resolvedFilename });
-        return;
-      } catch (err) {
-        // AbortError = user dismissed the share sheet. Don't fall back —
-        // they made a choice. Any other failure (NotAllowedError,
-        // DataError, etc.) is unexpected; surface a download instead so
-        // the user still gets the file.
-        if ((err as DOMException)?.name === 'AbortError') return;
+      if (canShareFile) {
+        try {
+          await navigator.share({ files: [file], title: resolvedFilename });
+          return;
+        } catch (err) {
+          // AbortError = user dismissed the share sheet. Don't fall back —
+          // they made a choice. Any other failure (NotAllowedError,
+          // DataError, etc.) is unexpected; surface a download instead so
+          // the user still gets the file.
+          if ((err as DOMException)?.name === 'AbortError') return;
+        }
       }
     }
 
@@ -222,11 +238,21 @@ export const galleryService = {
         responseType: 'blob',
       });
       return readResponse(response);
-    } catch {
+    } catch (error) {
       // Fallback: view endpoint when /download isn't available (e.g.
       // the original is missing and only a derivative remains). The
       // view endpoint doesn't emit a download-oriented Content-Disposition,
       // so serverFilename will be null and the caller's name wins.
+      //
+      // Only a 404 means "no original to deliver" — that's the one case this
+      // fallback exists for. A 403 (guest, or downloads disabled) or a 402
+      // (quota exceeded) is a refusal the caller must see and act on, not a
+      // missing file: silently substituting the view endpoint here would hand
+      // the guest a watermarked copy neither permission check nor the
+      // allowance ever cleared.
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status !== 404) throw error;
+
       const response = await api.get<Blob>(`/gallery/${slug}/photo/${photoId}`, {
         responseType: 'blob',
       });
