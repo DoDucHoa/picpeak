@@ -1,6 +1,13 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { galleryService } from '../services';
 import { toast } from 'react-toastify';
+import { downloadQuotaKey } from './useDownloadQuota';
+
+/** A refusal handled at the call site (quota dialog / "clients only" toast) shouldn't also get a generic failure toast. */
+function isHandledElsewhere(error: unknown): boolean {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  return status === 402 || status === 403;
+}
 
 export const useGalleryInfo = (slug?: string, token?: string, enabled: boolean = true) => {
   return useQuery({
@@ -46,6 +53,7 @@ export const useGalleryStats = (slug: string, enabled: boolean = true) => {
 };
 
 export const useDownloadPhoto = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       slug,
@@ -56,10 +64,19 @@ export const useDownloadPhoto = () => {
       photoId: number;
       filename: string;
     }) => galleryService.downloadPhoto(slug, photoId, filename),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success('Photo downloaded successfully');
+      // Refreshes the remaining-allowance badge and the "Already downloaded"
+      // mark, which the server already has right after this resolves —
+      // without this the guest only sees either update after a manual reload.
+      queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
     },
-    onError: () => {
+    onError: (error) => {
+      // A refusal for role or allowance is answered at the call site (the
+      // quota dialog, or a "clients only" toast) — a generic failure message
+      // on top of it would tell the guest something went wrong when in fact
+      // the server explained itself.
+      if (isHandledElsewhere(error)) return;
       toast.error('Failed to download photo');
     },
   });
@@ -78,17 +95,28 @@ export const useDownloadPhoto = () => {
 // to keep the two paths symmetrical; the file appearing in Downloads
 // is its own affordance.
 export const useSavePhotoToDevice = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       slug,
       photoId,
       filename,
+      quotaAware,
     }: {
       slug: string;
       photoId: number;
       filename: string;
-    }) => galleryService.savePhotoToDevice(slug, photoId, filename),
-    onError: () => {
+      /** Route through the observable blob path instead of a raw browser
+       *  navigation — pass true whenever the gallery has the download-quota
+       *  feature on, so a 402/403 can be caught instead of silently
+       *  "succeeding" as a download of the error body. */
+      quotaAware?: boolean;
+    }) => galleryService.savePhotoToDevice(slug, photoId, filename, { quotaAware }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
+    },
+    onError: (error) => {
+      if (isHandledElsewhere(error)) return;
       toast.error('Failed to save photo');
     },
   });

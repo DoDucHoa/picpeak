@@ -36,9 +36,11 @@ import { PeopleStrip } from './PeopleStrip';
 import { PeopleSheet } from './PeopleSheet';
 import { GuestIdentityProvider } from '../../contexts/GuestIdentityContext';
 import { DownloadedPhotosProvider } from '../../contexts/DownloadedPhotosContext';
+import { DownloadGateProvider } from '../../contexts/DownloadGateContext';
 import { DownloadQuotaBadge } from './DownloadQuotaBadge';
 import { DownloadQuotaDialog } from './DownloadQuotaDialog';
-import { shouldOfferFullPackage, readQuotaExceeded } from './downloadQuotaOffer';
+import { shouldOfferFullPackage, classifyDownloadRefusal } from './downloadQuotaOffer';
+import { toast } from 'react-toastify';
 import { useDownloadQuota } from '../../hooks/useDownloadQuota';
 import type { QuotaExceededPayload } from '../../services/downloadQuota.service';
 import type { FilterType, FeedbackFilterType } from './GalleryFilter';
@@ -321,20 +323,68 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     null,
   );
 
+  const notifyGuestBlocked = useCallback(() => {
+    toast.error(
+      t(
+        'gallery.downloadQuota.guestBlocked',
+        'Only registered clients can download photos from this gallery.',
+      ),
+    );
+  }, [t]);
+
   /**
-   * Turns a refused download into the package offer. Returns false for any
-   * other failure so the caller can keep its existing error path: a network
-   * error must never be dressed up as a sales pitch.
+   * Turns a refused download into the package offer, or a "clients only"
+   * notice for a guest the server caught. Returns false for any other
+   * failure so the caller can keep its existing error path: a network error
+   * must never be dressed up as a sales pitch.
    */
   const handleDownloadFailure = useCallback(async (error: unknown): Promise<boolean> => {
-    const exceeded = await readQuotaExceeded(error);
-    if (!exceeded) return false;
-    setQuotaOffer({ exceeded });
+    const refusal = await classifyDownloadRefusal(error);
+    if (!refusal) return false;
+    if (refusal.kind === 'guest') {
+      notifyGuestBlocked();
+      return true;
+    }
+    setQuotaOffer({ exceeded: refusal.payload });
     // The refusal carries the server's current counters, so the badge behind
     // the dialog agrees with the dialog in front of it.
     refetchDownloadQuota();
     return true;
-  }, [refetchDownloadQuota]);
+  }, [refetchDownloadQuota, notifyGuestBlocked]);
+
+  const offerForBlockedDownload = useCallback(() => {
+    // A single not-yet-delivered photo against an exhausted allowance always
+    // costs exactly one slot — the same arithmetic the server's quota gate
+    // would have done, just without the round trip.
+    setQuotaOffer({
+      exceeded: {
+        code: 'DOWNLOAD_QUOTA_EXCEEDED',
+        quota: {
+          total: downloadQuota?.total ?? null,
+          used: downloadQuota?.used ?? 0,
+          remaining: downloadQuota?.remaining ?? 0,
+        },
+        requested_new: 1,
+        missing_slots: 1,
+      },
+    });
+  }, [downloadQuota?.total, downloadQuota?.used, downloadQuota?.remaining]);
+
+  // Fed to every per-photo download button (grid, premium layout, lightbox)
+  // through context so none of them need quota state threaded in as props.
+  const downloadGate = useMemo(() => ({
+    quotaEnabled: Boolean(downloadQuota?.enabled),
+    isClient,
+    remaining: downloadQuota?.remaining ?? null,
+    downloadedIds: deliveredPhotoIds,
+    openQuotaOffer: (exceeded: QuotaExceededPayload | null) => setQuotaOffer({ exceeded }),
+    offerForBlockedDownload,
+    notifyGuestBlocked,
+    reportDownloadFailure: handleDownloadFailure,
+  }), [
+    downloadQuota?.enabled, downloadQuota?.remaining, isClient, deliveredPhotoIds,
+    offerForBlockedDownload, notifyGuestBlocked, handleDownloadFailure,
+  ]);
 
   // Handle window resize
   useEffect(() => {
@@ -1331,6 +1381,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   return (
     <GuestIdentityProvider slug={slug} identityMode={identityMode}>
     <DownloadedPhotosProvider value={deliveredPhotoIds}>
+    <DownloadGateProvider value={downloadGate}>
     <>
       <GuestNamePromptModal requireEmail={!!feedbackSettings?.require_name_email} />
       <GuestRecoveryModal />
@@ -1783,6 +1834,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
         )}
       </GalleryLayout>
     </>
+    </DownloadGateProvider>
     </DownloadedPhotosProvider>
     </GuestIdentityProvider>
   );

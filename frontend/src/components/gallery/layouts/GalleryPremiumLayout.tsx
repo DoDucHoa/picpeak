@@ -30,6 +30,8 @@ import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { useDownloadPhoto } from '../../../hooks/useGallery';
 import { toast } from 'react-toastify';
+import { useDownloadGate } from '../../../contexts/DownloadGateContext';
+import { canDownloadPhotoNow } from '../downloadQuotaOffer';
 
 import './GalleryPremiumLayout.css';
 import { lightboxImageUrl } from '../imageTiers';
@@ -219,6 +221,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
   void _onDownload;
   const { t } = useTranslation();
   const downloadPhotoMutation = useDownloadPhoto();
+  const downloadGate = useDownloadGate();
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   // The delivered preview can be smaller than the original. Keep Zoom's
   // pixel limit/aspect ratio tied to the loaded rendition, as its default
@@ -466,15 +469,29 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
     const photo = slide.photoId != null
       ? filteredPhotos.find(p => p.id === slide.photoId)
       : filteredPhotos.find(p => p.url === slide.src);
-    if (photo) {
-      analyticsService.trackDownload(photo.id, slug, false);
-      downloadPhotoMutation.mutate({
-        slug,
-        photoId: photo.id,
-        filename: photo.filename,
-      });
+    if (!photo) return;
+
+    if (!canDownloadPhotoNow(
+      photo.id,
+      downloadGate.quotaEnabled,
+      downloadGate.isClient,
+      downloadGate.remaining,
+      downloadGate.downloadedIds,
+    )) {
+      if (downloadGate.isClient) {
+        downloadGate.offerForBlockedDownload();
+      } else {
+        downloadGate.notifyGuestBlocked();
+      }
+      return;
     }
-  }, [allowDownloads, filteredPhotos, slug, downloadPhotoMutation]);
+
+    analyticsService.trackDownload(photo.id, slug, false);
+    downloadPhotoMutation.mutate(
+      { slug, photoId: photo.id, filename: photo.filename },
+      { onError: (error) => { void downloadGate.reportDownloadFailure(error); } },
+    );
+  }, [allowDownloads, filteredPhotos, slug, downloadPhotoMutation, downloadGate]);
 
   const formattedDate = eventDate ? new Date(eventDate).toLocaleDateString('en-US', {
     year: 'numeric',
