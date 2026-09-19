@@ -1,16 +1,18 @@
 /**
- * The last download path that never charged the allowance cache.
+ * The resolution picker has to re-read the allowance once it hands the archive
+ * over, or the badge and the "Already downloaded" marks stand still until the
+ * client reloads the page by hand.
  *
- * The resolution picker hands the archive to the browser as a navigation, so
- * there is no response to await and nothing to react to on completion. That is
- * why it was left out of the bulk fix, and why the badge and the "Already
- * downloaded" marks stood still after a picker download until a reload. The
- * server records the delivery from the file route's own `res.on('finish')`,
- * exactly like every other path, so a refetch from here would race that write
- * for the same reason: the patch goes on the click instead.
+ * It hands the archive to the browser as a navigation, so there is no response
+ * to await. That used to force a client-side prediction of the new counters,
+ * because the server charged the ledger after the transfer and a refetch would
+ * have raced that write. The slots are now claimed before the file route
+ * streams a byte, so the ledger is already right when this fires and a plain
+ * refetch reads it.
  *
- * A whole-gallery download carries no id list and is deliberately still left
- * to reconcile on the next real read.
+ * That removes the one case the prediction could not handle: a whole-gallery
+ * download carries no id list, so it used to be left to reconcile on the next
+ * real read. A refetch does not care how many photos were involved.
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,9 +42,9 @@ vi.mock('../../../services/gallery.service', () => ({
   },
 }));
 
-const markPhotosDelivered = vi.fn();
+const refreshDownloadQuota = vi.fn();
 vi.mock('../../../hooks/useDownloadQuota', () => ({
-  useMarkPhotosDelivered: () => markPhotosDelivered,
+  useRefreshDownloadQuota: () => refreshDownloadQuota,
 }));
 
 import { DownloadResolutionModal } from '../DownloadResolutionModal';
@@ -73,11 +75,11 @@ async function prepareAndDownload(photoIds?: number[]) {
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
-describe('DownloadResolutionModal: charging the allowance', () => {
-  it('charges the selected photos when the archive is handed to the browser', async () => {
+describe('DownloadResolutionModal: re-reading the allowance', () => {
+  it('re-reads the allowance when the archive is handed to the browser', async () => {
     await prepareAndDownload([11, 12, 13]);
 
-    expect(markPhotosDelivered).toHaveBeenCalledWith('wedding', [11, 12, 13]);
+    expect(refreshDownloadQuota).toHaveBeenCalledWith('wedding');
     expect(downloadJobFile).toHaveBeenCalled();
   });
 
@@ -98,10 +100,10 @@ describe('DownloadResolutionModal: charging the allowance', () => {
     await user.click(screen.getByRole('button', { name: /Prepare download/ }));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Download$/ })).toBeInTheDocument());
 
-    expect(markPhotosDelivered).not.toHaveBeenCalled();
+    expect(refreshDownloadQuota).not.toHaveBeenCalled();
   });
 
-  it('leaves a whole-gallery download at a custom size to reconcile on the next read', async () => {
+  it('re-reads after a whole-gallery download at a custom size too', async () => {
     const user = userEvent.setup();
     render(
       <DownloadResolutionModal
@@ -119,12 +121,12 @@ describe('DownloadResolutionModal: charging the allowance', () => {
     await user.click(screen.getByRole('button', { name: /^Download$/ }));
 
     expect(downloadJobFile).toHaveBeenCalled();
-    // No id list to charge: the whole gallery is exactly the case this patch
-    // cannot predict, so it is left to the next real read.
-    expect(markPhotosDelivered).not.toHaveBeenCalled();
+    // The case the old prediction had to skip for want of an id list. A refetch
+    // needs none, so the badge now updates here as well.
+    expect(refreshDownloadQuota).toHaveBeenCalledWith('wedding');
   });
 
-  it('takes the pre-built archive for the whole gallery at its standard size', async () => {
+  it('re-reads after taking the pre-built archive at the standard size', async () => {
     const user = userEvent.setup();
     render(
       <DownloadResolutionModal
@@ -137,9 +139,11 @@ describe('DownloadResolutionModal: charging the allowance', () => {
 
     await user.click(screen.getByRole('button', { name: /Prepare download/ }));
 
-    // Same bytes, already on disk: no job is built and nothing is charged here.
+    // Same bytes, already on disk, so no job is built. The download-all route
+    // still claims the slots for the whole gallery, so the counters moved and
+    // this shortcut has to re-read them like every other path.
     await waitFor(() => expect(downloadAllPhotos).toHaveBeenCalledWith('wedding', true));
     expect(startDownloadJob).not.toHaveBeenCalled();
-    expect(markPhotosDelivered).not.toHaveBeenCalled();
+    await waitFor(() => expect(refreshDownloadQuota).toHaveBeenCalledWith('wedding'));
   });
 });
