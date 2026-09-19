@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 
 import type { Photo } from '../../types';
 import { useDownloadPhoto } from '../../hooks/useGallery';
+import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
+import { useDownloadGate } from '../../contexts/DownloadGateContext';
 import { PhotoLightbox } from './PhotoLightbox';
 import { Button, AuthenticatedImage } from '../common';
 import { galleryService } from '../../services/gallery.service';
@@ -41,6 +43,8 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const downloadPhotoMutation = useDownloadPhoto();
+  const markPhotosDelivered = useMarkPhotosDelivered();
+  const downloadGate = useDownloadGate();
 
   // Clear selection when category changes
   useEffect(() => {
@@ -99,19 +103,26 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
     setSelectedPhotos(new Set());
   };
 
+  // Kept in step with PhotoGridWithLayouts, which is what the gallery actually
+  // mounts. Three things this copy was missing: the download gate (a refusal
+  // showed a generic error instead of the dialog the server explained), the
+  // quota cache patch (the badge and the delivered marks stood still after a
+  // bulk download), and clearing the selection only on success (a refusal used
+  // to unpick everything while the dialog asked the client to pick fewer).
   const handleDownloadSelected = async () => {
     if (selectedPhotos.size === 0) return;
     const ids = Array.from(selectedPhotos);
-    toastify.info(t('gallery.downloading', { count: ids.length }));
 
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
+      markPhotosDelivered(slug, ids);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
-    } catch (error) {
-      toastify.error(t('gallery.downloadError'));
-    } finally {
       setSelectedPhotos(new Set());
       setIsSelectionMode(false);
+    } catch (error) {
+      if (!(await downloadGate.reportDownloadFailure(error))) {
+        toastify.error(t('gallery.downloadError'));
+      }
     }
   };
 
@@ -246,6 +257,7 @@ const PhotoThumbnail: React.FC<PhotoThumbnailProps> = ({
   slug,
   feedbackEnabled = false
 }) => {
+  const { t } = useTranslation();
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,

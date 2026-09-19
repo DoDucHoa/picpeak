@@ -8,6 +8,8 @@ import { feedbackService } from '../../../services/feedback.service';
 import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { toast } from 'react-toastify';
+import { useDownloadGate } from '../../../contexts/DownloadGateContext';
+import { useMarkPhotosDelivered } from '../../../hooks/useDownloadQuota';
 
 import {
   StoryHero,
@@ -75,6 +77,8 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
   void _isSelectionMode;
   void _onPhotoSelect;
   const { t } = useTranslation();
+  const downloadGate = useDownloadGate();
+  const markPhotosDelivered = useMarkPhotosDelivered();
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -185,14 +189,21 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
       onPickResolution(ids);
       return;
     }
-    toast.info(t('gallery.downloading', { count: ids.length }));
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
+      // See PhotoGridWithLayouts: the ledger write lands after the response,
+      // so the allowance is patched here rather than refetched.
+      markPhotosDelivered(slug, ids);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
-    } catch {
-      toast.error(t('gallery.downloadError'));
+    } catch (error) {
+      // A guest or an exhausted client gets the dialog/notice the server
+      // explained, not a generic failure toast — and never the optimistic
+      // "Downloading..." this used to show before the request could be refused.
+      if (!(await downloadGate.reportDownloadFailure(error))) {
+        toast.error(t('gallery.downloadError'));
+      }
     }
-  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution]);
+  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution, downloadGate, markPhotosDelivered]);
 
   // #1160: a folder-only root has no photos to show here, but the folder tiles
   // above prove the gallery isn't empty — render the shell (hero, logout,

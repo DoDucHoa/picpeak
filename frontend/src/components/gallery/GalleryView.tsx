@@ -11,6 +11,7 @@ import { Button } from '../common';
 import { GallerySkeleton } from './GallerySkeleton';
 import { useGalleryAuth, useTheme } from '../../contexts';
 import { useGalleryPhotos, useDownloadAllPhotos } from '../../hooks/useGallery';
+import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
 import { PhotoGridWithLayouts } from './PhotoGridWithLayouts';
 import { GalleryFolderTiles } from './GalleryFolderTiles';
 import {
@@ -305,6 +306,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   
   // Data updates are handled by React Query
   const downloadAllMutation = useDownloadAllPhotos();
+  const markPhotosDelivered = useMarkPhotosDelivered();
 
   // Download allowance (#download-quota). One query feeds the header badge,
   // the delivered marks on the grid and the package offer below.
@@ -926,6 +928,9 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
     try {
       await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
+      // The ledger write lands after the response is flushed, so the badge and
+      // the "Already downloaded" marks are patched here rather than refetched.
+      markPhotosDelivered(slug, peopleDownloadableIds);
     } catch (error) {
       if (await handleDownloadFailure(error)) return;
       throw error;
@@ -979,6 +984,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
     try {
       await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
+      // Same as the people download above.
+      markPhotosDelivered(slug, folderDownloadIds);
     } catch (error) {
       if (await handleDownloadFailure(error)) return;
       throw error;
@@ -1487,7 +1494,10 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
           // Gated here as well as inside the badge: an empty `items` must stay
           // empty, or every gallery gains a headerExtra wrapper it never had.
-          if (downloadQuota?.enabled) {
+          // isClient as well as enabled: the remaining-slot count is a paying
+          // client's own allowance, and a guest — who can never spend it — must
+          // not be shown a counter that looks like it applies to them.
+          if (downloadQuota?.enabled && isClient) {
             items.push(<DownloadQuotaBadge key="download-quota" quota={downloadQuota} />);
           }
 
