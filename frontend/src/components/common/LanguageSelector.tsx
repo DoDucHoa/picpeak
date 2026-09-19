@@ -62,10 +62,16 @@ const ESFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => 
   </svg>
 );
 
+// The star is a pentagram on the flag's own centre (320 240) with the
+// circumscribed radius the flag spec gives it, one fifth of the height (96 of
+// 480). The previous path put its centroid at y 196 and gave it a radius of
+// 76, so the star floated in the upper third of a field it is supposed to sit
+// in the middle of, and read as too small — the only flag in this set with a
+// centred device, and the only one where that was visible.
 const VNFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
     <path fill="#DA251D" d="M0 0h640v480H0z"/>
-    <path fill="#FF0" d="m320 120 44.8 137.9-117.3-85.2h144.9l-117.3 85.2z"/>
+    <path fill="#FF0" d="m320 144 56.4 173.7-147.7-107.4h182.6l-147.7 107.4z"/>
   </svg>
 );
 
