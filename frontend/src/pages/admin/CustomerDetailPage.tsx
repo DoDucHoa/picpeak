@@ -96,8 +96,12 @@ export const CustomerDetailPage: React.FC = () => {
   // USD / GBP get a meaningful example instead of one referencing a
   // currency they don't use.
   const profileDefaultCurrency = profileSnapshot?.profile?.defaultCurrency || 'CHF';
+  // Labels only, for showing whatever locale a row already holds. The retired
+  // codes stay here on purpose: they are no longer OFFERED anywhere, but an
+  // existing row naming one should still read as a language rather than as a
+  // bare "NL".
   const LOCALE_LABELS: Record<string, string> = {
-    en: 'English', de: 'Deutsch', fr: 'Français',
+    en: 'English', de: 'Deutsch', vi: 'Tiếng Việt', fr: 'Français',
     nl: 'Nederlands', pt: 'Português', ru: 'Русский',
   };
 

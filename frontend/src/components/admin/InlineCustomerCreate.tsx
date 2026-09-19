@@ -26,6 +26,8 @@
  */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { SUPPORTED_LANGUAGES } from '../common/LanguageSelector';
 import { toast } from 'react-toastify';
 import { Save, Send, X } from 'lucide-react';
 import { Button, CountrySelect, Input } from '../common';
@@ -362,12 +364,13 @@ export const InlineCustomerCreate: React.FC<Props> = ({ onCreated, onCancel, mod
             onChange={setField('preferredLanguage')}
             className="w-full rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100"
           >
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-            <option value="fr">Français</option>
-            <option value="nl">Nederlands</option>
-            <option value="pt">Português</option>
-            <option value="ru">Русский</option>
+            {/* Driven by SUPPORTED_LANGUAGES so this stays in step with the
+                rest of the app, which offers only the locales kept at full
+                key parity. It used to hardcode six, three of which are no
+                longer offered anywhere else. */}
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>{lang.name}</option>
+            ))}
           </select>
         </div>
       </div>

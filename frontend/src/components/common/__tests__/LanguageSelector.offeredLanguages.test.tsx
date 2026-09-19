@@ -35,4 +35,29 @@ describe('the languages this install offers', () => {
       expect(fs.existsSync(path.join(LOCALES, `${code}.json`))).toBe(true);
     });
   });
+
+  it('has no second list of offered languages hiding in a component', () => {
+    // InlineCustomerCreate hardcoded six <option> rows of its own, so trimming
+    // SUPPORTED_LANGUAGES left it offering three languages nothing else did.
+    // A retired language name inside an <option> is the shape that mistake
+    // takes, so it is the shape this looks for.
+    const SRC = path.resolve(__dirname, '../../..');
+    const RETIRED = ['Nederlands', 'Português', 'Русский', 'Français', 'Español', 'Slovenščina'];
+
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          return ['__tests__', 'i18n'].includes(entry.name) ? [] : walk(full);
+        }
+        return entry.name.endsWith('.tsx') ? [full] : [];
+      });
+
+    const offenders = walk(SRC).filter((file) => {
+      const source = fs.readFileSync(file, 'utf8');
+      return RETIRED.some((name) => source.includes(`>${name}</option>`));
+    });
+
+    expect(offenders).toEqual([]);
+  });
 });
