@@ -4,6 +4,7 @@ import { Download, Check, AlertCircle, X, Loader2 } from 'lucide-react';
 
 import { Button, Card } from '../common';
 import { galleryService } from '../../services/gallery.service';
+import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
 import type { DownloadResolutionChoice, DownloadJobStatus } from '../../types';
 
 /**
@@ -46,6 +47,7 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
   onClose,
 }) => {
   const { t } = useTranslation();
+  const markPhotosDelivered = useMarkPhotosDelivered();
   const [phase, setPhase] = useState<Phase>('choose');
   const [selected, setSelected] = useState<string>(choices[0]?.id ?? 'original');
   const [error, setError] = useState<string | null>(null);
@@ -115,9 +117,21 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
 
   const download = useCallback(() => {
     if (!tokenRef.current) return;
+    // Charge the allowance the way every other download path does. This one
+    // hands the archive to the browser as a navigation, so there is no
+    // response to await and no completion signal to react to — but the file
+    // route records the delivery on its own finish, and a refetch from here
+    // would race that write exactly as it does elsewhere. Patching on the
+    // click is the same trade the rest of the gallery already makes.
+    //
+    // Whole-gallery downloads carry no id list, so they keep refreshing the
+    // slow way, on the next real read.
+    if (photoIds && photoIds.length > 0) {
+      markPhotosDelivered(slug, photoIds);
+    }
     galleryService.downloadJobFile(slug, tokenRef.current, filename);
     onClose();
-  }, [slug, filename, onClose]);
+  }, [slug, filename, onClose, photoIds, markPhotosDelivered]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
