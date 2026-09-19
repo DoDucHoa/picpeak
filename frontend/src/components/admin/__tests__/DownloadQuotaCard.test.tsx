@@ -20,6 +20,7 @@ vi.mock('react-i18next', () => ({
       const opts = (typeof second === 'object' ? second : third) as Record<string, unknown> | undefined;
       return String(fallback).replace(/\{\{(\w+)\}\}/g, (_m, name) => String(opts?.[name] ?? ''));
     },
+    i18n: { language: 'en' },
   }),
   initReactI18next: { type: '3rdParty', init: () => {} },
 }));
@@ -30,13 +31,31 @@ vi.mock('react-toastify', () => ({
 
 const get = vi.fn();
 const put = vi.fn();
+const post = vi.fn();
 vi.mock('../../../config/api', () => ({
   api: {
     get: (...args: unknown[]) => get(...args),
     put: (...args: unknown[]) => put(...args),
-    post: vi.fn().mockResolvedValue({ data: {} }),
+    post: (...args: unknown[]) => post(...args),
   },
 }));
+
+function packagesPayload() {
+  return {
+    packages: [
+      {
+        id: 5,
+        kind: 'quantity',
+        photo_count: 10,
+        price: '10.00',
+        name_i18n: null,
+        savings_percent: null,
+        auto_label: { count: 10, price: 10, savings_percent: null },
+      },
+    ],
+    currency: 'CHF',
+  };
+}
 
 function quotaPayload(over: Record<string, unknown> = {}) {
   return {
@@ -76,7 +95,9 @@ describe('DownloadQuotaCard', () => {
   beforeEach(() => {
     get.mockReset();
     put.mockReset();
+    post.mockReset();
     put.mockResolvedValue({ data: quotaPayload() });
+    post.mockResolvedValue({ data: { id: 1, origin: 'photographer' } });
   });
 
   it('shows how much of the allowance the gallery has already spent', async () => {
@@ -171,5 +192,66 @@ describe('DownloadQuotaCard', () => {
 
     const field = await screen.findByLabelText(/Free downloads for this gallery/);
     await waitFor(() => expect(field).toHaveValue(0));
+  });
+
+  describe('creating an order on the client behalf (TC10)', () => {
+    beforeEach(() => {
+      get.mockImplementation((url: string) => {
+        if (String(url).includes('download-packages')) {
+          return Promise.resolve({ data: packagesPayload() });
+        }
+        return Promise.resolve({ data: quotaPayload() });
+      });
+    });
+
+    it('offers a button to create an order for the client', async () => {
+      renderCard();
+
+      expect(
+        await screen.findByRole('button', { name: /Create order for client/ })
+      ).toBeInTheDocument();
+    });
+
+    it('opens a modal listing the packages once the button is clicked', async () => {
+      renderCard();
+
+      await userEvent.click(await screen.findByRole('button', { name: /Create order for client/ }));
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(await screen.findByRole('option', { name: /10 photos/ })).toBeInTheDocument();
+    });
+
+    it('keeps the submit button disabled until a package and a reason are both given', async () => {
+      renderCard();
+
+      await userEvent.click(await screen.findByRole('button', { name: /Create order for client/ }));
+      await screen.findByRole('option', { name: /10 photos/ });
+
+      const submit = screen.getByRole('button', { name: /^Create order$/ });
+      expect(submit).toBeDisabled();
+
+      await userEvent.selectOptions(screen.getByLabelText(/Package/), '5');
+      expect(submit).toBeDisabled(); // reason still empty
+
+      await userEvent.type(screen.getByLabelText(/Reason/), 'Client asked over the phone');
+      expect(submit).not.toBeDisabled();
+    });
+
+    it('submits the chosen package and reason, and closes on success', async () => {
+      renderCard();
+
+      await userEvent.click(await screen.findByRole('button', { name: /Create order for client/ }));
+      await screen.findByRole('option', { name: /10 photos/ });
+
+      await userEvent.selectOptions(screen.getByLabelText(/Package/), '5');
+      await userEvent.type(screen.getByLabelText(/Reason/), 'Goodwill after a delay');
+      await userEvent.click(screen.getByRole('button', { name: /^Create order$/ }));
+
+      await waitFor(() => expect(post).toHaveBeenCalledWith('/admin/events/7/download-orders', {
+        package_id: 5,
+        reason: 'Goodwill after a delay',
+      }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
   });
 });

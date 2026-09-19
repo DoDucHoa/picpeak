@@ -6,7 +6,7 @@ const { requirePermission } = require('../middleware/permissions');
 const { requireEventOwnership, scopeEventsQuery } = require('../middleware/ownership');
 const { db } = require('../database/db');
 const { getQuotaState } = require('../services/downloadQuotaService');
-const { decoratePackage } = require('../services/downloadPackagePricing');
+const { decoratePackage, resolvePackages } = require('../services/downloadPackagePricing');
 const orderService = require('../services/downloadOrderService');
 const { getProfile } = require('../services/businessProfileService');
 const logger = require('../utils/logger');
@@ -135,8 +135,19 @@ async function savePackageList(eventId, packages, conn = db) {
   return dropped.length;
 }
 
-async function listPackages(eventId, res) {
-  const rows = await scopePackages(db(PACKAGES_TABLE), eventId).orderBy('sort_order', 'asc');
+/**
+ * `resolved` switches from "this gallery's own list, empty means empty" (the
+ * edit tab's contract, see the route comment below) to "what a customer of
+ * this gallery would actually be offered" — the gallery's own active
+ * packages, falling back to the global list exactly the way the customer-
+ * facing quota endpoint already resolves them. The "Create order for client"
+ * modal needs the second one: a gallery that never set its own price list
+ * still has to be able to grant the global packages, not see an empty picker.
+ */
+async function listPackages(eventId, res, { resolved = false } = {}) {
+  const rows = resolved && eventId != null
+    ? await resolvePackages(eventId)
+    : await scopePackages(db(PACKAGES_TABLE), eventId).orderBy('sort_order', 'asc');
   const [currency, quota] = await Promise.all([
     resolveCurrency(),
     eventId == null ? Promise.resolve(null) : getQuotaState(eventId),
@@ -263,12 +274,20 @@ router.post('/events/:id/download-orders', adminAuth, WRITE, requireEventOwnersh
   if (!Number.isInteger(packageId)) {
     return res.status(400).json({ error: 'package_id is required' });
   }
+  // A goodwill grant needs a reason on the record, the same way a rejection
+  // does: this order was never paid for through PicPeak, so whoever reviews it
+  // later needs to know why it exists.
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+  if (!reason) {
+    return res.status(400).json({ code: 'REASON_REQUIRED' });
+  }
   try {
     const order = await orderService.createOrder({
       eventId,
       packageId,
       req,
       origin: 'photographer',
+      reason,
     });
     res.status(201).json(order);
   } catch (error) {
@@ -385,7 +404,8 @@ router.put('/download-packages', adminAuth, WRITE, async (req, res) => {
 // list, which REPLACES the global one rather than merging with it.
 router.get('/events/:id/download-packages', adminAuth, READ, requireEventOwnership, async (req, res) => {
   try {
-    await listPackages(Number(req.params.id), res);
+    const resolved = req.query.resolved === 'true';
+    await listPackages(Number(req.params.id), res, { resolved });
   } catch (error) {
     logger.error('Failed to read event download packages', { eventId: req.params.id, error: error.message });
     res.status(500).json({ error: 'Failed to read download packages' });

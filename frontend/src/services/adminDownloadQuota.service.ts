@@ -110,10 +110,14 @@ export const adminDownloadQuotaService = {
     return data;
   },
 
-  async createOrderForEvent(eventId: number, packageId: number): Promise<AdminDownloadOrder> {
+  async createOrderForEvent(
+    eventId: number,
+    packageId: number,
+    reason: string,
+  ): Promise<AdminDownloadOrder> {
     const { data } = await api.post<AdminDownloadOrder>(
       `/admin/events/${eventId}/download-orders`,
-      { package_id: packageId },
+      { package_id: packageId, reason },
     );
     return data;
   },
@@ -160,6 +164,22 @@ export const adminDownloadQuotaService = {
   async getEventPackages(eventId: number): Promise<PackageListResponse> {
     const { data } = await api.get<PackageListResponse>(
       `/admin/events/${eventId}/download-packages`,
+    );
+    return data;
+  },
+
+  /**
+   * What a customer of this gallery would actually be offered: the gallery's
+   * own active packages, falling back to the global list when it has none of
+   * its own. Unlike `getEventPackages` (the edit tab's own-list-only view,
+   * empty on purpose when nothing gallery-specific is set), this is what
+   * "Create order for client" needs to pick from — a gallery that never
+   * customised its price list must still offer the global packages.
+   */
+  async getAvailablePackagesForOrder(eventId: number): Promise<PackageListResponse> {
+    const { data } = await api.get<PackageListResponse>(
+      `/admin/events/${eventId}/download-packages`,
+      { params: { resolved: 'true' } },
     );
     return data;
   },

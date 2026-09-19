@@ -60,8 +60,32 @@ test('an order the photographer creates is marked as theirs, not the client\'s',
 
   expect(res.status).toBe(201);
   expect(orders.createOrder).toHaveBeenCalledWith(
-    expect.objectContaining({ eventId: 1, origin: 'photographer' })
+    expect.objectContaining({
+      eventId: 1,
+      origin: 'photographer',
+      reason: 'goodwill after the reprint delay',
+    })
   );
+});
+
+test('a photographer order without a reason is refused before the service is called', async () => {
+  const res = await request(app())
+    .post('/events/1/download-orders')
+    .send({ package_id: 2 });
+
+  expect(res.status).toBe(400);
+  expect(res.body.code).toBe('REASON_REQUIRED');
+  expect(orders.createOrder).not.toHaveBeenCalled();
+});
+
+test('a photographer order with a whitespace-only reason is refused', async () => {
+  const res = await request(app())
+    .post('/events/1/download-orders')
+    .send({ package_id: 2, reason: '   ' });
+
+  expect(res.status).toBe(400);
+  expect(res.body.code).toBe('REASON_REQUIRED');
+  expect(orders.createOrder).not.toHaveBeenCalled();
 });
 
 test('turning the feature off never deletes a ledger row', async () => {
@@ -182,4 +206,64 @@ test('a package dropped from the list is deactivated, not deleted', async () => 
   expect(res.status).toBe(200);
   expect(del).not.toHaveBeenCalled();
   expect(whereInUpdate).toHaveBeenCalledWith(expect.objectContaining({ is_active: false }));
+});
+
+test('the edit tab\'s own package list stays empty when the gallery has none, even if the global list is not', async () => {
+  quotaService.getQuotaState.mockResolvedValue({ enabled: true, pricePerPhoto: null });
+  db.mockImplementation((table) => {
+    if (table !== 'download_packages') throw new Error(`unexpected table ${table}`);
+    return {
+      where: () => ({ orderBy: async () => [] }),
+    };
+  });
+
+  const res = await request(app()).get('/events/1/download-packages');
+
+  expect(res.status).toBe(200);
+  expect(res.body.packages).toEqual([]);
+});
+
+test('creating an order for a client resolves to the global packages when the gallery has none of its own', async () => {
+  quotaService.getQuotaState.mockResolvedValue({ enabled: true, pricePerPhoto: null });
+  const globalPackages = [{ id: 3, event_id: null, kind: 'quantity', photo_count: 10, price: '10', name_i18n: null, sort_order: 0, is_active: true }];
+  db.mockImplementation((table) => {
+    if (table !== 'download_packages') throw new Error(`unexpected table ${table}`);
+    return {
+      where: (cond) => {
+        // The gallery's own list, tried first — empty here.
+        if (cond && cond.event_id === 1) return { orderBy: async () => [] };
+        // The global fallback, chained off whereNull('event_id').
+        return { orderBy: async () => globalPackages };
+      },
+      whereNull: () => ({
+        where: () => ({ orderBy: async () => globalPackages }),
+      }),
+    };
+  });
+
+  const res = await request(app()).get('/events/1/download-packages?resolved=true');
+
+  expect(res.status).toBe(200);
+  expect(res.body.packages).toHaveLength(1);
+  expect(res.body.packages[0]).toMatchObject({ id: 3, event_id: null });
+});
+
+test('creating an order for a client prefers the gallery own packages over the global list', async () => {
+  quotaService.getQuotaState.mockResolvedValue({ enabled: true, pricePerPhoto: null });
+  const ownPackages = [{ id: 9, event_id: 1, kind: 'quantity', photo_count: 5, price: '5', name_i18n: null, sort_order: 0, is_active: true }];
+  db.mockImplementation((table) => {
+    if (table !== 'download_packages') throw new Error(`unexpected table ${table}`);
+    return {
+      where: () => ({ orderBy: async () => ownPackages }),
+      whereNull: () => {
+        throw new Error('the global fallback must not be queried once the gallery has its own packages');
+      },
+    };
+  });
+
+  const res = await request(app()).get('/events/1/download-packages?resolved=true');
+
+  expect(res.status).toBe(200);
+  expect(res.body.packages).toHaveLength(1);
+  expect(res.body.packages[0]).toMatchObject({ id: 9, event_id: 1 });
 });
