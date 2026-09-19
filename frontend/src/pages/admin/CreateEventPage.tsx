@@ -463,6 +463,18 @@ export const CreateEventPage: React.FC = () => {
       }
     }
 
+    // Client access is a second way into the gallery, so it gets the same
+    // floor as the gallery password rather than being left free-form.
+    if (formData.client_access_enabled) {
+      if (!formData.client_password) {
+        newErrors.client_password = t('validation.passwordRequired');
+      } else if (formData.client_password.length < 6) {
+        newErrors.client_password = t('validation.passwordMinLength');
+      } else if (/^\d+$/.test(formData.client_password)) {
+        newErrors.client_password = t('validation.passwordTooSimple', 'Password cannot be just numbers. Consider using a date format like "04.07.2025"');
+      }
+    }
+
     if (requireExpiration && (formData.expires_in_days < 1 || formData.expires_in_days > 365)) {
       newErrors.expires_in_days = t('validation.expirationRange');
     }
@@ -560,6 +572,13 @@ export const CreateEventPage: React.FC = () => {
         theme_preset: presetName,
         theme_config: preset.config
       }));
+    }
+  };
+
+  const handleClientPasswordGenerated = (password: string) => {
+    setFormData(prev => ({ ...prev, client_password: password }));
+    if (errors.client_password) {
+      setErrors(prev => ({ ...prev, client_password: undefined }));
     }
   };
 
@@ -1050,12 +1069,25 @@ export const CreateEventPage: React.FC = () => {
                 <div className="mt-3 space-y-2">
                   <Input
                     type="text"
-                    label={t('clientAccess.pinLabel')}
-                    placeholder={t('clientAccess.pinPlaceholder')}
+                    label={t('clientAccess.passwordLabel')}
+                    placeholder={t('clientAccess.passwordPlaceholder')}
                     value={formData.client_password}
                     onChange={handleInputChange('client_password')}
+                    error={errors.client_password}
                     leftIcon={<Key className="w-5 h-5" />}
-                    helperText={t('clientAccess.pinHelperText')}
+                    helperText={t('clientAccess.passwordHelperText')}
+                  />
+
+                  {/* Same generator, same complexity as the gallery password
+                      above: this is a password the client has to be told and
+                      then type, not a four-digit code. */}
+                  <PasswordGenerator
+                    eventName={formData.event_name}
+                    eventDate={formData.event_date}
+                    eventType={formData.event_type}
+                    onPasswordGenerated={handleClientPasswordGenerated}
+                    passwordComplexity="moderate"
+                    className="w-full"
                   />
                   {/* The link cannot exist yet: client_share_token is minted
                       with the event. Saying so here stops the next person

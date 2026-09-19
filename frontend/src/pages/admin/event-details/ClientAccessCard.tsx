@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Shield, Key, Copy, CheckCircle } from 'lucide-react';
 import type { Event } from '../../../types';
-import { Button, Card } from '../../../components/common';
+import { Button, Card, PasswordGenerator } from '../../../components/common';
 import { eventsService } from '../../../services/events.service';
 
 interface ClientAccessCardProps {
@@ -11,10 +11,51 @@ interface ClientAccessCardProps {
   refetchEvent: () => void;
 }
 
+/**
+ * The same floor the gallery password has, and the same one the backend now
+ * enforces. Client access is a second way into the gallery, not a convenience
+ * code, so a two-character secret should not be settable here while the guest
+ * password refuses one.
+ */
+function clientPasswordProblem(value: string): 'min' | 'simple' | null {
+  if (value.length < 6) return 'min';
+  if (/^\d+$/.test(value)) return 'simple';
+  return null;
+}
+
 export const ClientAccessCard: React.FC<ClientAccessCardProps> = ({ event, refetchEvent }) => {
   const { t } = useTranslation();
   const [copiedClientLink, setCopiedClientLink] = useState(false);
-  const [clientPin, setClientPin] = useState('');
+  const [clientPassword, setClientPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const applyPassword = async () => {
+    const candidate = clientPassword.trim();
+    if (!candidate) return;
+
+    const problem = clientPasswordProblem(candidate);
+    if (problem) {
+      setPasswordError(
+        problem === 'min'
+          ? t('validation.passwordMinLength')
+          : t(
+            'validation.passwordTooSimple',
+            'Password cannot be just numbers. Consider using a date format like "04.07.2025"',
+          ),
+      );
+      return;
+    }
+
+    try {
+      await eventsService.updateEvent(event.id, { client_password: candidate });
+      setClientPassword('');
+      setPasswordError(null);
+      toast.success(t('clientAccess.passwordUpdated'));
+      refetchEvent();
+    } catch {
+      toast.error(t('common.error'));
+    }
+  };
 
   return (
     <Card padding="md">
@@ -52,39 +93,60 @@ export const ClientAccessCard: React.FC<ClientAccessCardProps> = ({ event, refet
         {/* !! — SQLite integer boolean; bare 0 renders as literal "0" */}
         {!!event?.client_access_enabled && (
           <>
-            {/* Set/Change PIN */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                  {t('clientAccess.pinLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={clientPin}
-                  onChange={(e) => setClientPin(e.target.value)}
-                  placeholder={t('clientAccess.pinPlaceholder')}
-                  className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 rounded-lg text-sm"
+            {/* Set or change the client password */}
+            <div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                    {t('clientAccess.passwordLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    value={clientPassword}
+                    onChange={(e) => {
+                      setClientPassword(e.target.value);
+                      setPasswordError(null);
+                    }}
+                    placeholder={t('clientAccess.passwordPlaceholder')}
+                    aria-invalid={passwordError ? true : undefined}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 rounded-lg text-sm"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="md"
+                  leftIcon={<Key className="w-4 h-4" />}
+                  onClick={applyPassword}
+                  disabled={!clientPassword.trim()}
+                >
+                  {t('clientAccess.setPassword')}
+                </Button>
+              </div>
+
+              {passwordError ? (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{passwordError}</p>
+              ) : (
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  {t('clientAccess.passwordHelperText')}
+                </p>
+              )}
+
+              {/* Same generator the gallery password gets, seeded from this
+                  event so the suggestion is something the photographer can
+                  read out to the client. */}
+              <div className="mt-2">
+                <PasswordGenerator
+                  eventName={event.event_name}
+                  eventDate={event.event_date || ''}
+                  eventType={event.event_type}
+                  onPasswordGenerated={(password) => {
+                    setClientPassword(password);
+                    setPasswordError(null);
+                  }}
+                  passwordComplexity="moderate"
+                  className="w-full"
                 />
               </div>
-              <Button
-                variant="outline"
-                size="md"
-                leftIcon={<Key className="w-4 h-4" />}
-                onClick={async () => {
-                  if (!clientPin.trim()) return;
-                  try {
-                    await eventsService.updateEvent(event.id, { client_password: clientPin });
-                    setClientPin('');
-                    toast.success(t('clientAccess.pinUpdated'));
-                    refetchEvent();
-                  } catch {
-                    toast.error(t('common.error'));
-                  }
-                }}
-                disabled={!clientPin.trim()}
-              >
-                {t('clientAccess.setPin')}
-              </Button>
             </div>
 
             {/* Client access link */}

@@ -2756,10 +2756,6 @@
   "clientAccess": {
     "title": "Dostop stranke",
     "description": "Preglejte fotografije in upravljajte vidnost, preden galerijo delite z gosti.",
-    "pinLabel": "PIN stranke",
-    "pinPlaceholder": "Vnesite PIN stranke",
-    "enterPin": "Vnesite PIN stranke",
-    "invalidPin": "Neveljaven PIN. Poskusite znova.",
     "loginFailed": "Avtentikacija ni uspela. Poskusite znova.",
     "loginButton": "Dostop do galerije",
     "guestHint": "Iščete galerijo za goste?",
@@ -2771,9 +2767,6 @@
     "adminTitle": "Dostop stranke",
     "enableToggle": "Omogoči dostop stranke",
     "enableDescription": "Dovolite strankam pregled in skrivanje fotografij, preden galerijo delite z gosti.",
-    "pinHelperText": "Stranka bo ta PIN uporabila za dostop do strani za pregled.",
-    "pinUpdated": "PIN stranke posodobljen",
-    "setPin": "Nastavi PIN",
     "linkLabel": "Povezava za dostop stranke",
     "regenerateToken": "Ponovno ustvari povezavo",
     "tokenRegenerated": "Povezava za dostop stranke je bila ponovno ustvarjena"

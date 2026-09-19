@@ -109,48 +109,48 @@ describe('CreateEventPage — Client Access is set up here, not after the fact',
     expect(screen.getByText('clientAccess.adminTitle')).toBeInTheDocument();
   });
 
-  it('reveals the PIN field and the note about the link only once it is switched on', () => {
+  it('reveals the password field and the note about the link only once it is switched on', () => {
     renderPage();
 
-    expect(screen.queryByText('clientAccess.pinLabel')).toBeNull();
+    expect(screen.queryByText('clientAccess.passwordLabel')).toBeNull();
     expect(screen.queryByText('clientAccess.linkAfterCreate')).toBeNull();
 
     fireEvent.click(clientAccessToggle());
 
-    expect(screen.getByText('clientAccess.pinLabel')).toBeInTheDocument();
+    expect(screen.getByText('clientAccess.passwordLabel')).toBeInTheDocument();
     // The link only exists once client_share_token is minted with the event,
     // which is why this screen promises it rather than showing it.
     expect(screen.getByText('clientAccess.linkAfterCreate')).toBeInTheDocument();
   });
 
-  it('sends the toggle and the PIN with the event it was set up on', async () => {
+  it('sends the toggle and the password with the event it was set up on', async () => {
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST client access' },
     });
     fireEvent.click(clientAccessToggle());
-    fireEvent.change(screen.getByPlaceholderText('clientAccess.pinPlaceholder'), {
-      target: { value: '4821' },
+    fireEvent.change(screen.getByPlaceholderText('clientAccess.passwordPlaceholder'), {
+      target: { value: 'Wedding-2026' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'events.createEvent' }));
 
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({
       client_access_enabled: true,
-      client_password: '4821',
+      client_password: 'Wedding-2026',
     });
   });
 
-  it('drops a PIN typed before the toggle was switched back off', async () => {
+  it('drops a password typed before the toggle was switched back off', async () => {
     renderPage();
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST client access off' },
     });
     fireEvent.click(clientAccessToggle());
-    fireEvent.change(screen.getByPlaceholderText('clientAccess.pinPlaceholder'), {
-      target: { value: '4821' },
+    fireEvent.change(screen.getByPlaceholderText('clientAccess.passwordPlaceholder'), {
+      target: { value: 'Wedding-2026' },
     });
     fireEvent.click(clientAccessToggle());
     fireEvent.click(screen.getByRole('button', { name: 'events.createEvent' }));
@@ -158,5 +158,45 @@ describe('CreateEventPage — Client Access is set up here, not after the fact',
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(createEvent.mock.calls[0][0]).toMatchObject({ client_access_enabled: false });
     expect(createEvent.mock.calls[0][0].client_password).toBeUndefined();
+  });
+  it('holds the same floor as the gallery password: six characters, not digits only', async () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
+      target: { value: 'ZZTEST client password rules' },
+    });
+    fireEvent.click(clientAccessToggle());
+
+    const field = () => screen.getByPlaceholderText('clientAccess.passwordPlaceholder');
+    const submit = () => fireEvent.click(screen.getByRole('button', { name: 'events.createEvent' }));
+
+    // Too short.
+    fireEvent.change(field(), { target: { value: 'abc' } });
+    submit();
+    await screen.findByText('validation.passwordMinLength');
+    expect(createEvent).not.toHaveBeenCalled();
+
+    // Long enough but all digits — the same thing the gallery password
+    // refuses, and exactly the shape a four-digit PIN habit produces.
+    fireEvent.change(field(), { target: { value: '482100' } });
+    submit();
+    await screen.findByText(/Password cannot be just numbers/);
+    expect(createEvent).not.toHaveBeenCalled();
+
+    fireEvent.change(field(), { target: { value: 'Wedding-2026' } });
+    submit();
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
+    expect(createEvent.mock.calls[0][0]).toMatchObject({ client_password: 'Wedding-2026' });
+  });
+
+  it('does not hold an empty client password against a form with the toggle off', async () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
+      target: { value: 'ZZTEST no client access' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'events.createEvent' }));
+
+    await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
   });
 });
