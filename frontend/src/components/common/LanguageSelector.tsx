@@ -21,47 +21,6 @@ const DEFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => 
   </svg>
 );
 
-const RUFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#FFF" d="M0 0h640v160H0z"/>
-    <path fill="#0039A6" d="M0 160h640v160H0z"/>
-    <path fill="#D52B1E" d="M0 320h640v160H0z"/>
-  </svg>
-);
-
-const PTBRFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#009B3A" d="M0 0h640v480H0z"/>
-    <path fill="#FEDF00" d="M320 39.4 590.4 240 320 440.6 49.6 240z"/>
-    <circle fill="#002776" cx="320" cy="240" r="95"/>
-    <path fill="#FFF" d="M226.3 262.8c0-27 12.8-51 32.7-66.3a95.3 95.3 0 0 0-3.5 120.6c-17.8-14.8-29.2-37-29.2-54.3z" opacity=".5"/>
-  </svg>
-);
-
-const NLFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#AE1C28" d="M0 0h640v160H0z"/>
-    <path fill="#FFF" d="M0 160h640v160H0z"/>
-    <path fill="#21468B" d="M0 320h640v160H0z"/>
-  </svg>
-);
-
-const FRFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#002395" d="M0 0h213.3v480H0z"/>
-    <path fill="#fff" d="M213.3 0h213.4v480H213.3z"/>
-    <path fill="#ED2939" d="M426.7 0H640v480H426.7z"/>
-  </svg>
-);
-
-const ESFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#AA151B" d="M0 0h640v120H0z"/>
-    <path fill="#F1BF00" d="M0 120h640v240H0z"/>
-    <path fill="#AA151B" d="M0 360h640v120H0z"/>
-  </svg>
-);
-
 // The star is a pentagram on the flag's own centre (320 240) with the
 // circumscribed radius the flag spec gives it, one fifth of the height (96 of
 // 480). The previous path put its centroid at y 196 and gave it a radius of
@@ -75,32 +34,21 @@ const VNFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => 
   </svg>
 );
 
-const SLFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#fff" d="M0 0h640v160H0z"/>
-    <path fill="#005DA4" d="M0 160h640v160H0z"/>
-    <path fill="#ED1C24" d="M0 320h640v160H0z"/>
-    <path fill="#005DA4" d="M160 80h120v120c0 60-60 90-60 90s-60-30-60-90V80z"/>
-    <path fill="#fff" d="M172 96h96v100c0 36-28 61-48 74-20-13-48-38-48-74V96z"/>
-    <path fill="#005DA4" d="M184 108h72v82c0 26-18 46-36 59-18-13-36-33-36-59v-82z"/>
-    <path fill="#fff" d="m198 178 22-36 22 36h-44z"/>
-    <path fill="#ED1C24" d="M184 202h72c-6 21-24 37-36 45-12-8-30-24-36-45z"/>
-    <circle fill="#FFD700" cx="198" cy="122" r="5"/>
-    <circle fill="#FFD700" cx="220" cy="116" r="5"/>
-    <circle fill="#FFD700" cx="242" cy="122" r="5"/>
-  </svg>
-);
-
+/**
+ * The languages this install offers, everywhere: the guest and admin
+ * switchers, the email-template editor, contract blocks, reminder templates
+ * and the per-customer language.
+ *
+ * Only the three kept at full key parity are listed. es, fr, nl, pt, ru and sl
+ * are still shipped as resources, so a session or a stored row that already
+ * names one keeps rendering in it and falls back to English per key, but they
+ * are no longer offered: half-translated options made the template editors
+ * demand nine translations for surfaces nobody here maintains.
+ */
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', Flag: GBFlag },
   { code: 'de', name: 'Deutsch', Flag: DEFlag },
   { code: 'vi', name: 'Tiếng Việt', Flag: VNFlag },
-  { code: 'ru', name: 'Русский', Flag: RUFlag },
-  { code: 'pt', name: 'Português', Flag: PTBRFlag },
-  { code: 'nl', name: 'Nederlands', Flag: NLFlag },
-  { code: 'fr', name: 'Français', Flag: FRFlag },
-  { code: 'es', name: 'Español', Flag: ESFlag },
-  { code: 'sl', name: 'Slovenščina', Flag: SLFlag },
 ];
 
 export const LanguageSelector: React.FC = () => {
