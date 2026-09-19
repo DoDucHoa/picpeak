@@ -21,7 +21,7 @@ import { detectInAppBrowser } from '../utils/inAppBrowser';
 
 export const GalleryPage: React.FC = () => {
   const { slug: rawSlug, token: rawToken } = useParams<{ slug: string; token?: string }>();
-  const { isAuthenticated, login, event } = useGalleryAuth();
+  const { isAuthenticated, login, event, isLoading: isRestoringSession } = useGalleryAuth();
   const { t } = useTranslation();
   const { format } = useLocalizedDate();
   const { setTheme } = useTheme();
@@ -179,7 +179,18 @@ export const GalleryPage: React.FC = () => {
       return;
     }
 
-    if (galleryInfo && !isAdminPreview && isGalleryPublic(galleryInfo.requires_password) && !isAuthenticated && !autoLoginAttempted && !isLoadingSettings) {
+    // `isRestoringSession` is what keeps this from racing GalleryAuthContext's
+    // own `/auth/session` restore. `isAuthenticated` starts false and only
+    // flips once that call resolves, so on a gallery with no password this
+    // effect used to fire the moment /info arrived — a few tens of
+    // milliseconds BEFORE the context could report the session it had just
+    // confirmed. The empty-password login that followed minted a plain guest
+    // token and overwrote both the sessionStorage token and the
+    // gallery_token_<slug> cookie, throwing away a client's PIN session on
+    // every single page load. The visible symptom was a client who had bought
+    // extra downloads being refused with "clients only" right after the badge
+    // had shown them their new allowance.
+    if (galleryInfo && !isAdminPreview && isGalleryPublic(galleryInfo.requires_password) && !isRestoringSession && !isAuthenticated && !autoLoginAttempted && !isLoadingSettings) {
       setAutoLoginAttempted(true);
       setIsLoggingIn(true);
       login(resolvedSlug, '')
@@ -196,7 +207,7 @@ export const GalleryPage: React.FC = () => {
           setIsLoggingIn(false);
         });
     }
-  }, [galleryInfo, isAdminPreview, isAuthenticated, autoLoginAttempted, login, resolvedSlug, isResolvingIdentifier, isLoadingSettings]);
+  }, [galleryInfo, isAdminPreview, isAuthenticated, autoLoginAttempted, login, resolvedSlug, isResolvingIdentifier, isLoadingSettings, isRestoringSession]);
 
   // Calculate days until expiration (null if no expiration set)
   const daysUntilExpiration = galleryInfo?.expires_at
