@@ -1738,6 +1738,7 @@
       "dialogHint": "Erweitern Sie die Downloads dieser Galerie, oder wählen Sie weniger Fotos aus.",
       "missingSlots": "{{missing}} mehr, als Ihr Kontingent abdeckt",
       "guestBlocked": "Nur registrierte Kunden können Fotos aus dieser Galerie herunterladen.",
+      "unavailable": "Downloads sind kurzzeitig nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
       "adjustSelection": "Auswahl anpassen",
       "savings": "{{percent}}% sparen",
       "autoLabelAll": "Alle Fotos",

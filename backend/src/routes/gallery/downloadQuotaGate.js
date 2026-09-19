@@ -1,7 +1,9 @@
 'use strict';
 
 const { db } = require('../../database/db');
-const { assertDownloadAccess, checkAllowance, getQuotaState } = require('../../services/downloadQuotaService');
+const {
+  assertDownloadAccess, reserveSlots, releaseReservation, checkAllowance, getQuotaState,
+} = require('../../services/downloadQuotaService');
 const { applyPhotoVisibilityFilter } = require('../../utils/photoVisibility');
 const logger = require('../../utils/logger');
 
@@ -46,38 +48,59 @@ function quotaRejection({ state, newPhotoIds, missingSlots }) {
 }
 
 /**
+ * Refuse the download because the quota could not be established.
+ *
+ * This gate USED to swallow its errors and let the download through, on the
+ * reasoning that the quota was a billing aid rather than a security boundary.
+ * The effect was that any error at all, a dropped connection or a migration
+ * mid-flight, turned into unlimited free downloads, silently, for as long as
+ * it lasted. That is the single outcome the feature exists to prevent, so the
+ * gate now fails closed.
+ *
+ * Refusing costs less than it looks: every error reachable here is a database
+ * error, and the handler downstream cannot read its own photo rows without the
+ * same database. This turns a silent revenue leak into a visible 503, not a
+ * working page into a broken one.
+ */
+function refuseUnavailable(res, req, error, where) {
+  logger.error(`${where} quota gate failed, refusing the download`, {
+    eventId: req.event?.id, error: error.message,
+  });
+  res.status(503).json({ code: 'DOWNLOAD_QUOTA_UNAVAILABLE' });
+  return { ok: false, reserved: [] };
+}
+
+/**
  * One call per download path, kept in its own module so the upstream
  * downloads.js only gains a single line at each of its four entry points and
  * stays easy to rebase.
  *
- * Returns true when the handler may continue. When it returns false the
- * response has already been sent, so the caller must return immediately.
- *
- * Failing open is deliberate: a gallery that has never switched the feature on
- * must behave exactly as it did before, and an unexpected error here should not
- * take downloads offline for everyone. The quota is a billing aid, not a
- * security boundary.
+ * Returns { ok, reserved }. When ok is false the response has already been
+ * sent, so the caller must return immediately. When it is true, `reserved` are
+ * the ledger rows this request claimed UP FRONT: the slots are already spent,
+ * and the caller owes the client a refund for whatever it fails to deliver.
+ * Charging after the transfer instead is what let a client with one slot left
+ * fire twenty parallel downloads and take all twenty.
  */
-async function passesQuotaGate(req, res, photoIds) {
+async function passesQuotaGate(req, res, photoIds, { reserve = true } = {}) {
   try {
     const access = await assertDownloadAccess(req, req.event.id);
     if (!access.ok) {
       res.status(access.status).json({ code: access.code });
-      return false;
+      return { ok: false, reserved: [] };
     }
-    if (!access.state.enabled) return true;
+    if (!access.state.enabled) return { ok: true, reserved: [] };
 
-    const allowance = await checkAllowance(req.event.id, photoIds);
-    if (!allowance.allowed) {
-      res.status(402).json(quotaRejection(allowance));
-      return false;
+    const claim = reserve
+      ? await reserveSlots(req.event.id, photoIds, req)
+      : await checkAllowance(req.event.id, photoIds);
+    if (!claim.allowed) {
+      res.status(402).json(quotaRejection(claim));
+      return { ok: false, reserved: [] };
     }
-    return true;
+    return { ok: true, reserved: claim.reserved || [] };
   } catch (error) {
-    logger.error('Download quota gate failed, allowing the download', {
-      eventId: req.event?.id, error: error.message,
-    });
-    return true;
+    return refuseUnavailable(res, req, error, 'Download');
   }
 }
 
@@ -86,20 +109,60 @@ async function passesQuotaGate(req, res, photoIds) {
  * the gallery actually has a quota, so an install that never switched the
  * feature on pays nothing for it.
  *
- * Returns { ok, photoIds }. When ok is false the response has already been sent.
+ * Returns { ok, photoIds, reserved }. When ok is false the response has already
+ * been sent.
  */
-async function passesWholeGalleryGate(req, res) {
+async function passesWholeGalleryGate(req, res, options) {
   try {
-    if (!(await quotaEnabled(req.event.id))) return { ok: true, photoIds: null };
+    if (!(await quotaEnabled(req.event.id))) return { ok: true, photoIds: null, reserved: [] };
     const photoIds = await deliverablePhotoIds(req);
-    const ok = await passesQuotaGate(req, res, photoIds);
-    return { ok, photoIds };
+    const gate = await passesQuotaGate(req, res, photoIds, options);
+    return { ...gate, photoIds };
   } catch (error) {
-    logger.error('Whole gallery quota gate failed, allowing the download', {
-      eventId: req.event?.id, error: error.message,
-    });
-    return { ok: true, photoIds: null };
+    return { ...refuseUnavailable(res, req, error, 'Whole gallery'), photoIds: null };
   }
 }
 
-module.exports = { quotaRejection, passesQuotaGate, passesWholeGalleryGate, deliverablePhotoIds };
+/**
+ * Refund, once the response is over, whatever the gate claimed but the transfer
+ * never actually handed over.
+ *
+ * Hooked to 'close' rather than 'finish' on purpose: 'finish' means the body was
+ * written in full, so it never fires for a client who cancels a large archive
+ * halfway. With the allowance now charged up front, that silence would cost the
+ * client every slot the request asked for. 'close' fires on both outcomes, and
+ * `writableFinished` is what tells them apart.
+ *
+ * `deliveredIds` is a function, not an array, because the archive paths only
+ * learn which photos made it in while they are streaming: a photo whose source
+ * file was missing on disk never reached the client and must be refunded.
+ */
+function settleReservation(res, req, reserved, deliveredIds) {
+  if (!Array.isArray(reserved) || reserved.length === 0) return;
+
+  let settled = false;
+  res.on('close', () => {
+    if (settled) return;
+    settled = true;
+
+    const complete = res.writableFinished && res.statusCode < 400;
+    const delivered = complete ? (deliveredIds() || []) : [];
+    releaseReservation(reserved, delivered).catch((error) => {
+      // Never silent. A refund that fails leaves the client charged for photos
+      // they did not get, and the only way anyone finds out is this line.
+      logger.error('Download quota refund failed, the client is over-charged', {
+        eventId: req.event?.id,
+        reservedPhotoIds: reserved.map((row) => row.photo_id),
+        error: error.message,
+      });
+    });
+  });
+}
+
+module.exports = {
+  quotaRejection,
+  passesQuotaGate,
+  passesWholeGalleryGate,
+  deliverablePhotoIds,
+  settleReservation,
+};

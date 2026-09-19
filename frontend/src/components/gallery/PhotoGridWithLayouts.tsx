@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Photo, DownloadResolutionChoice, GalleryPerson } from '../../types';
 import { useDownloadPhoto } from '../../hooks/useGallery';
-import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
+import { useRefreshDownloadQuota } from '../../hooks/useDownloadQuota';
 import { PhotoLightbox } from './PhotoLightbox';
 import { DownloadResolutionModal } from './DownloadResolutionModal';
 import { Button } from '../common';
@@ -152,7 +152,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
   // Non-null while the resolution picker is open (#858); holds the ids it applies to.
   const [resolutionPickerIds, setResolutionPickerIds] = useState<number[] | null>(null);
   const downloadPhotoMutation = useDownloadPhoto();
-  const markPhotosDelivered = useMarkPhotosDelivered();
+  const refreshDownloadQuota = useRefreshDownloadQuota();
   const downloadGate = useDownloadGate();
 
   // Use parent state if provided, otherwise use local state
@@ -250,7 +250,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
       // server writes the ledger after the response has been flushed, so a
       // refetch here would read the pre-download numbers and leave the badge
       // and the "Already downloaded" marks stale until a manual reload.
-      markPhotosDelivered(slug, ids);
+      refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
       // Only a download that actually happened ends the selection. This used
       // to sit in a `finally`, which threw the selection away on a refusal

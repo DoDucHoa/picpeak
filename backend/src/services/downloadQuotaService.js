@@ -9,6 +9,18 @@ const KEYS = {
 };
 
 /**
+ * Namespace for the per-event advisory lock reserveSlots takes. 214 is this
+ * feature's migration number, so "does anything else use this key" is a
+ * question grep can answer. Pair it with the event id and the lock is per
+ * gallery: two galleries never wait on each other.
+ */
+const QUOTA_LOCK_NAMESPACE = 214;
+
+function isPostgres(conn) {
+  return conn?.client?.config?.client === 'pg';
+}
+
+/**
  * A portal token runs as accessLevel 'guest' but carries req.viaCustomer, and a
  * PIN login carries accessLevel 'client'. Both are paying clients. Testing
  * accessLevel alone would lock out exactly the people who paid. Same expression
@@ -99,37 +111,82 @@ function actorSnapshot(req) {
   return { type: isCustomer ? 'customer' : 'guest' };
 }
 
-/**
- * Called only after the response actually finished, on the set of photos that
- * really made it into the transfer. A gallery with the feature off writes
- * nothing, so switching the feature on later starts from an empty ledger and
- * historical downloads are ignored. Switching it off and on again never clears
- * what is already there.
- */
-async function recordDelivered(eventId, photoIds, req, conn = db) {
-  const state = await getQuotaState(eventId, conn);
-  if (!state.enabled) return 0;
-  if (req?.isAdminPreview) return 0;
-  const ids = normaliseIds(photoIds);
-  if (!ids.length) return 0;
-
-  const rows = ids.map((photo_id) => ({
+function ledgerRows(eventId, ids, req) {
+  return ids.map((photo_id) => ({
     event_id: eventId,
     photo_id,
     access_level: req?.accessLevel || null,
     actor: JSON.stringify(actorSnapshot(req)),
   }));
-  // `.returning('id')` is what makes the count truthful. Without it Postgres
-  // hands back a pg Result object rather than an array of rows, so the caller
-  // is told nothing was charged even when photos were: the gallery would then
-  // under-report every delivery. With it, conflicting rows are skipped and only
-  // the genuinely new ones come back.
-  const inserted = await conn('event_photo_downloads')
-    .insert(rows)
-    .onConflict(['event_id', 'photo_id'])
-    .ignore()
-    .returning('id');
-  return Array.isArray(inserted) ? inserted.length : 0;
+}
+
+/**
+ * Claim the slots a download is about to spend, BEFORE a single byte is sent.
+ *
+ * The order matters more than anything else in this file. Checking the
+ * allowance and charging it after the transfer leaves a window in which every
+ * concurrent request reads the same "one slot left" and every one of them
+ * passes: a client with one slot could fire twenty parallel downloads from the
+ * browser console and take all twenty. Claiming first closes that window,
+ * because the second request reads a ledger the first has already written.
+ *
+ * The transaction takes a per-event advisory lock rather than `SELECT ... FOR
+ * UPDATE` on the settings row, because that row does not have to exist: a NULL
+ * column means "inherit the system default", and a gallery that never
+ * configured anything has no row to lock at all. On SQLite the lock is skipped;
+ * its write transactions already serialise.
+ *
+ * Returns the same shape checkAllowance does, plus `reserved`: the ledger rows
+ * THIS call inserted. Photos already in the ledger conflict and never come
+ * back, which is exactly what keeps a free re-download free when the caller
+ * later releases what it could not deliver.
+ */
+async function reserveSlots(eventId, photoIds, req, conn = db) {
+  return conn.transaction(async (trx) => {
+    if (isPostgres(trx)) {
+      await trx.raw('SELECT pg_advisory_xact_lock(?, ?)', [QUOTA_LOCK_NAMESPACE, Number(eventId)]);
+    }
+
+    const allowance = await checkAllowance(eventId, photoIds, trx);
+    if (!allowance.allowed) return { ...allowance, reserved: [] };
+
+    // An admin preview streams the archive but is not a client delivery, and a
+    // gallery with the feature off keeps an empty ledger so switching the
+    // feature on later starts from zero. Neither writes anything.
+    if (!allowance.state.enabled || req?.isAdminPreview || allowance.newPhotoIds.length === 0) {
+      return { ...allowance, reserved: [] };
+    }
+
+    const reserved = await trx('event_photo_downloads')
+      .insert(ledgerRows(eventId, allowance.newPhotoIds, req))
+      .onConflict(['event_id', 'photo_id'])
+      .ignore()
+      .returning(['id', 'photo_id']);
+
+    return { ...allowance, reserved: Array.isArray(reserved) ? reserved : [] };
+  });
+}
+
+/**
+ * Refund the part of a claim that never reached the client: the response broke,
+ * the client aborted, or a photo's source file was missing at archive time.
+ *
+ * It deletes by the ledger row's primary key, never by (event_id, photo_id).
+ * That is the whole safety property. `reserved` holds only the rows this one
+ * request inserted, because anything already in the ledger lost the ON CONFLICT
+ * and never came back from `returning`. So a client re-downloading a photo they
+ * bought weeks ago can fail as often as they like without ever refunding that
+ * older slot.
+ */
+async function releaseReservation(reserved, deliveredPhotoIds, conn = db) {
+  const rows = Array.isArray(reserved) ? reserved : [];
+  if (rows.length === 0) return 0;
+
+  const delivered = new Set(normaliseIds(deliveredPhotoIds));
+  const stale = rows.filter((row) => !delivered.has(Number(row.photo_id))).map((row) => row.id);
+  if (stale.length === 0) return 0;
+
+  return conn('event_photo_downloads').whereIn('id', stale).delete();
 }
 
 async function assertDownloadAccess(req, eventId, conn = db) {
@@ -147,6 +204,7 @@ module.exports = {
   checkAllowance,
   getDownloadedPhotoIds,
   isPayingClient,
-  recordDelivered,
+  reserveSlots,
+  releaseReservation,
   assertDownloadAccess,
 };

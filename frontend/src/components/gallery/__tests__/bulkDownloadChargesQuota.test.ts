@@ -1,13 +1,12 @@
 /**
- * Every bulk download has to charge the allowance cache.
+ * Every bulk download has to re-read the allowance afterwards.
  *
  * `galleryService.downloadSelectedPhotos` is called straight out of six
- * handlers, with no React Query mutation behind any of them, so the
- * optimistic patch that keeps the badge and the "Already downloaded" marks
- * honest (`useMarkPhotosDelivered`, see `useDownloadQuota.ts`) is something each
- * call site has to remember on its own. It was remembered in none of them:
- * a client who took five photos in one click saw the allowance stand still
- * until they reloaded the page by hand.
+ * handlers, with no React Query mutation behind any of them, so refreshing the
+ * badge and the "Already downloaded" marks (`useRefreshDownloadQuota`, see
+ * `useDownloadQuota.ts`) is something each call site has to remember on its
+ * own. It was remembered in none of them: a client who took five photos in one
+ * click saw the allowance stand still until they reloaded the page by hand.
  *
  * A component test would pin one of the six. This pins all of them, which is
  * the shape the bug actually had: not a broken handler, a forgotten one.
@@ -30,11 +29,11 @@ const BULK_DOWNLOAD_FILES = [
 
 const countOf = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 
-describe('bulk downloads charge the download-quota cache', () => {
-  it.each(BULK_DOWNLOAD_FILES)('%s patches the allowance for every selection it sends', (file) => {
+describe('bulk downloads re-read the download quota', () => {
+  it.each(BULK_DOWNLOAD_FILES)('%s re-reads the allowance for every selection it sends', (file) => {
     const source = read(file);
     const sent = countOf(source, 'downloadSelectedPhotos(');
-    const charged = countOf(source, 'markPhotosDelivered(');
+    const charged = countOf(source, 'refreshDownloadQuota(');
 
     expect(sent).toBeGreaterThan(0);
     expect(charged).toBeGreaterThanOrEqual(sent);

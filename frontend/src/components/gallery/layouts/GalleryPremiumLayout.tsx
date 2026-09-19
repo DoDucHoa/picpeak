@@ -29,7 +29,7 @@ import { FeedbackIdentityModal } from '../FeedbackIdentityModal';
 import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { useDownloadPhoto } from '../../../hooks/useGallery';
-import { useMarkPhotosDelivered } from '../../../hooks/useDownloadQuota';
+import { useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
 import { toast } from 'react-toastify';
 import { useDownloadGate } from '../../../contexts/DownloadGateContext';
 import { canDownloadPhotoNow } from '../downloadQuotaOffer';
@@ -222,7 +222,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
   void _onDownload;
   const { t } = useTranslation();
   const downloadPhotoMutation = useDownloadPhoto();
-  const markPhotosDelivered = useMarkPhotosDelivered();
+  const refreshDownloadQuota = useRefreshDownloadQuota();
   const downloadGate = useDownloadGate();
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   // The delivered preview can be smaller than the original. Keep Zoom's
@@ -456,7 +456,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       await galleryService.downloadSelectedPhotos(slug, ids);
       // See PhotoGridWithLayouts: the ledger write lands after the response,
       // so the allowance is patched here rather than refetched.
-      markPhotosDelivered(slug, ids);
+      refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
     } catch (error) {
       // Same refusal handling as this layout's own lightbox/photo download:
@@ -467,7 +467,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
         toast.error(t('gallery.downloadError'));
       }
     }
-  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution, downloadGate, markPhotosDelivered]);
+  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota]);
 
   const handleDownloadFromLightbox = useCallback((slide: { src?: string; photoId?: number }) => {
     if (!allowDownloads || !slide.src) return;

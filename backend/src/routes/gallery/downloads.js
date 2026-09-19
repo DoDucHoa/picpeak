@@ -22,8 +22,9 @@ const {
   parseResolution,
 } = require('../../utils/downloadResolutions');
 const { applyPhotoVisibilityFilter, canSeeHiddenPhotos } = require('../../utils/photoVisibility');
-const { passesQuotaGate, passesWholeGalleryGate } = require('./downloadQuotaGate');
-const { recordDelivered } = require('../../services/downloadQuotaService');
+const {
+  passesQuotaGate, passesWholeGalleryGate, settleReservation,
+} = require('./downloadQuotaGate');
 const {
   getUseOriginalFilenames,
   pickRawDownloadName,
@@ -161,7 +162,13 @@ router.get('/:slug/download/:photoId', verifyGalleryAccess, denySlideshowToken, 
 
     // Quota gate, placed below the HEAD branch on purpose: a metadata probe is
     // not a delivery and must not be refused for want of an allowance.
-    if (!(await passesQuotaGate(req, res, [Number(photoId)]))) return;
+    //
+    // The slot is spent here, not after the transfer. Settling is registered in
+    // the same breath so that every way out of this handler from now on, an
+    // error status as much as a client who cancels, refunds it.
+    const gate = await passesQuotaGate(req, res, [Number(photoId)]);
+    if (!gate.ok) return;
+    settleReservation(res, req, gate.reserved, () => [Number(photoId)]);
 
     // Admin preview (#868) downloads are excluded from the download count +
     // guest analytics — kept out of client-facing stats.
@@ -184,11 +191,6 @@ router.get('/:slug/download/:photoId', verifyGalleryAccess, denySlideshowToken, 
     // next real one for an hour (codex review of #849).
     res.on('finish', () => {
       if (res.statusCode < 400 && !req.isAdminPreview) notifySinglePhotoDownload(req.event, req);
-      // Charge the allowance only once the transfer actually completed, for the
-      // same reason the notification waits here.
-      if (res.statusCode < 400) {
-        recordDelivered(req.event.id, [Number(photoId)], req).catch(() => {});
-      }
     });
     
     // #493: if the admin enabled "use original filenames", surface the
@@ -432,6 +434,14 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     const wholeGallery = await passesWholeGalleryGate(req, res);
     if (!wholeGallery.ok) return;
 
+    // The two branches below deliver different sets: the prebuilt archive holds
+    // exactly what the gate resolved, while the streaming builder skips photos
+    // whose source file is missing. Settling reads this lazily at close time, so
+    // one registration here covers both branches and every early exit between
+    // them, including the 404 when the gallery turns out to have no photos.
+    let deliveredIds = null;
+    settleReservation(res, req, wholeGallery.reserved, () => deliveredIds || []);
+
     // Try to serve pre-generated zip (instant download with Content-Length).
     // Guests may use the prebuilt cache ONLY when the event has no hidden
     // photos: a cache built before a photo was hidden — or before this
@@ -455,6 +465,10 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Length', zipInfo.size);
       res.setHeader('Content-Disposition', `attachment; filename="${req.event.slug}.zip"`);
+      // The prebuilt archive holds exactly the set the gate resolved, so a
+      // response that completes delivered all of it. One that breaks mid-stream
+      // never sets writableFinished, and settling refunds the lot.
+      deliveredIds = wholeGallery.photoIds;
       const stream = await storage.get(zipInfo.key);
       pipeStreamToResponse(stream, res, { context: `prepared zip for event ${req.event.id}`, missingStatus: 410 });
 
@@ -472,11 +486,6 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
         // downloads that then broke mid-transfer (codex review of #849).
         res.on('finish', () => {
           if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'all' }, req.event.id, galleryActor(req));
-          // The prebuilt archive holds exactly the set the gate resolved, so
-          // that is what gets charged.
-          if (res.statusCode < 400 && wholeGallery.photoIds) {
-            recordDelivered(req.event.id, wholeGallery.photoIds, req).catch(() => {});
-          }
         });
       }
       return;
@@ -571,6 +580,9 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     // catch below deliberately skips missing/corrupt sources, and those
     // never make it into the archive.
     const appendedIds = [];
+    // Point the settle registered above at this array rather than a copy: it
+    // fills as the archive is built, and settling reads it only at close time.
+    deliveredIds = appendedIds;
     for (let i = 0; i < photos.length; i += 1) {
       const photo = photos[i];
       const storageKey = resolvePhotoStorageKey(req.event, photo);
@@ -633,11 +645,6 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     if (!req.isAdminPreview) {
       res.on('finish', () => {
         if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'all' }, req.event.id, galleryActor(req));
-        // appendedIds, not the requested set: a photo whose source was missing
-        // never reached the client and must not be charged.
-        if (res.statusCode < 400 && appendedIds.length > 0) {
-          recordDelivered(req.event.id, appendedIds, req).catch(() => {});
-        }
       });
     }
     if (cancelled) return;
@@ -716,7 +723,12 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     // Gate on what this viewer would actually receive, not on what they asked
     // for: ids filtered out above are never delivered and must not be counted
     // against the allowance.
-    if (!(await passesQuotaGate(req, res, photos.map((photo) => photo.id)))) return;
+    const selectedGate = await passesQuotaGate(req, res, photos.map((photo) => photo.id));
+    if (!selectedGate.ok) return;
+    // Registered before the resolution check below, so a request refused there
+    // gives its slots back instead of keeping them.
+    let selectedDeliveredIds = null;
+    settleReservation(res, req, selectedGate.reserved, () => selectedDeliveredIds || []);
 
     // Download resolution (#858). Resolve BEFORE any header goes out — once
     // the archive starts streaming we can no longer return a JSON error.
@@ -777,6 +789,9 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     const selectedEntryNames = getZipEntryNames(photos, useOriginalSelected);
     // Only photos whose append succeeded count as downloaded (#895).
     const appendedIds = [];
+    // Same array, not a copy: it fills as the archive is built and settling
+    // reads it only at close time.
+    selectedDeliveredIds = appendedIds;
     for (let i = 0; i < photos.length; i += 1) {
       const photo = photos[i];
       const name = selectedEntryNames[i] || `photo-${photo.id}.jpg`;
@@ -824,11 +839,6 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     if (!req.isAdminPreview) {
       res.on('finish', () => {
         if (res.statusCode < 400) logActivity('gallery_downloaded', { scope: 'selected', photo_count: photoIds.length }, req.event.id, galleryActor(req));
-        // appendedIds, not the requested set: a photo whose source was missing
-        // never reached the client and must not be charged.
-        if (res.statusCode < 400 && appendedIds.length > 0) {
-          recordDelivered(req.event.id, appendedIds, req).catch(() => {});
-        }
       });
     }
     if (selectedCancelled) return;
@@ -895,9 +905,16 @@ router.post('/:slug/download-jobs', verifyGalleryAccess, denySlideshowToken, blo
 
     // Gate at job creation, not at collection: building an archive the client
     // is not allowed to take would burn minutes of CPU for a guaranteed 402.
+    //
+    // Read-only on purpose. The slots are claimed where the file is handed over,
+    // not here, because a job can fail to build or be abandoned before anyone
+    // collects it, and either way the client would be paying for an archive they
+    // never received. Passing this check is advice, not a booking: the allowance
+    // can still run out before they come back for the file.
+    const preflight = { reserve: false };
     if (photoIds) {
-      if (!(await passesQuotaGate(req, res, photoIds))) return;
-    } else if (!(await passesWholeGalleryGate(req, res)).ok) {
+      if (!(await passesQuotaGate(req, res, photoIds, preflight)).ok) return;
+    } else if (!(await passesWholeGalleryGate(req, res, preflight)).ok) {
       return;
     }
 
@@ -992,20 +1009,30 @@ router.get('/:slug/download-jobs/:token/file', verifyGalleryAccess, denySlidesho
       return res.status(410).json({ error: 'This download is no longer available' });
     }
 
+    // The DELIVERED set, not the requested one: a photo whose source was
+    // missing at build time isn't in the zip and must not be counted.
+    let packagedIds = [];
+    try {
+      packagedIds = JSON.parse(job.delivered_photo_ids || job.photo_ids || '[]');
+    } catch (_) { /* malformed row: skip counting rather than fail */ }
+
+    // The real claim, taken against what this archive actually holds and only
+    // now that it is about to be handed over. The check at job creation was
+    // advisory, so the allowance may have run out in the meantime and this is
+    // where the client finds out. Claiming before the stream starts is what
+    // stops two parallel collections of two different jobs from both fitting
+    // into one remaining slot.
+    const jobGate = await passesQuotaGate(req, res, packagedIds);
+    if (!jobGate.ok) return;
+    settleReservation(res, req, jobGate.reserved, () => packagedIds);
+
     // Stats parity with the other bulk paths (#895): only count once the
     // response actually completed, and keep admin previews out of guest stats.
     res.on('finish', () => {
       if (res.statusCode >= 400 || req.isAdminPreview) return;
-      // The DELIVERED set, not the requested one: a photo whose source was
-      // missing at build time isn't in the zip and must not be counted.
-      let ids = [];
-      try {
-        ids = JSON.parse(job.delivered_photo_ids || job.photo_ids || '[]');
-      } catch (_) { /* malformed row — skip counting rather than fail */ }
+      const ids = packagedIds;
       if (ids.length > 0) {
         db('photos').whereIn('id', ids).increment('download_count', 1).catch(() => {});
-        // Same delivered set the counter above uses, for the same reason.
-        recordDelivered(req.event.id, ids, req).catch(() => {});
       }
       db('access_logs').insert({
         event_id: req.event.id,

@@ -11,7 +11,7 @@ vi.mock('react-i18next', async () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 vi.mock('../../../hooks/useGallery', () => ({ useDownloadPhoto: () => ({ mutate: download }) }));
-vi.mock('../../../hooks/useDownloadQuota', () => ({ useMarkPhotosDelivered: () => vi.fn() }));
+vi.mock('../../../hooks/useDownloadQuota', () => ({ useRefreshDownloadQuota: () => vi.fn() }));
 vi.mock('../../../contexts/GuestIdentityContext', () => ({ useGuestIdentityOptional: () => null }));
 vi.mock('../../../hooks/useInputMode', () => ({ useInputMode: () => 'mouse' }));
 vi.mock('react-intersection-observer', () => ({ useInView: () => ({ ref: vi.fn(), inView: true }) }));

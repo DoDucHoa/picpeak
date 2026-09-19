@@ -46,7 +46,7 @@ vi.mock('../../../common', () => ({
 
 // The layout now patches the download-quota cache after a bulk download, so it
 // takes a query client. These tests render it bare, with no provider.
-vi.mock('../../../../hooks/useDownloadQuota', () => ({ useMarkPhotosDelivered: () => vi.fn() }));
+vi.mock('../../../../hooks/useDownloadQuota', () => ({ useRefreshDownloadQuota: () => vi.fn() }));
 
 vi.mock('../../PhotoLightbox', () => ({
   PhotoLightbox: ({ feedbackEnabled, initialIndex }: { feedbackEnabled?: boolean; initialIndex: number }) => (

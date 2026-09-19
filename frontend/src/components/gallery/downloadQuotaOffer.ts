@@ -20,7 +20,9 @@ export function shouldOfferFullPackage(
 /** What a refused download turned out to be, once the body has been read. */
 export type DownloadRefusal =
   | { kind: 'quota'; payload: QuotaExceededPayload }
-  | { kind: 'guest' };
+  | { kind: 'guest' }
+  /** The gate could not read the allowance and refused rather than guess. */
+  | { kind: 'unavailable' };
 
 /**
  * Reads the body off a failed download and says why it was refused, including
@@ -51,8 +53,14 @@ export async function classifyDownloadRefusal(error: unknown): Promise<DownloadR
   const exceeded = asQuotaExceeded({ response: { status, data } });
   if (exceeded) return { kind: 'quota', payload: exceeded };
 
-  if (status === 403 && (data as { code?: string } | undefined)?.code === 'DOWNLOAD_NOT_ALLOWED_FOR_GUEST') {
+  const code = (data as { code?: string } | undefined)?.code;
+  if (status === 403 && code === 'DOWNLOAD_NOT_ALLOWED_FOR_GUEST') {
     return { kind: 'guest' };
+  }
+  // A 503 without this code is an ordinary outage somewhere else in the stack,
+  // and belongs in the generic failure toast rather than here.
+  if (status === 503 && code === 'DOWNLOAD_QUOTA_UNAVAILABLE') {
+    return { kind: 'unavailable' };
   }
 
   return null;

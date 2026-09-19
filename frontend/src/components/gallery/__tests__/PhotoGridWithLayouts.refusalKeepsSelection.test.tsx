@@ -32,9 +32,9 @@ vi.mock('../../../services/analytics.service', () => ({
 }));
 
 vi.mock('../../../hooks/useGallery', () => ({ useDownloadPhoto: () => ({ mutate: vi.fn() }) }));
-const markPhotosDelivered = vi.fn();
+const refreshDownloadQuota = vi.fn();
 vi.mock('../../../hooks/useDownloadQuota', () => ({
-  useMarkPhotosDelivered: () => markPhotosDelivered,
+  useRefreshDownloadQuota: () => refreshDownloadQuota,
 }));
 
 const reportDownloadFailure = vi.fn().mockResolvedValue(true);
@@ -119,7 +119,7 @@ describe('PhotoGridWithLayouts: the selection after a bulk download', () => {
     // is only possible if there is still a selection to narrow.
     expect(screen.getByText('gallery.downloadSelected')).toBeInTheDocument();
     // And nothing was charged against the allowance.
-    expect(markPhotosDelivered).not.toHaveBeenCalled();
+    expect(refreshDownloadQuota).not.toHaveBeenCalled();
   });
 
   it('keeps the selection when the download fails for any other reason', async () => {
@@ -146,7 +146,7 @@ describe('PhotoGridWithLayouts: the selection after a bulk download', () => {
     await user.click(screen.getByText('gallery.downloadSelected'));
 
     await waitFor(() => expect(screen.queryByText('gallery.downloadSelected')).toBeNull());
-    expect(markPhotosDelivered).toHaveBeenCalledWith('demo', [1, 2, 3]);
+    expect(refreshDownloadQuota).toHaveBeenCalledWith('demo');
     expect(screen.getByText('gallery.selectPhotos')).toBeInTheDocument();
   });
 });

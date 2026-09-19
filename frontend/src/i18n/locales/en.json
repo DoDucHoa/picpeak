@@ -1236,6 +1236,7 @@
       "dialogHint": "Add downloads to this gallery, or go back and pick fewer photos.",
       "missingSlots": "{{missing}} more than your allowance covers",
       "guestBlocked": "Only registered clients can download photos from this gallery.",
+      "unavailable": "Downloads are briefly unavailable. Please try again in a moment.",
       "adjustSelection": "Adjust my selection",
       "savings": "Save {{percent}}%",
       "autoLabelAll": "All photos",

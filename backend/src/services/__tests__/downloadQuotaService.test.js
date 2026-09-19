@@ -116,41 +116,6 @@ describe('isPayingClient', () => {
   });
 });
 
-describe('recordDelivered', () => {
-  test('writes nothing while the gallery has the feature off', async () => {
-    const insert = jest.fn();
-    mockTables({ settings: { quota_enabled: false }, ledgerCount: 0 });
-    db.mockImplementation((table) => {
-      if (table === 'event_download_quota_settings') return { where: () => ({ first: async () => ({ quota_enabled: false }) }) };
-      if (table === 'event_photo_downloads') return { insert };
-      throw new Error(`unexpected table ${table}`);
-    });
-    const written = await svc.recordDelivered(1, [5, 6], { accessLevel: 'client' });
-    expect(written).toBe(0);
-    expect(insert).not.toHaveBeenCalled();
-  });
-
-  test('ignores a photo already in the ledger instead of failing', async () => {
-    // The chain must end in .returning('id'): without it Postgres hands back a
-    // Result object rather than rows and the charged count silently reads zero.
-    // Proven against a real database in __tests__/integration/downloadQuotaLedgerPg.
-    const returning = jest.fn(async () => [{ id: 1 }]);
-    const ignore = jest.fn(() => ({ returning }));
-    const onConflict = jest.fn(() => ({ ignore }));
-    const insert = jest.fn(() => ({ onConflict }));
-    db.mockImplementation((table) => {
-      if (table === 'event_download_quota_settings') return { where: () => ({ first: async () => ({ quota_enabled: true, free_limit: 20 }) }) };
-      if (table === 'event_photo_downloads') return { insert, where: () => ({ count: async () => [{ count: 0 }] }) };
-      if (table === 'download_quota_orders') return { where: () => ({ select: async () => [] }) };
-      throw new Error(`unexpected table ${table}`);
-    });
-    const written = await svc.recordDelivered(1, [5, 5, 6], { accessLevel: 'client' });
-    expect(onConflict).toHaveBeenCalledWith(['event_id', 'photo_id']);
-    expect(insert.mock.calls[0][0]).toHaveLength(2);
-    expect(written).toBe(1);
-  });
-});
-
 describe('assertDownloadAccess', () => {
   test('lets everyone through while the feature is off', async () => {
     mockTables({ settings: { quota_enabled: false }, ledgerCount: 0 });

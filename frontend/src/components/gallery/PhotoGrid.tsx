@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Photo } from '../../types';
 import { useDownloadPhoto } from '../../hooks/useGallery';
-import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
+import { useRefreshDownloadQuota } from '../../hooks/useDownloadQuota';
 import { useDownloadGate } from '../../contexts/DownloadGateContext';
 import { PhotoLightbox } from './PhotoLightbox';
 import { Button, AuthenticatedImage } from '../common';
@@ -43,7 +43,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const downloadPhotoMutation = useDownloadPhoto();
-  const markPhotosDelivered = useMarkPhotosDelivered();
+  const refreshDownloadQuota = useRefreshDownloadQuota();
   const downloadGate = useDownloadGate();
 
   // Clear selection when category changes
@@ -115,7 +115,7 @@ export const PhotoGrid: React.FC<PhotoGridProps> = ({
 
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
-      markPhotosDelivered(slug, ids);
+      refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
       setSelectedPhotos(new Set());
       setIsSelectionMode(false);

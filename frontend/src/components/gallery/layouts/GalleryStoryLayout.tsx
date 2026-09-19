@@ -9,7 +9,7 @@ import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { toast } from 'react-toastify';
 import { useDownloadGate } from '../../../contexts/DownloadGateContext';
-import { useMarkPhotosDelivered } from '../../../hooks/useDownloadQuota';
+import { useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
 
 import {
   StoryHero,
@@ -78,7 +78,7 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
   void _onPhotoSelect;
   const { t } = useTranslation();
   const downloadGate = useDownloadGate();
-  const markPhotosDelivered = useMarkPhotosDelivered();
+  const refreshDownloadQuota = useRefreshDownloadQuota();
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -193,7 +193,7 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
       await galleryService.downloadSelectedPhotos(slug, ids);
       // See PhotoGridWithLayouts: the ledger write lands after the response,
       // so the allowance is patched here rather than refetched.
-      markPhotosDelivered(slug, ids);
+      refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
     } catch (error) {
       // A guest or an exhausted client gets the dialog/notice the server
@@ -203,7 +203,7 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
         toast.error(t('gallery.downloadError'));
       }
     }
-  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution, downloadGate, markPhotosDelivered]);
+  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota]);
 
   // #1160: a folder-only root has no photos to show here, but the folder tiles
   // above prove the gallery isn't empty — render the shell (hero, logout,

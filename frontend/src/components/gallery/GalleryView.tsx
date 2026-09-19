@@ -11,7 +11,7 @@ import { Button } from '../common';
 import { GallerySkeleton } from './GallerySkeleton';
 import { useGalleryAuth, useTheme } from '../../contexts';
 import { useGalleryPhotos, useDownloadAllPhotos } from '../../hooks/useGallery';
-import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
+import { useRefreshDownloadQuota } from '../../hooks/useDownloadQuota';
 import { PhotoGridWithLayouts } from './PhotoGridWithLayouts';
 import { GalleryFolderTiles } from './GalleryFolderTiles';
 import {
@@ -306,7 +306,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   
   // Data updates are handled by React Query
   const downloadAllMutation = useDownloadAllPhotos();
-  const markPhotosDelivered = useMarkPhotosDelivered();
+  const refreshDownloadQuota = useRefreshDownloadQuota();
 
   // Download allowance (#download-quota). One query feeds the header badge,
   // the delivered marks on the grid and the package offer below.
@@ -347,12 +347,24 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       notifyGuestBlocked();
       return true;
     }
+    // The allowance could not be read, so nothing was refused on its merits and
+    // no purchase would help. Say so plainly instead of opening a sales dialog
+    // for a problem the client cannot buy their way out of.
+    if (refusal.kind === 'unavailable') {
+      toast.error(
+        t(
+          'gallery.downloadQuota.unavailable',
+          'Downloads are briefly unavailable. Please try again in a moment.',
+        ),
+      );
+      return true;
+    }
     setQuotaOffer({ exceeded: refusal.payload });
     // The refusal carries the server's current counters, so the badge behind
     // the dialog agrees with the dialog in front of it.
     refetchDownloadQuota();
     return true;
-  }, [refetchDownloadQuota, notifyGuestBlocked]);
+  }, [refetchDownloadQuota, notifyGuestBlocked, t]);
 
   const offerForBlockedDownload = useCallback(() => {
     // A single not-yet-delivered photo against an exhausted allowance always
@@ -930,7 +942,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
       // The ledger write lands after the response is flushed, so the badge and
       // the "Already downloaded" marks are patched here rather than refetched.
-      markPhotosDelivered(slug, peopleDownloadableIds);
+      refreshDownloadQuota(slug);
     } catch (error) {
       if (await handleDownloadFailure(error)) return;
       throw error;
@@ -985,7 +997,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     try {
       await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
       // Same as the people download above.
-      markPhotosDelivered(slug, folderDownloadIds);
+      refreshDownloadQuota(slug);
     } catch (error) {
       if (await handleDownloadFailure(error)) return;
       throw error;

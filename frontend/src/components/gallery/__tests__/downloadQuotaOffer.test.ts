@@ -47,6 +47,31 @@ describe('classifyDownloadRefusal', () => {
     expect(refusal).toEqual({ kind: 'guest' });
   });
 
+  /**
+   * The gate now fails CLOSED: when it cannot read the allowance it refuses the
+   * download rather than waving it through. That refusal has to reach the
+   * client as its own thing. Left unclassified it falls through to the generic
+   * "download failed" toast, which tells the client to try a different photo
+   * when the real answer is that nothing will work until the server recovers.
+   */
+  it('reads a plain-JSON 503 DOWNLOAD_QUOTA_UNAVAILABLE as a temporary outage', async () => {
+    const refusal = await classifyDownloadRefusal(
+      jsonError(503, { code: 'DOWNLOAD_QUOTA_UNAVAILABLE' }),
+    );
+    expect(refusal).toEqual({ kind: 'unavailable' });
+  });
+
+  it('reads a Blob-wrapped 503 DOWNLOAD_QUOTA_UNAVAILABLE as a temporary outage', async () => {
+    const refusal = await classifyDownloadRefusal(
+      blobError(503, { code: 'DOWNLOAD_QUOTA_UNAVAILABLE' }),
+    );
+    expect(refusal).toEqual({ kind: 'unavailable' });
+  });
+
+  it('leaves an ordinary 503 with no quota code as a generic failure', async () => {
+    expect(await classifyDownloadRefusal(jsonError(503, { error: 'Bad gateway' }))).toBeNull();
+  });
+
   it('returns null for an unrelated 403 (e.g. downloads disabled)', async () => {
     const refusal = await classifyDownloadRefusal(jsonError(403, { error: 'Downloads are disabled' }));
     expect(refusal).toBeNull();

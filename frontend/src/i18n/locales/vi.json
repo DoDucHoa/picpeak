@@ -1236,6 +1236,7 @@
       "dialogHint": "Mua thêm lượt tải cho bộ sưu tập này, hoặc quay lại và chọn ít ảnh hơn.",
       "missingSlots": "Nhiều hơn {{missing}} ảnh so với hạn mức của bạn",
       "guestBlocked": "Chỉ khách hàng đã đăng ký mới được tải ảnh từ bộ sưu tập này.",
+      "unavailable": "Tải ảnh đang tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
       "adjustSelection": "Chỉnh lại lựa chọn",
       "savings": "Tiết kiệm {{percent}}%",
       "autoLabelAll": "Toàn bộ ảnh",
