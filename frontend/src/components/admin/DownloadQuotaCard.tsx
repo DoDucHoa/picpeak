@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Download, Infinity as InfinityIcon, Save, Clock, Gift } from 'lucide-react';
 
 import { Button, Card, Input, Loading } from '../common';
+import { Switch } from '../../features/settings/components/Switch';
 import { useMutationWithToast } from '../../hooks';
 import {
   adminDownloadQuotaService,
@@ -13,9 +14,12 @@ import {
   type QuotaPatch,
 } from '../../services/adminDownloadQuota.service';
 import type { DownloadPackage } from '../../services/downloadQuota.service';
+import { DownloadsDisabledNotice } from './DownloadsDisabledNotice';
 
 export interface DownloadQuotaCardProps {
   eventId: number;
+  /** The gallery's master "Allow photo downloads" switch is off (#downloads-off). */
+  downloadsDisabled?: boolean;
 }
 
 /** Empty string for a NULL column, so "inherit" never renders as a typed number. */
@@ -48,7 +52,7 @@ function packageOptionLabel(
   return `${label} · ${priceText}`;
 }
 
-export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId }) => {
+export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, downloadsDisabled = false }) => {
   const { t, i18n } = useTranslation();
 
   const { data, isLoading } = useQuery<AdminQuotaResponse>({
@@ -164,6 +168,11 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId })
   return (
     <>
       <Card padding="lg" className="mt-4">
+      {/* The whole card, switch included: an allowance is meaningless on a
+          gallery whose download routes all answer 403, and letting it be
+          configured anyway is how a gallery ends up with priced packages
+          nobody can ever use. */}
+      <fieldset disabled={downloadsDisabled} className={downloadsDisabled ? 'opacity-60' : undefined}>
       <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Download className="w-5 h-5" aria-hidden />
@@ -171,16 +180,15 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId })
             {t('downloadQuotaAdmin.card.title', 'Download allowance')}
           </h2>
         </div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            role="switch"
+        <div className="flex items-center gap-2 text-sm">
+          <Switch
             checked={enabled}
             disabled={save.isPending}
-            onChange={(e) => save.mutate({ quota_enabled: e.target.checked })}
+            onChange={(next) => save.mutate({ quota_enabled: next })}
+            ariaLabel={t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery') as string}
           />
-          {t('downloadQuotaAdmin.card.enableLabel', 'Meter downloads for this gallery')}
-        </label>
+          {t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery')}
+        </div>
       </div>
 
       <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
@@ -189,6 +197,8 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId })
           'The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.',
         )}
       </p>
+
+      {downloadsDisabled && <DownloadsDisabledNotice />}
 
       {enabled && (
         <div className="mb-4">
@@ -290,6 +300,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId })
           {t('downloadQuotaAdmin.card.save', 'Save allowance')}
         </Button>
       </div>
+      </fieldset>
       </Card>
 
       {showCreateOrder && (
