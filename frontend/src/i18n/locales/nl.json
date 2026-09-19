@@ -2748,10 +2748,6 @@
   "clientAccess": {
     "title": "Klanttoegang",
     "description": "Bekijk foto's en beheer zichtbaarheid voordat de galerij wordt gedeeld met gasten.",
-    "pinLabel": "Klant-PIN",
-    "pinPlaceholder": "Voer uw klant-PIN in",
-    "enterPin": "Voer uw klant-PIN in",
-    "invalidPin": "Ongeldige PIN. Probeer het opnieuw.",
     "loginFailed": "Authenticatie mislukt. Probeer het opnieuw.",
     "loginButton": "Galerij openen",
     "guestHint": "Op zoek naar de gastgalerij?",
@@ -2763,9 +2759,6 @@
     "adminTitle": "Klanttoegang",
     "enableToggle": "Klanttoegang inschakelen",
     "enableDescription": "Sta klanten toe foto's te beoordelen en te verbergen voordat de galerij wordt gedeeld met gasten.",
-    "pinHelperText": "De klant gebruikt deze PIN om de beoordelingspagina te openen.",
-    "pinUpdated": "Klant-PIN bijgewerkt",
-    "setPin": "PIN instellen",
     "linkLabel": "Klanttoegangslink",
     "regenerateToken": "Link opnieuw genereren",
     "tokenRegenerated": "Klanttoegangslink opnieuw gegenereerd"

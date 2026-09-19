@@ -259,7 +259,18 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString(),
+    body('client_password').optional().isString().custom((value) => {
+      // Same floor as the gallery password above (#client-access-password):
+      // client access is a second way into the gallery, so an empty-ish
+      // secret must not be settable through the API either.
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
+      if (typeof value !== 'string' || value.trim().length < 6) {
+        throw new Error('Client password must be at least 6 characters long');
+      }
+      return true;
+    }),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',
       'capture_date_desc', 'capture_date_asc',
@@ -1070,7 +1081,18 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString(),
+    body('client_password').optional().isString().custom((value) => {
+      // Same floor as the gallery password above (#client-access-password):
+      // client access is a second way into the gallery, so an empty-ish
+      // secret must not be settable through the API either.
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
+      if (typeof value !== 'string' || value.trim().length < 6) {
+        throw new Error('Client password must be at least 6 characters long');
+      }
+      return true;
+    }),
     body('regenerate_client_token').optional().isBoolean(),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',

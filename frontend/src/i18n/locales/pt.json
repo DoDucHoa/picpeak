@@ -2766,10 +2766,6 @@
   "clientAccess": {
     "title": "Acesso do Cliente",
     "description": "Revise as fotos e gerencie a visibilidade antes de compartilhar a galeria com os convidados.",
-    "pinLabel": "PIN do Cliente",
-    "pinPlaceholder": "Digite seu PIN de cliente",
-    "enterPin": "Por favor, digite seu PIN de cliente",
-    "invalidPin": "PIN inválido. Por favor, tente novamente.",
     "loginFailed": "Autenticação falhou. Por favor, tente novamente.",
     "loginButton": "Acessar Galeria",
     "guestHint": "Procurando pela galeria de convidados?",
@@ -2781,9 +2777,6 @@
     "adminTitle": "Acesso do Cliente",
     "enableToggle": "Ativar Acesso do Cliente",
     "enableDescription": "Permitir que clientes revisem e ocultem fotos antes de a galeria ser compartilhada com os convidados.",
-    "pinHelperText": "O cliente usará este PIN para acessar a página de revisão.",
-    "pinUpdated": "PIN do cliente atualizado",
-    "setPin": "Definir PIN",
     "linkLabel": "Link de Acesso do Cliente",
     "regenerateToken": "Regenerar link",
     "tokenRegenerated": "Link de acesso do cliente regenerado"

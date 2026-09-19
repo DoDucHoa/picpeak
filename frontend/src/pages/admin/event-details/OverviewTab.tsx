@@ -129,7 +129,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
         {/* Per-gallery download resolution override (#858). Sits with the
             other "what the customer receives" controls. */}
-        <DownloadResolutionCard eventId={event.id} onChanged={() => refetchEvent()} />
+        <DownloadResolutionCard
+          eventId={event.id}
+          onChanged={() => refetchEvent()}
+          downloadsDisabled={!event.allow_downloads}
+        />
 
         {/* People in this gallery (#1074). Gated behind the `faces` feature
             flag — which is itself gated on the operator running the optional
@@ -178,7 +182,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             its own on-off switch, and the ledger it reports on survives the
             feature being switched off, so hiding it would hide history. */}
         <PermissionGate permissions={['events.view', 'events.edit']}>
-          <DownloadQuotaCard eventId={event.id} />
+          <DownloadQuotaCard eventId={event.id} downloadsDisabled={!event.allow_downloads} />
         </PermissionGate>
 
         {/* Actions */}

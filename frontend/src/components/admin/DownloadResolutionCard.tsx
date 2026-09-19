@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 import { Download, Save } from 'lucide-react';
 
 import { Button, Card, Loading } from '../common';
+import { DownloadsDisabledNotice } from './DownloadsDisabledNotice';
 import { api } from '../../config/api';
 import type { DownloadResolutionChoice } from '../../types';
 
@@ -49,6 +50,8 @@ interface Payload {
 export interface DownloadResolutionCardProps {
   eventId: number;
   onChanged?: () => void;
+  /** The gallery's master "Allow photo downloads" switch is off (#downloads-off). */
+  downloadsDisabled?: boolean;
 }
 
 /** null → "Inherit"; true/false → explicit. */
@@ -56,7 +59,7 @@ const triToSelect = (v: boolean | null | undefined) =>
   (v === null || v === undefined ? INHERIT : String(v));
 const selectToTri = (v: string) => (v === INHERIT ? null : v === 'true');
 
-export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ eventId, onChanged }) => {
+export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ eventId, onChanged, downloadsDisabled = false }) => {
   const { t } = useTranslation();
   const [standard, setStandard] = useState<string>(INHERIT);
   const [picker, setPicker] = useState<string>(INHERIT);
@@ -120,6 +123,9 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
           'Override the site-wide download settings for this gallery only. "Inherit" follows Settings → Download resolutions.')}
       </p>
 
+      {downloadsDisabled && <DownloadsDisabledNotice />}
+
+      <fieldset disabled={downloadsDisabled} className={downloadsDisabled ? 'opacity-60' : undefined}>
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1 text-neutral-800 dark:text-neutral-200">
@@ -184,10 +190,11 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
       </p>
 
       <div className="flex justify-end mt-4">
-        <Button variant="primary" onClick={save} disabled={saving} leftIcon={<Save className="w-4 h-4" />}>
+        <Button variant="primary" onClick={save} disabled={saving || downloadsDisabled} leftIcon={<Save className="w-4 h-4" />}>
           {t('common.save', 'Save')}
         </Button>
       </div>
+      </fieldset>
     </Card>
   );
 };

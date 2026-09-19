@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { galleryService } from '../services';
 import { toast } from 'react-toastify';
-import { downloadQuotaKey } from './useDownloadQuota';
+import { markPhotosDelivered } from './useDownloadQuota';
 
 /** A refusal handled at the call site (quota dialog / "clients only" toast) shouldn't also get a generic failure toast. */
 function isHandledElsewhere(error: unknown): boolean {
@@ -66,10 +66,7 @@ export const useDownloadPhoto = () => {
     }) => galleryService.downloadPhoto(slug, photoId, filename),
     onSuccess: (_data, variables) => {
       toast.success('Photo downloaded successfully');
-      // Refreshes the remaining-allowance badge and the "Already downloaded"
-      // mark, which the server already has right after this resolves —
-      // without this the guest only sees either update after a manual reload.
-      queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
+      markPhotosDelivered(queryClient, variables.slug, [variables.photoId]);
     },
     onError: (error) => {
       // A refusal for role or allowance is answered at the call site (the
@@ -113,7 +110,7 @@ export const useSavePhotoToDevice = () => {
       quotaAware?: boolean;
     }) => galleryService.savePhotoToDevice(slug, photoId, filename, { quotaAware }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
+      markPhotosDelivered(queryClient, variables.slug, [variables.photoId]);
     },
     onError: (error) => {
       if (isHandledElsewhere(error)) return;

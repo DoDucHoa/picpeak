@@ -222,9 +222,22 @@ export const GalleryAuthProvider: React.FC<GalleryAuthProviderProps> = ({ childr
           // guess above (#1149). A second tab has no sessionStorage but the
           // same cookie, so the stored value silently downgraded a client
           // session to 'guest' while the backend kept serving it as a client.
+          //
+          // The mirror case matters just as much: the stored guess can say
+          // 'client' from an earlier PIN login while the server's token for
+          // THIS request no longer carries it (a different device dropped the
+          // cookie, a fresh tab has no bearer token to send, …). Downgrading
+          // here keeps every download button's own client-side prediction —
+          // and the quota badge, which is gated on this same flag — in sync
+          // with what the server will actually accept, instead of showing a
+          // client's UI right up to the moment a download quietly comes back
+          // 403 "clients only".
           if (sessionResponse.data.accessLevel === 'client') {
             setAccessLevel('client');
             sessionStorage.setItem(`gallery_access_level_${currentSlug}`, 'client');
+          } else {
+            setAccessLevel('guest');
+            sessionStorage.removeItem(`gallery_access_level_${currentSlug}`);
           }
           setViaCustomer(Boolean(sessionResponse.data.viaCustomer));
 

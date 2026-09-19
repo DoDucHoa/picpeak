@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Photo, DownloadResolutionChoice, GalleryPerson } from '../../types';
 import { useDownloadPhoto } from '../../hooks/useGallery';
+import { useMarkPhotosDelivered } from '../../hooks/useDownloadQuota';
 import { PhotoLightbox } from './PhotoLightbox';
 import { DownloadResolutionModal } from './DownloadResolutionModal';
 import { Button } from '../common';
@@ -151,6 +152,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
   // Non-null while the resolution picker is open (#858); holds the ids it applies to.
   const [resolutionPickerIds, setResolutionPickerIds] = useState<number[] | null>(null);
   const downloadPhotoMutation = useDownloadPhoto();
+  const markPhotosDelivered = useMarkPhotosDelivered();
   const downloadGate = useDownloadGate();
 
   // Use parent state if provided, otherwise use local state
@@ -242,19 +244,32 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
       return;
     }
 
-    toastify.info(t('gallery.downloading', { count: ids.length }));
-
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
+      // Charge the allowance the same way the single-photo button does. The
+      // server writes the ledger after the response has been flushed, so a
+      // refetch here would read the pre-download numbers and leave the badge
+      // and the "Already downloaded" marks stale until a manual reload.
+      markPhotosDelivered(slug, ids);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
-    } catch {
-      toastify.error(t('gallery.downloadError'));
-    } finally {
+      // Only a download that actually happened ends the selection. This used
+      // to sit in a `finally`, which threw the selection away on a refusal
+      // too — while the quota dialog covering the grid was telling the client
+      // to "Adjust my selection". There was nothing left to adjust: every
+      // photo had to be picked again from scratch.
       setSelectedPhotos(new Set());
       if (parentToggleSelectionMode) {
         parentToggleSelectionMode();
       } else {
         setLocalSelectionMode(false);
+      }
+    } catch (error) {
+      // Same refusal handling as the single-photo button above: a guest or an
+      // exhausted client gets the dialog/notice the server explained, not a
+      // generic failure toast — and never the optimistic "Downloading..." this
+      // used to show before the request even had a chance to be refused.
+      if (!(await downloadGate.reportDownloadFailure(error))) {
+        toastify.error(t('gallery.downloadError'));
       }
     }
   };

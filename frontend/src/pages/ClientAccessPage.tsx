@@ -41,7 +41,7 @@ export const ClientAccessPage: React.FC = () => {
     e.preventDefault();
 
     if (!pin.trim()) {
-      setLoginError(t('clientAccess.enterPin'));
+      setLoginError(t('clientAccess.enterPassword'));
       return;
     }
 
@@ -58,7 +58,7 @@ export const ClientAccessPage: React.FC = () => {
     } catch (error: any) {
       const statusCode = error.response?.status;
       if (statusCode === 401) {
-        setLoginError(t('clientAccess.invalidPin'));
+        setLoginError(t('clientAccess.invalidPassword'));
       } else if (statusCode === 423) {
         setLoginError(t('auth.tooManyAttempts'));
       } else {
@@ -141,8 +141,8 @@ export const ClientAccessPage: React.FC = () => {
               <form onSubmit={handleLogin} className="space-y-4">
                 <Input
                   type="password"
-                  label={t('clientAccess.pinLabel')}
-                  placeholder={t('clientAccess.pinPlaceholder')}
+                  label={t('clientAccess.passwordLabel')}
+                  placeholder={t('clientAccess.passwordPlaceholder')}
                   value={pin}
                   onChange={(e) => {
                     setPin(e.target.value);

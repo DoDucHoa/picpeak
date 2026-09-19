@@ -2767,10 +2767,6 @@
   "clientAccess": {
     "title": "Accès client",
     "description": "Passez en revue les photos et gérez la visibilité avant que la galerie ne soit partagée avec les invités.",
-    "pinLabel": "Code PIN client",
-    "pinPlaceholder": "Entrez votre code PIN client",
-    "enterPin": "Veuillez entrer votre code PIN client",
-    "invalidPin": "Code PIN invalide. Veuillez réessayer.",
     "loginFailed": "Échec de l'authentification. Veuillez réessayer.",
     "loginButton": "Accéder à la galerie",
     "guestHint": "Vous cherchez la vue invité ?",
@@ -2782,9 +2778,6 @@
     "adminTitle": "Accès client",
     "enableToggle": "Activer l'accès client",
     "enableDescription": "Permettre aux clients de passer en revue et masquer les photos avant que la galerie ne soit partagée avec les invités.",
-    "pinHelperText": "Le client utilisera ce code PIN pour accéder à la page de révision.",
-    "pinUpdated": "Code PIN client mis à jour",
-    "setPin": "Définir le code PIN",
     "linkLabel": "Lien d'accès client",
     "regenerateToken": "Régénérer le lien",
     "tokenRegenerated": "Lien d'accès client régénéré"

@@ -804,35 +804,35 @@ async function processTemplate(template, variables, language = 'en') {
         desc: 'Fotos überprüfen und deren Sichtbarkeit festlegen, bevor die Galerie geteilt wird:',
         link: 'Kundenzugang öffnen',
         warning: 'Diesen Link nicht teilen — er ermöglicht das Ausblenden von Fotos in der Gästegalerie.',
-        pin: 'PIN',
+        password: 'Passwort',
       },
       ru: {
         label: 'Доступ клиента (Личный)',
         desc: 'Просмотрите и управляйте видимостью фотографий перед тем, как поделиться галереей с гостями:',
         link: 'Открыть доступ клиента',
         warning: 'Не делитесь этой ссылкой — она позволяет скрывать фотографии из гостевой галереи.',
-        pin: 'ПИН-код',
+        password: 'Пароль',
       },
       nl: {
         label: 'Klanttoegang (Privé)',
         desc: 'Bekijk en beheer de zichtbaarheid van foto\'s voordat u deelt met gasten:',
         link: 'Klanttoegang openen',
         warning: 'Deel deze link niet — hiermee kunnen foto\'s worden verborgen in de gastengalerij.',
-        pin: 'PIN',
+        password: 'Wachtwoord',
       },
       pt: {
         label: 'Acesso do Cliente (Privado)',
         desc: 'Revise e gerencie a visibilidade das fotos antes de compartilhar com os convidados:',
         link: 'Abrir Acesso do Cliente',
         warning: 'Não compartilhe este link — ele permite ocultar fotos da galeria de convidados.',
-        pin: 'PIN',
+        password: 'Senha',
       },
       en: {
         label: 'Client Access (Private)',
         desc: 'Review and manage photo visibility before sharing with guests:',
         link: 'Open Client Access',
         warning: 'Do not share this link — it allows hiding photos from the guest gallery.',
-        pin: 'PIN',
+        password: 'Password',
       },
     };
     const ci18n = clientAccessI18n[language] || clientAccessI18n.en;
@@ -866,14 +866,14 @@ async function processTemplate(template, variables, language = 'en') {
         <p style="margin: 8px 0;">
           <a href="${processedVariables.client_link}" style="display: inline-block; padding: 10px 20px; background-color: ${cli_primary}; color: ${cli_buttonText}; text-decoration: none; border-radius: 6px; font-weight: 600;">${ci18n.link}</a>
         </p>
-        <p style="margin: 8px 0;">${ci18n.pin}: <strong>${processedVariables.client_password}</strong></p>
+        <p style="margin: 8px 0;">${ci18n.password}: <strong>${processedVariables.client_password}</strong></p>
         <p style="color: #856404; font-size: 12px; margin: 8px 0 0;">&#9888;&#65039; ${ci18n.warning}</p>
       </div>`;
 
     // Mirror the same section in the plain-text body — without this, recipients
     // on a text-only mail client never saw the client link or PIN.
     if (textBody) {
-      textBody += `\n\n${ci18n.label}\n${ci18n.desc}\n${processedVariables.client_link}\n${ci18n.pin}: ${processedVariables.client_password}\n${ci18n.warning}\n`;
+      textBody += `\n\n${ci18n.label}\n${ci18n.desc}\n${processedVariables.client_link}\n${ci18n.password}: ${processedVariables.client_password}\n${ci18n.warning}\n`;
     }
   }
 

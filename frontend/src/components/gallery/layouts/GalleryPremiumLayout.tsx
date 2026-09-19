@@ -29,6 +29,7 @@ import { FeedbackIdentityModal } from '../FeedbackIdentityModal';
 import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { useDownloadPhoto } from '../../../hooks/useGallery';
+import { useMarkPhotosDelivered } from '../../../hooks/useDownloadQuota';
 import { toast } from 'react-toastify';
 import { useDownloadGate } from '../../../contexts/DownloadGateContext';
 import { canDownloadPhotoNow } from '../downloadQuotaOffer';
@@ -221,6 +222,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
   void _onDownload;
   const { t } = useTranslation();
   const downloadPhotoMutation = useDownloadPhoto();
+  const markPhotosDelivered = useMarkPhotosDelivered();
   const downloadGate = useDownloadGate();
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   // The delivered preview can be smaller than the original. Keep Zoom's
@@ -450,15 +452,22 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       onPickResolution(ids);
       return;
     }
-    toast.info(t('gallery.downloading', { count: ids.length }));
-
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
+      // See PhotoGridWithLayouts: the ledger write lands after the response,
+      // so the allowance is patched here rather than refetched.
+      markPhotosDelivered(slug, ids);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
-    } catch {
-      toast.error(t('gallery.downloadError'));
+    } catch (error) {
+      // Same refusal handling as this layout's own lightbox/photo download:
+      // a guest or an exhausted client gets the dialog/notice the server
+      // explained, not a generic failure toast — and never the optimistic
+      // "Downloading..." this used to show before the request could be refused.
+      if (!(await downloadGate.reportDownloadFailure(error))) {
+        toast.error(t('gallery.downloadError'));
+      }
     }
-  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution]);
+  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution, downloadGate, markPhotosDelivered]);
 
   const handleDownloadFromLightbox = useCallback((slide: { src?: string; photoId?: number }) => {
     if (!allowDownloads || !slide.src) return;
