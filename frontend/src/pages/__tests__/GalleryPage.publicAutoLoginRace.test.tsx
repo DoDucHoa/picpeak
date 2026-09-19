@@ -1,7 +1,7 @@
 /**
  * A gallery with no password auto-logs the visitor in with an empty password.
  * That request mints a plain GUEST token and, server-side, overwrites the
- * `gallery_token_<slug>` cookie — so firing it while a real session already
+ * `gallery_token_<slug>` cookie, so firing it while a real session already
  * exists destroys that session.
  *
  * It used to fire on every single load of a passwordless gallery, because the
@@ -15,7 +15,7 @@
  *
  * The guard is now the context's own `isLoading`: nothing may auto-login until
  * the session probe has settled. The second test is the other half of the
- * contract — a genuine visitor to a public gallery must still be let in.
+ * contract: a genuine visitor to a public gallery must still be let in.
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -106,7 +106,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe('GalleryPage — passwordless auto-login on a public gallery', () => {
+describe('GalleryPage: passwordless auto-login on a public gallery', () => {
   it('waits for the session restore instead of overwriting a client session with a guest one', async () => {
     const { rerender } = renderPage();
 

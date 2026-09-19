@@ -70,7 +70,7 @@ export const useDownloadPhoto = () => {
     },
     onError: (error) => {
       // A refusal for role or allowance is answered at the call site (the
-      // quota dialog, or a "clients only" toast) — a generic failure message
+      // quota dialog, or a "clients only" toast): a generic failure message
       // on top of it would tell the guest something went wrong when in fact
       // the server explained itself.
       if (isHandledElsewhere(error)) return;
@@ -104,7 +104,7 @@ export const useSavePhotoToDevice = () => {
       photoId: number;
       filename: string;
       /** Route through the observable blob path instead of a raw browser
-       *  navigation — pass true whenever the gallery has the download-quota
+       *  navigation. Pass true whenever the gallery has the download-quota
        *  feature on, so a 402/403 can be caught instead of silently
        *  "succeeding" as a download of the error body. */
       quotaAware?: boolean;

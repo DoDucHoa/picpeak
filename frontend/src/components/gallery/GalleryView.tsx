@@ -356,7 +356,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
 
   const offerForBlockedDownload = useCallback(() => {
     // A single not-yet-delivered photo against an exhausted allowance always
-    // costs exactly one slot — the same arithmetic the server's quota gate
+    // costs exactly one slot: the same arithmetic the server's quota gate
     // would have done, just without the round trip.
     setQuotaOffer({
       exceeded: {
@@ -1495,7 +1495,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
           // Gated here as well as inside the badge: an empty `items` must stay
           // empty, or every gallery gains a headerExtra wrapper it never had.
           // isClient as well as enabled: the remaining-slot count is a paying
-          // client's own allowance, and a guest — who can never spend it — must
+          // client's own allowance, and a guest, who can never spend it, must
           // not be shown a counter that looks like it applies to them.
           if (downloadQuota?.enabled && isClient) {
             items.push(<DownloadQuotaBadge key="download-quota" quota={downloadQuota} />);

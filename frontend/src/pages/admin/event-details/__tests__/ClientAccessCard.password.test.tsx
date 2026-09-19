@@ -52,7 +52,7 @@ const setButton = () => screen.getByRole('button', { name: /clientAccess.setPass
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
-describe('ClientAccessCard — the client password', () => {
+describe('ClientAccessCard: the client password', () => {
   it('refuses a password shorter than six characters without calling the API', async () => {
     const user = userEvent.setup();
     render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);

@@ -230,7 +230,7 @@ test('creating an order for a client resolves to the global packages when the ga
     if (table !== 'download_packages') throw new Error(`unexpected table ${table}`);
     return {
       where: (cond) => {
-        // The gallery's own list, tried first — empty here.
+        // The gallery's own list, tried first: empty here.
         if (cond && cond.event_id === 1) return { orderBy: async () => [] };
         // The global fallback, chained off whereNull('event_id').
         return { orderBy: async () => globalPackages };

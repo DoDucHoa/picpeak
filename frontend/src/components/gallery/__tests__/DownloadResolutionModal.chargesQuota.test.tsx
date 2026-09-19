@@ -7,7 +7,7 @@
  * downloaded" marks stood still after a picker download until a reload. The
  * server records the delivery from the file route's own `res.on('finish')`,
  * exactly like every other path, so a refetch from here would race that write
- * for the same reason — the patch goes on the click instead.
+ * for the same reason: the patch goes on the click instead.
  *
  * A whole-gallery download carries no id list and is deliberately still left
  * to reconcile on the next real read.
@@ -73,7 +73,7 @@ async function prepareAndDownload(photoIds?: number[]) {
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
-describe('DownloadResolutionModal — charging the allowance', () => {
+describe('DownloadResolutionModal: charging the allowance', () => {
   it('charges the selected photos when the archive is handed to the browser', async () => {
     await prepareAndDownload([11, 12, 13]);
 

@@ -69,7 +69,7 @@ describe('readQuotaExceeded (back-compat narrow view)', () => {
     expect(await readQuotaExceeded(jsonError(402, payload))).toEqual(payload);
   });
 
-  it('returns null for a guest refusal — callers that only handle quota must not treat it as one', async () => {
+  it('returns null for a guest refusal: callers that only handle quota must not treat it as one', async () => {
     expect(
       await readQuotaExceeded(jsonError(403, { code: 'DOWNLOAD_NOT_ALLOWED_FOR_GUEST' })),
     ).toBeNull();

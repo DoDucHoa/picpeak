@@ -8,8 +8,8 @@
  * downloaded" marks until they reloaded the page by hand. That is the reported
  * bug this covers.
  *
- * The server charges the ledger from `res.on('finish', …)` — after the
- * response the caller is awaiting — so the mock here answers every
+ * The server charges the ledger from `res.on('finish', …)`: after the
+ * response the caller is awaiting, so the mock here answers every
  * `/download-quota` read with the PRE-download snapshot, standing in for a
  * charge that has not landed yet. The patched numbers have to survive that,
  * and nothing in this flow may refetch, or the stale read would overwrite
@@ -56,7 +56,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('useMarkPhotosDelivered — a bulk download updates the badge without a refetch', () => {
+describe('useMarkPhotosDelivered: a bulk download updates the badge without a refetch', () => {
   it('charges every photo of the selection at once and keeps the value against a stale server', async () => {
     vi.mocked(downloadQuotaService.getQuota).mockResolvedValue(staleResponse as never);
 

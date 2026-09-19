@@ -461,7 +461,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
     } catch (error) {
       // Same refusal handling as this layout's own lightbox/photo download:
       // a guest or an exhausted client gets the dialog/notice the server
-      // explained, not a generic failure toast — and never the optimistic
+      // explained, not a generic failure toast, and never the optimistic
       // "Downloading..." this used to show before the request could be refused.
       if (!(await downloadGate.reportDownloadFailure(error))) {
         toast.error(t('gallery.downloadError'));

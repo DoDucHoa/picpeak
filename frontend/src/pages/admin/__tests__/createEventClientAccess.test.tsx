@@ -103,7 +103,7 @@ beforeEach(() => {
   createEvent.mockImplementation(() => new Promise(() => {}));
 });
 
-describe('CreateEventPage — Client Access is set up here, not after the fact', () => {
+describe('CreateEventPage: Client Access is set up here, not after the fact', () => {
   it('carries the same heading the event page uses, so the section is findable', () => {
     renderPage();
     expect(screen.getByText('clientAccess.adminTitle')).toBeInTheDocument();
@@ -176,7 +176,7 @@ describe('CreateEventPage — Client Access is set up here, not after the fact',
     await screen.findByText('validation.passwordMinLength');
     expect(createEvent).not.toHaveBeenCalled();
 
-    // Long enough but all digits — the same thing the gallery password
+    // Long enough but all digits: the same thing the gallery password
     // refuses, and exactly the shape a four-digit PIN habit produces.
     fireEvent.change(field(), { target: { value: '482100' } });
     submit();

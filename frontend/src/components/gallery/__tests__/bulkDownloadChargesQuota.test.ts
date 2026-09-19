@@ -2,7 +2,7 @@
  * Every bulk download has to charge the allowance cache.
  *
  * `galleryService.downloadSelectedPhotos` is called straight out of six
- * handlers, with no React Query mutation behind any of them — so the
+ * handlers, with no React Query mutation behind any of them, so the
  * optimistic patch that keeps the badge and the "Already downloaded" marks
  * honest (`useMarkPhotosDelivered`, see `useDownloadQuota.ts`) is something each
  * call site has to remember on its own. It was remembered in none of them:

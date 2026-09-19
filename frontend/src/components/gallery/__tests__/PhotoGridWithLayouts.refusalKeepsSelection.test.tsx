@@ -2,7 +2,7 @@
  * A refused bulk download must leave the selection alone.
  *
  * The quota dialog that a 402 raises says, in as many words, "Adjust my
- * selection" — go back and pick fewer photos. Clearing the selection was in a
+ * selection": go back and pick fewer photos. Clearing the selection was in a
  * `finally`, so by the time the client read that sentence every photo had
  * already been unpicked and the whole selection had to be built again from
  * scratch. Reported from the gallery: "nó lại deselect hết những ảnh tôi đã
@@ -101,7 +101,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('PhotoGridWithLayouts — the selection after a bulk download', () => {
+describe('PhotoGridWithLayouts: the selection after a bulk download', () => {
   it('keeps every selected photo when the server refuses the download', async () => {
     const user = userEvent.setup();
     const refusal = Object.assign(new Error('Payment Required'), {

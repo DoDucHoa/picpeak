@@ -170,7 +170,7 @@ describe('galleryService.savePhotoToDevice — iOS gating (#554)', () => {
   });
 });
 
-describe('galleryService.savePhotoToDevice — quotaAware (download-quota bug fix)', () => {
+describe('galleryService.savePhotoToDevice: quotaAware (download-quota bug fix)', () => {
   // A direct `<a download>` navigation is a browser-native fetch: JS never
   // sees the response, so a 402/403 the quota gate returns still "succeeds"
   // as a download of the JSON error body. `quotaAware: true` routes even a

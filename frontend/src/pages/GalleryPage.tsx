@@ -182,7 +182,7 @@ export const GalleryPage: React.FC = () => {
     // `isRestoringSession` is what keeps this from racing GalleryAuthContext's
     // own `/auth/session` restore. `isAuthenticated` starts false and only
     // flips once that call resolves, so on a gallery with no password this
-    // effect used to fire the moment /info arrived — a few tens of
+    // effect used to fire the moment /info arrived, a few tens of
     // milliseconds BEFORE the context could report the session it had just
     // confirmed. The empty-password login that followed minted a plain guest
     // token and overwrote both the sessionStorage token and the

@@ -18,13 +18,13 @@ export interface DownloadGate {
   /** null while unlimited or the feature is off. */
   remaining: number | null;
   downloadedIds: ReadonlySet<number>;
-  /** Opens the buy-more dialog directly — the same thing the header's "Get all photos" button does. */
+  /** Opens the buy-more dialog directly: the same thing the header's "Get all photos" button does. */
   openQuotaOffer: (exceeded: QuotaExceededPayload | null) => void;
   /**
    * Opens the dialog for a SPECIFIC photo the client already knows is
    * blocked (predicted client-side, before any request went out), with the
    * same "N more than your allowance covers" line a server refusal would
-   * have carried — built from the counters already on screen rather than
+   * have carried, built from the counters already on screen rather than
    * asking the server just to learn what it already told the badge.
    */
   offerForBlockedDownload: () => void;

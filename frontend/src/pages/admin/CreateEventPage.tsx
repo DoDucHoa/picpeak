@@ -1033,7 +1033,7 @@ export const CreateEventPage: React.FC = () => {
             {/* Client Access (#172). Sits directly under the gallery password
                 because the two are the same kind of thing: the credentials
                 someone needs to get in. It used to sit further down, with no
-                heading, between "Default Photo Sort" and the upload toggle —
+                heading, between "Default Photo Sort" and the upload toggle:
                 present, but invisible enough that it read as missing and sent
                 photographers to the edit screen to set it up. The heading and
                 icon are the edit screen's, so the same control is recognisable

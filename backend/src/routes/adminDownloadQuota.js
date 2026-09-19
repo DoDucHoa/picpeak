@@ -138,7 +138,7 @@ async function savePackageList(eventId, packages, conn = db) {
 /**
  * `resolved` switches from "this gallery's own list, empty means empty" (the
  * edit tab's contract, see the route comment below) to "what a customer of
- * this gallery would actually be offered" — the gallery's own active
+ * this gallery would actually be offered": the gallery's own active
  * packages, falling back to the global list exactly the way the customer-
  * facing quota endpoint already resolves them. The "Create order for client"
  * modal needs the second one: a gallery that never set its own price list

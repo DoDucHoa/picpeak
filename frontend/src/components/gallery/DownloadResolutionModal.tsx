@@ -119,7 +119,7 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
     if (!tokenRef.current) return;
     // Charge the allowance the way every other download path does. This one
     // hands the archive to the browser as a navigation, so there is no
-    // response to await and no completion signal to react to — but the file
+    // response to await and no completion signal to react to, but the file
     // route records the delivery on its own finish, and a refetch from here
     // would race that write exactly as it does elsewhere. Patching on the
     // click is the same trade the rest of the gallery already makes.

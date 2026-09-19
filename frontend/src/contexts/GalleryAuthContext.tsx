@@ -227,8 +227,8 @@ export const GalleryAuthProvider: React.FC<GalleryAuthProviderProps> = ({ childr
           // 'client' from an earlier PIN login while the server's token for
           // THIS request no longer carries it (a different device dropped the
           // cookie, a fresh tab has no bearer token to send, …). Downgrading
-          // here keeps every download button's own client-side prediction —
-          // and the quota badge, which is gated on this same flag — in sync
+          // here keeps every download button's own client-side prediction,
+          // and the quota badge, which is gated on this same flag, in sync
           // with what the server will actually accept, instead of showing a
           // client's UI right up to the moment a download quietly comes back
           // 403 "clients only".

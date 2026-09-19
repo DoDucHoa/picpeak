@@ -24,7 +24,7 @@ const axiosError = (status: number, data: unknown = {}) =>
     response: { status, data },
   });
 
-describe('galleryService.fetchPhotoBlob — fallback only on a genuine 404', () => {
+describe('galleryService.fetchPhotoBlob: fallback only on a genuine 404', () => {
   beforeEach(async () => {
     vi.resetModules();
     galleryService = (await import('../gallery.service')).galleryService;
@@ -68,7 +68,7 @@ describe('galleryService.fetchPhotoBlob — fallback only on a genuine 404', () 
     await expect(galleryService.fetchPhotoBlob('wedding-2026', 5)).rejects.toMatchObject({
       response: { status: 403 },
     });
-    // No second call — the view endpoint must never be tried for a refusal.
+    // No second call: the view endpoint must never be tried for a refusal.
     expect(apiMock.get).toHaveBeenCalledTimes(1);
   });
 

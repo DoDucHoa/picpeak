@@ -173,7 +173,7 @@ export const adminDownloadQuotaService = {
    * own active packages, falling back to the global list when it has none of
    * its own. Unlike `getEventPackages` (the edit tab's own-list-only view,
    * empty on purpose when nothing gallery-specific is set), this is what
-   * "Create order for client" needs to pick from — a gallery that never
+   * "Create order for client" needs to pick from: a gallery that never
    * customised its price list must still offer the global packages.
    */
   async getAvailablePackagesForOrder(eventId: number): Promise<PackageListResponse> {

@@ -199,7 +199,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
 
     // Ask the same question the header's bulk button already answers before
     // ever hitting the network: a guest, or a client with nothing left, would
-    // only get refused — show the offer/notice for it directly instead.
+    // only get refused, so show the offer/notice for it directly instead.
     if (!canDownloadPhotoNow(
       photo.id,
       downloadGate.quotaEnabled,
@@ -254,7 +254,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
       // Only a download that actually happened ends the selection. This used
       // to sit in a `finally`, which threw the selection away on a refusal
-      // too — while the quota dialog covering the grid was telling the client
+      // too, while the quota dialog covering the grid was telling the client
       // to "Adjust my selection". There was nothing left to adjust: every
       // photo had to be picked again from scratch.
       setSelectedPhotos(new Set());
@@ -266,7 +266,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
     } catch (error) {
       // Same refusal handling as the single-photo button above: a guest or an
       // exhausted client gets the dialog/notice the server explained, not a
-      // generic failure toast — and never the optimistic "Downloading..." this
+      // generic failure toast, and never the optimistic "Downloading..." this
       // used to show before the request even had a chance to be refused.
       if (!(await downloadGate.reportDownloadFailure(error))) {
         toastify.error(t('gallery.downloadError'));

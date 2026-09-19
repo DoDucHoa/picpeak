@@ -7,7 +7,7 @@
  *
  * Only the three locales kept at full key parity are offered. The other files
  * are still shipped, so a session already running in one keeps working and
- * falls back to English per key — this guards the offered list, not the
+ * falls back to English per key. This guards the offered list, not the
  * resources.
  */
 import { describe, it, expect } from 'vitest';

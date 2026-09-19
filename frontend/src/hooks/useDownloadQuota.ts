@@ -10,7 +10,7 @@ export const downloadQuotaKey = (slug?: string) => ['download-quota', slug] as c
 /**
  * Patches the quota cache in place instead of invalidating it. The server
  * only charges the allowance from the download response's
- * `res.on('finish', …)` handler — fire-and-forget, not awaited by the
+ * `res.on('finish', …)` handler: fire-and-forget, not awaited by the
  * response the caller sees. A refetch fired on success races that write and,
  * on a fast (e.g. local) round trip, routinely wins it and reads the
  * allowance BEFORE it was charged: the "badge and 'already downloaded' mark
@@ -18,7 +18,7 @@ export const downloadQuotaKey = (slug?: string) => ['download-quota', slug] as c
  *
  * A first version of this fix set the cache directly and then still called
  * `invalidateQueries` "to reconcile anything the patch can't predict". That
- * reintroduced the same race one line later — the triggered refetch read the
+ * reintroduced the same race one line later: the triggered refetch read the
  * same not-yet-charged state and overwrote the correct optimistic value with
  * the stale one. No refetch belongs here: the caller already knows the
  * outcome of the request it just made, and whatever refetches on a different
@@ -48,7 +48,7 @@ export function markPhotosDelivered(queryClient: QueryClient, slug: string, phot
 /**
  * The same patch for the bulk routes, which have no mutation of their own:
  * every "Download Selected" button calls `galleryService.downloadSelectedPhotos`
- * directly, and none of them touched the quota cache — so a client who took
+ * directly, and none of them touched the quota cache, so a client who took
  * five photos in one click kept seeing the old allowance and no "Already
  * downloaded" marks until they reloaded by hand. Exactly the bug the
  * single-photo path was fixed for, on the path that does not go through a

@@ -2,7 +2,7 @@
  * The download-quota gate (and the badge showing how many downloads are
  * left) both read `isClient` off this context. `/auth/session` is the
  * server's own, authoritative answer for what the CURRENT request actually
- * authenticates as — it must win over the per-tab sessionStorage guess the
+ * authenticates as: it must win over the per-tab sessionStorage guess the
  * effect sets optimistically before the network call resolves.
  *
  * #1149 already covered guest-guess -> server-says-client (a second tab with
@@ -11,7 +11,7 @@
  * saying this request is 'guest' (a fresh tab with no bearer token to send,
  * a dropped cookie, …). Without reconciling it, the quota badge and every
  * download button's client-side prediction kept showing "client" right up to
- * the moment a real download came back 403 "clients only" — confusing
+ * the moment a real download came back 403 "clients only", confusing
  * because nothing in the UI ever explained why.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,7 +22,7 @@ vi.mock('../../config/api', () => ({
   api: { get: vi.fn() },
 }));
 
-// Unrelated to what this test covers — sidesteps a Node 25 environment quirk
+// Unrelated to what this test covers: sidesteps a Node 25 environment quirk
 // where the native `localStorage` global this real, unmocked util also
 // touches lacks a working `removeItem` under this test runner.
 vi.mock('../../utils/cleanupGalleryAuth', () => ({
@@ -60,7 +60,7 @@ function renderProvider() {
   );
 }
 
-describe('GalleryAuthContext — reconciling the stored access-level guess against the server', () => {
+describe('GalleryAuthContext: reconciling the stored access-level guess against the server', () => {
   beforeEach(async () => {
     vi.resetModules();
     sessionStorage.clear();

@@ -25,7 +25,7 @@ const DEFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => 
 // circumscribed radius the flag spec gives it, one fifth of the height (96 of
 // 480). The previous path put its centroid at y 196 and gave it a radius of
 // 76, so the star floated in the upper third of a field it is supposed to sit
-// in the middle of, and read as too small — the only flag in this set with a
+// in the middle of, and read as too small: the only flag in this set with a
 // centred device, and the only one where that was visible.
 const VNFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">

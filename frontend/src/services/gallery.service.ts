@@ -164,7 +164,7 @@ export const galleryService = {
   // 402/403 the download-quota gate returns still "succeeds" as a download of
   // the JSON error body. Every gallery with the allowance switched on passes
   // `quotaAware: true` and gets the observable, error-handleable blob path
-  // instead — the ~5s-latency fix stays exactly where it was aimed, on
+  // instead: the ~5s-latency fix stays exactly where it was aimed, on
   // galleries that never enabled the feature.
   async savePhotoToDevice(
     slug: string,
@@ -187,7 +187,7 @@ export const galleryService = {
     if (ios) {
       // canShare() returns false on browsers without Web Share file
       // support. Probe with a representative File so the negotiation
-      // is accurate — `canShare({ files: [] })` returns true on some
+      // is accurate: `canShare({ files: [] })` returns true on some
       // browsers that don't actually accept files at share() time.
       const file = new File([fetched.blob], resolvedFilename, {
         type: fetched.blob.type || 'image/jpeg',
@@ -202,7 +202,7 @@ export const galleryService = {
           await navigator.share({ files: [file], title: resolvedFilename });
           return;
         } catch (err) {
-          // AbortError = user dismissed the share sheet. Don't fall back —
+          // AbortError = user dismissed the share sheet. Don't fall back:
           // they made a choice. Any other failure (NotAllowedError,
           // DataError, etc.) is unexpected; surface a download instead so
           // the user still gets the file.
@@ -244,7 +244,7 @@ export const galleryService = {
       // view endpoint doesn't emit a download-oriented Content-Disposition,
       // so serverFilename will be null and the caller's name wins.
       //
-      // Only a 404 means "no original to deliver" — that's the one case this
+      // Only a 404 means "no original to deliver": that's the one case this
       // fallback exists for. A 403 (guest, or downloads disabled) or a 402
       // (quota exceeded) is a refusal the caller must see and act on, not a
       // missing file: silently substituting the view endpoint here would hand
