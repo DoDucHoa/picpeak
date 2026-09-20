@@ -75,6 +75,7 @@ function quotaPayload(over: Record<string, unknown> = {}) {
       enabled_at: '2026-09-01T10:00:00.000Z',
       free_limit: null,
       price_per_photo: null,
+      auto_approve: false,
     },
     pending_order: null,
     currency: 'CHF',
@@ -140,11 +141,23 @@ describe('DownloadQuotaCard', () => {
 
     renderCard();
 
-    const toggle = await screen.findByRole('switch');
+    const toggle = await screen.findByRole('switch', { name: /Limit downloads for this gallery/ });
     await userEvent.click(toggle);
 
     await waitFor(() => expect(put).toHaveBeenCalled());
     expect(put).toHaveBeenCalledWith('/admin/events/7/download-quota', { quota_enabled: true });
+  });
+
+  it('switching auto-approve on hits the quota endpoint for this event', async () => {
+    get.mockResolvedValue({ data: quotaPayload() });
+
+    renderCard();
+
+    const toggle = await screen.findByRole('switch', { name: /Auto-approve download orders/ });
+    await userEvent.click(toggle);
+
+    await waitFor(() => expect(put).toHaveBeenCalled());
+    expect(put).toHaveBeenCalledWith('/admin/events/7/download-quota', { auto_approve: true });
   });
 
   it('sends null for an empty free limit, because empty means inherit', async () => {

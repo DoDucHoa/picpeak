@@ -156,6 +156,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
 
   const { quota, settings, pending_order: pendingOrder, currency } = data;
   const enabled = !!settings?.quota_enabled;
+  const autoApprove = !!settings?.auto_approve;
   const percent = quota.total ? Math.min(100, Math.round((quota.used / quota.total) * 100)) : 0;
 
   const saveNumbers = () => {
@@ -195,6 +196,22 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         {t(
           'downloadQuotaAdmin.card.help',
           'The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.',
+        )}
+      </p>
+
+      <div className="flex items-center gap-2 text-sm mb-3">
+        <Switch
+          checked={autoApprove}
+          disabled={save.isPending}
+          onChange={(next) => save.mutate({ auto_approve: next })}
+          ariaLabel={t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders') as string}
+        />
+        {t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders')}
+      </div>
+      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+        {t(
+          'downloadQuotaAdmin.card.autoApproveHelp',
+          'A new order settles the moment the client places it, with no photographer approval step. Orders already waiting are not affected.',
         )}
       </p>
 

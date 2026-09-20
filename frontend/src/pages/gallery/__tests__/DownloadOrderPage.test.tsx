@@ -77,6 +77,14 @@ const PENDING = {
   created_at: '2026-09-15T00:00:00Z',
 };
 
+const APPROVED = {
+  ...PENDING,
+  id: 8,
+  status: 'approved',
+  granted_photo_count: 20,
+  approved_by: null,
+};
+
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -165,6 +173,65 @@ describe('DownloadOrderPage', () => {
 
     expect(await screen.findByTestId('order-pending')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm order' })).not.toBeInTheDocument();
+  });
+
+  it('warns up front that manual approval is what happens on this gallery', async () => {
+    renderPage();
+    await screen.findByText('Small bundle');
+
+    expect(screen.getByText(/photographer approves the order by hand/i)).toBeInTheDocument();
+  });
+
+  it('tells the guest downloads unlock immediately when the gallery auto-approves', async () => {
+    vi.mocked(downloadQuotaService.getQuota).mockResolvedValue(
+      quotaResponse({ quota: { ...quotaResponse().quota, autoApprove: true } }) as never,
+    );
+    renderPage();
+    await screen.findByText('Small bundle');
+
+    expect(screen.queryByText(/photographer approves the order by hand/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/no approval needed/i)).toBeInTheDocument();
+  });
+
+  it('says the order is approved, not waiting, when auto-approve settles it instantly', async () => {
+    vi.mocked(downloadQuotaService.createOrder).mockResolvedValue(APPROVED as never);
+    renderPage();
+    await screen.findByText('Small bundle');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm order' }));
+
+    expect(await screen.findByTestId('order-approved')).toHaveTextContent(/ready/i);
+    expect(screen.queryByTestId('order-pending')).not.toBeInTheDocument();
+    expect(screen.queryByText('Your order is waiting for approval')).not.toBeInTheDocument();
+  });
+
+  it('forces a real reload on "back to the gallery" once an order was auto-approved', async () => {
+    vi.mocked(downloadQuotaService.createOrder).mockResolvedValue(APPROVED as never);
+    renderPage();
+    await screen.findByText('Small bundle');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm order' }));
+
+    const back = await screen.findByTestId('order-approved-back');
+    // A plain anchor, not the SPA <Link>: the gallery's own cached allowance
+    // is stale the instant an order auto-approves, so the fix is a real
+    // navigation (full reload), not a client-side route swap.
+    expect(back.tagName).toBe('A');
+    expect(back).toHaveAttribute('href', '/gallery/wedding');
+  });
+
+  it('keeps the ordinary "back to the gallery" a normal in-app link while still waiting', async () => {
+    vi.mocked(downloadQuotaService.createOrder).mockResolvedValue(PENDING as never);
+    renderPage();
+    await screen.findByText('Small bundle');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm order' }));
+
+    await screen.findByTestId('order-pending');
+    expect(screen.queryByTestId('order-approved-back')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to the gallery/i })).toHaveAttribute(
+      'href', '/gallery/wedding',
+    );
   });
 
   it('says so plainly when the package in the link no longer exists', async () => {

@@ -188,7 +188,7 @@ router.get('/events/:id/download-quota', adminAuth, READ, requireEventOwnership,
 });
 
 // PUT /api/admin/events/:id/download-quota
-// Body: { quota_enabled?, free_limit?, price_per_photo? }
+// Body: { quota_enabled?, free_limit?, price_per_photo?, auto_approve? }
 router.put('/events/:id/download-quota', adminAuth, WRITE, requireEventOwnership, async (req, res) => {
   const eventId = Number(req.params.id);
   const body = req.body || {};
@@ -196,6 +196,9 @@ router.put('/events/:id/download-quota', adminAuth, WRITE, requireEventOwnership
 
   if (Object.prototype.hasOwnProperty.call(body, 'quota_enabled')) {
     patch.quota_enabled = body.quota_enabled === true || body.quota_enabled === 'true';
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'auto_approve')) {
+    patch.auto_approve = body.auto_approve === true || body.auto_approve === 'true';
   }
   const freeLimit = readNullableNumber(body, 'free_limit');
   if (freeLimit !== undefined) patch.free_limit = freeLimit;

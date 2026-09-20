@@ -1245,9 +1245,12 @@
       "autoLabelCount_other": "{{count}} ảnh",
       "pendingTitle": "Đơn của bạn đang chờ duyệt",
       "pendingHint": "Nhiếp ảnh gia duyệt từng đơn bằng tay. Hãy liên hệ trực tiếp nếu bạn cần gấp.",
+      "approvedTitle": "Đơn của bạn đã sẵn sàng",
+      "approvedHint": "Số lượt tải thêm đã có sẵn trong bộ sưu tập này.",
       "order": {
         "title": "Mua thêm lượt tải",
         "hint": "Nhiếp ảnh gia sẽ duyệt đơn bằng tay. Số lượt tải thêm sẽ xuất hiện trong bộ sưu tập này ngay sau đó.",
+        "hintAutoApprove": "Xác nhận là số lượt tải này có ngay trong bộ sưu tập của bạn, không cần chờ duyệt.",
         "confirm": "Xác nhận đặt đơn",
         "back": "Quay lại bộ sưu tập",
         "duplicate": "Bạn đã có một đơn đang chờ duyệt.",
@@ -3771,7 +3774,8 @@
     "enterTestEmail": "Vui lòng nhập một địa chỉ email thử nghiệm",
     "eventCreationFailed": "Không thể tạo sự kiện",
     "noShareLink": "Không có liên kết chia sẻ nào",
-    "copyFailed": "Không thể sao chép liên kết"
+    "copyFailed": "Không thể sao chép liên kết",
+    "autoApproveSaveError": "Sự kiện đã được tạo, nhưng không lưu được cài đặt tự động duyệt đơn tải ảnh. Hãy bật lại sau trong phần cài đặt hạn mức tải ảnh của sự kiện."
   },
   "validation": {
     "eventNameRequired": "Tên sự kiện là bắt buộc",
@@ -7030,6 +7034,8 @@
       "saved": "Đã lưu hạn mức tải ảnh.",
       "saveError": "Không lưu được hạn mức tải ảnh.",
       "invalidNumber": "Nhập một số nguyên từ 0 trở lên, hoặc để trống để kế thừa mặc định.",
+      "autoApproveLabel": "Tự động duyệt đơn tải ảnh",
+      "autoApproveHelp": "Đơn mới sẽ được duyệt ngay khi khách đặt, không cần photographer duyệt tay. Các đơn đang chờ từ trước không bị ảnh hưởng.",
       "createOrder": {
         "button": "Tạo đơn cho khách",
         "title": "Tạo đơn thay mặt khách hàng",

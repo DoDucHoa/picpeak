@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, ArrowLeft, Clock, Loader2, ShoppingBag } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle, Clock, Loader2, ShoppingBag } from 'lucide-react';
 
 import { Button, Card, Loading } from '../../components/common';
 import { useDownloadQuota } from '../../hooks/useDownloadQuota';
@@ -17,9 +17,10 @@ import {
  * Confirming a download package.
  *
  * Deliberately a page of its own rather than a second step inside the dialog:
- * the order it creates goes into a photographer's manual approval queue, so it
- * must come from an explicit confirmation. Nothing is sent while the guest is
- * only reading the price, and leaving the page sends nothing either.
+ * placing the order either waits on the photographer or, when the gallery has
+ * auto-approve on, settles immediately, so it must come from an explicit
+ * confirmation either way. Nothing is sent while the guest is only reading
+ * the price, and leaving the page sends nothing either.
  */
 export const DownloadOrderPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -27,7 +28,7 @@ export const DownloadOrderPage: React.FC = () => {
   const { t, i18n } = useTranslation();
 
   const packageId = Number(searchParams.get('package'));
-  const { packages, currency, pendingOrder, isLoading, refetch } = useDownloadQuota(slug);
+  const { quota, packages, currency, pendingOrder, isLoading, refetch } = useDownloadQuota(slug);
 
   const chosen = packages.find((pkg) => pkg.id === packageId) || null;
   const chosenUnitPrice = chosen
@@ -44,7 +45,11 @@ export const DownloadOrderPage: React.FC = () => {
   const duplicate =
     (createOrder.error as { response?: { status?: number } } | null)?.response?.status === 409;
   const failed = createOrder.isError && !duplicate;
-  const waiting = Boolean(pendingOrder) || createOrder.isSuccess || duplicate;
+  // Auto-approve settles the order inside the same request that created it, so
+  // the response already carries the final status — no separate "did it get
+  // approved yet" round trip.
+  const justApproved = createOrder.isSuccess && createOrder.data?.status === 'approved';
+  const waiting = (Boolean(pendingOrder) || createOrder.isSuccess || duplicate) && !justApproved;
 
   const backToGallery = (
     <Link
@@ -54,6 +59,20 @@ export const DownloadOrderPage: React.FC = () => {
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
       {t('gallery.downloadQuota.order.back', 'Back to the gallery')}
     </Link>
+  );
+
+  // A plain anchor, deliberately not <Link>: the gallery's own cached
+  // allowance is stale the instant this order auto-approved, so going back
+  // needs a real navigation (full reload), not a client-side route swap.
+  const backToGalleryHardReload = (
+    <a
+      href={`/gallery/${slug}`}
+      data-testid="order-approved-back"
+      className="inline-flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-400 hover:underline"
+    >
+      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+      {t('gallery.downloadQuota.order.back', 'Back to the gallery')}
+    </a>
   );
 
   return (
@@ -68,7 +87,23 @@ export const DownloadOrderPage: React.FC = () => {
 
         {isLoading && <Loading />}
 
-        {!isLoading && waiting && (
+        {!isLoading && justApproved && (
+          <div data-testid="order-approved" className="py-2">
+            <div className="flex items-center gap-2 mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <CheckCircle className="w-4 h-4" aria-hidden="true" />
+              {t('gallery.downloadQuota.approvedTitle', 'Your order is ready')}
+            </div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              {t(
+                'gallery.downloadQuota.approvedHint',
+                'The extra downloads are already available in this gallery.',
+              )}
+            </p>
+            {backToGalleryHardReload}
+          </div>
+        )}
+
+        {!isLoading && !justApproved && waiting && (
           <div data-testid="order-pending" className="py-2">
             <div className="flex items-center gap-2 mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
               <Clock className="w-4 h-4" aria-hidden="true" />
@@ -95,7 +130,7 @@ export const DownloadOrderPage: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && !waiting && !chosen && (
+        {!isLoading && !justApproved && !waiting && !chosen && (
           <div data-testid="order-unknown-package" className="py-2">
             <div className="flex items-start gap-2 mb-4 text-sm text-neutral-700 dark:text-neutral-300">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
@@ -110,7 +145,7 @@ export const DownloadOrderPage: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && !waiting && chosen && (
+        {!isLoading && !justApproved && !waiting && chosen && (
           <>
             <div className="flex items-center gap-3 p-3 mb-4 rounded-lg border border-neutral-200 dark:border-neutral-700">
               <span className="flex-1 min-w-0">
@@ -134,10 +169,15 @@ export const DownloadOrderPage: React.FC = () => {
             </div>
 
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              {t(
-                'gallery.downloadQuota.order.hint',
-                'Your photographer approves the order by hand. The extra downloads appear in this gallery once they do.',
-              )}
+              {quota?.autoApprove
+                ? t(
+                    'gallery.downloadQuota.order.hintAutoApprove',
+                    'Confirming adds these downloads to your gallery right away, no approval needed.',
+                  )
+                : t(
+                    'gallery.downloadQuota.order.hint',
+                    'Your photographer approves the order by hand. The extra downloads appear in this gallery once they do.',
+                  )}
             </p>
 
             {failed && (

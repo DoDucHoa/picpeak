@@ -1747,9 +1747,12 @@
       "autoLabelCount_other": "{{count}} Fotos",
       "pendingTitle": "Ihre Bestellung wartet auf Freigabe",
       "pendingHint": "Ihre Fotografin oder Ihr Fotograf prüft jede Bestellung persönlich. Melden Sie sich direkt, wenn es eilig ist.",
+      "approvedTitle": "Ihre Bestellung ist bereit",
+      "approvedHint": "Die zusätzlichen Downloads stehen bereits in dieser Galerie bereit.",
       "order": {
         "title": "Downloads erweitern",
         "hint": "Ihre Fotografin oder Ihr Fotograf gibt die Bestellung persönlich frei. Danach stehen die zusätzlichen Downloads in dieser Galerie bereit.",
+        "hintAutoApprove": "Mit der Bestätigung stehen diese Downloads sofort in Ihrer Galerie bereit, ohne manuelle Freigabe.",
         "confirm": "Bestellung bestätigen",
         "back": "Zurück zur Galerie",
         "duplicate": "Sie haben bereits eine Bestellung, die auf Freigabe wartet.",
@@ -4239,7 +4242,8 @@
     "enterTestEmail": "Bitte geben Sie eine Test-E-Mail-Adresse ein",
     "eventCreationFailed": "Veranstaltung konnte nicht erstellt werden",
     "noShareLink": "Kein Freigabe-Link verfügbar",
-    "copyFailed": "Link konnte nicht kopiert werden"
+    "copyFailed": "Link konnte nicht kopiert werden",
+    "autoApproveSaveError": "Veranstaltung wurde erstellt, aber die automatische Genehmigung für Download-Bestellungen konnte nicht gespeichert werden. Aktivieren Sie sie später in den Download-Kontingent-Einstellungen der Veranstaltung."
   },
   "legal": {
     "impressum": "Impressum",
@@ -7031,6 +7035,8 @@
       "saved": "Download-Kontingent gespeichert.",
       "saveError": "Das Download-Kontingent konnte nicht gespeichert werden.",
       "invalidNumber": "Geben Sie eine ganze Zahl ab 0 ein oder lassen Sie das Feld leer, um die Vorgabe zu übernehmen.",
+      "autoApproveLabel": "Download-Bestellungen automatisch genehmigen",
+      "autoApproveHelp": "Eine neue Bestellung wird sofort bei der Aufgabe durch den Kunden abgeschlossen, ohne dass der Fotograf sie freigeben muss. Bereits wartende Bestellungen sind davon nicht betroffen.",
       "createOrder": {
         "button": "Bestellung für Kunden anlegen",
         "title": "Bestellung im Namen des Kunden anlegen",

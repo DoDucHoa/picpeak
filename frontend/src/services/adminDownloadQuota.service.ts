@@ -16,6 +16,7 @@ export interface EventQuotaSettingsRow {
   enabled_at: string | null;
   free_limit: number | null;
   price_per_photo: number | string | null;
+  auto_approve: boolean;
 }
 
 export interface AdminQuotaResponse {
@@ -30,6 +31,7 @@ export interface QuotaPatch {
   quota_enabled?: boolean;
   free_limit?: number | null;
   price_per_photo?: number | null;
+  auto_approve?: boolean;
 }
 
 export interface DownloadLedgerEntry {

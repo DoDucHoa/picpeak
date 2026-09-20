@@ -43,6 +43,7 @@ async function getSettings(eventId, conn = db) {
     enabledAt: row?.enabled_at || null,
     freeLimit: Number(freeLimit),
     pricePerPhoto,
+    autoApprove: !!row?.auto_approve,
   };
 }
 
@@ -57,6 +58,7 @@ async function getQuotaState(eventId, conn = db) {
     used: 0,
     remaining: null,
     enabledAt: settings.enabledAt,
+    autoApprove: settings.autoApprove,
   };
   if (!settings.enabled) return base;
 

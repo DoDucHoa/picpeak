@@ -11,7 +11,8 @@ import {
   EyeOff,
   Image,
   Key,
-  Shield
+  Shield,
+  Download
 } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -21,6 +22,8 @@ import { ThemeCustomizerEnhanced, GalleryPreview, WelcomeMessageEditor, Feedback
 import { CustomerAccountPicker } from '../../components/admin/CustomerAccountPicker';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
+import { adminDownloadQuotaService } from '../../services/adminDownloadQuota.service';
+import { useIsMounted } from '../../hooks/useIsMounted';
 import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 import { categoriesService } from '../../services/categories.service';
 import { settingsService } from '../../services/settings.service';
@@ -87,6 +90,9 @@ interface FormData {
   // the full picker selection so chips render without an extra fetch;
   // only the ids are sent to the backend on submit.
   customer_accounts: Array<{ id: number; email: string; displayName: string | null }>;
+  // Lives in event_download_quota_settings, not on the event itself, so it is
+  // saved with a second call once the event has an id. See onSuccess below.
+  download_order_auto_approve: boolean;
 }
 
 // Fallback event types (used when API is unavailable)
@@ -101,7 +107,7 @@ export const CreateEventPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { format } = useLocalizedDate();
-  const isMountedRef = useRef(true);
+  const isMountedRef = useIsMounted();
   // Re-entrancy guard for the create submit. The Button's
   // `disabled={createMutation.isPending}` covers the ordinary double-click, but
   // not a submission that never touches the button (implicit form submission,
@@ -110,13 +116,7 @@ export const CreateEventPage: React.FC = () => {
   const isSubmittingRef = useRef(false);
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   // const [showPreview, setShowPreview] = useState(false);
-  
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-  
+
   const [formData, setFormData] = useState<FormData>({
     event_type: 'wedding',
     event_name: '',
@@ -160,6 +160,7 @@ export const CreateEventPage: React.FC = () => {
     client_password: '',
     default_photo_sort: 'upload_date_desc',
     customer_accounts: [],
+    download_order_auto_approve: false,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -386,7 +387,18 @@ export const CreateEventPage: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: eventsService.createEvent,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Lives on event_download_quota_settings, a table the create-event route
+      // never touches, so it is a second call rather than part of the payload.
+      // A failure here must not block the event the photographer already got:
+      // the setting can still be turned on from the event's own settings.
+      if (formData.download_order_auto_approve) {
+        try {
+          await adminDownloadQuotaService.saveQuota(data.id, { auto_approve: true });
+        } catch {
+          toast.error(t('errors.autoApproveSaveError'));
+        }
+      }
       if (isMountedRef.current) {
         toast.success(t('toast.eventCreated'));
         navigate(`/admin/events/${data.id}`);
@@ -1098,6 +1110,32 @@ export const CreateEventPage: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Auto-approve download orders. Same setting DownloadQuotaCard
+                exposes on an existing event (event_download_quota_settings),
+                surfaced here so it can be turned on from the start instead of
+                only after the first order comes in. */}
+            <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-3 flex items-center gap-2">
+                <Download className="w-4 h-4 text-accent" />
+                {t('downloadQuotaAdmin.card.autoApproveLabel')}
+              </h3>
+
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1 w-4 h-4 text-accent border-neutral-300 dark:border-neutral-600 rounded focus:ring-primary-500"
+                  checked={formData.download_order_auto_approve}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    download_order_auto_approve: e.target.checked,
+                  }))}
+                />
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {t('downloadQuotaAdmin.card.autoApproveHelp')}
+                </span>
+              </label>
             </div>
 
             {requireExpiration ? (
