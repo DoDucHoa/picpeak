@@ -11,6 +11,7 @@ export interface DownloadQuotaState {
   /** null while unlimited. */
   remaining: number | null;
   enabledAt: string | null;
+  autoApprove: boolean;
 }
 
 export interface DownloadPackage {

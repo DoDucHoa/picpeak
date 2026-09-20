@@ -126,6 +126,27 @@ test('a free limit of zero is stored as zero, because that gallery grants nothin
   expect(update).toHaveBeenCalledWith(expect.objectContaining({ free_limit: 0 }));
 });
 
+test('turning auto-approve on is persisted the same way as any other settings patch', async () => {
+  const update = jest.fn(async () => 1);
+  db.mockImplementation(() => ({ where: () => ({ first: async () => ({ id: 1 }), update }) }));
+  quotaService.getQuotaState.mockResolvedValue({ enabled: true });
+
+  await request(app()).put('/events/1/download-quota').send({ auto_approve: true });
+
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ auto_approve: true }));
+});
+
+test('omitting auto_approve from the body never overwrites it', async () => {
+  const update = jest.fn(async () => 1);
+  db.mockImplementation(() => ({ where: () => ({ first: async () => ({ id: 1 }), update }) }));
+  quotaService.getQuotaState.mockResolvedValue({ enabled: true });
+
+  await request(app()).put('/events/1/download-quota').send({ free_limit: 5 });
+
+  const patch = update.mock.calls[0][0];
+  expect(Object.prototype.hasOwnProperty.call(patch, 'auto_approve')).toBe(false);
+});
+
 test('the ledger endpoint answers one page plus the grand total', async () => {
   const rows = [{ id: 2, photo_id: 9, filename: 'b.jpg' }, { id: 1, photo_id: 4, filename: 'a.jpg' }];
   db.mockImplementation((table) => {

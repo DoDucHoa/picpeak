@@ -1244,9 +1244,12 @@
       "autoLabelCount_other": "{{count}} photos",
       "pendingTitle": "Your order is waiting for approval",
       "pendingHint": "Your photographer reviews each order by hand. Contact them directly if it is urgent.",
+      "approvedTitle": "Your order is ready",
+      "approvedHint": "The extra downloads are already available in this gallery.",
       "order": {
         "title": "Add downloads",
         "hint": "Your photographer approves the order by hand. The extra downloads appear in this gallery once they do.",
+        "hintAutoApprove": "Confirming adds these downloads to your gallery right away, no approval needed.",
         "confirm": "Confirm order",
         "back": "Back to the gallery",
         "duplicate": "You already have an order waiting for approval.",
@@ -3770,7 +3773,8 @@
     "enterTestEmail": "Please enter a test email address",
     "eventCreationFailed": "Failed to create event",
     "noShareLink": "No share link available",
-    "copyFailed": "Failed to copy link"
+    "copyFailed": "Failed to copy link",
+    "autoApproveSaveError": "Event created, but auto-approve for download orders could not be saved. Turn it on later from the event's download allowance settings."
   },
   "validation": {
     "eventNameRequired": "Event name is required",
@@ -7029,6 +7033,8 @@
       "saved": "Download allowance saved.",
       "saveError": "Could not save the download allowance.",
       "invalidNumber": "Enter a whole number of zero or more, or leave the field empty to inherit.",
+      "autoApproveLabel": "Auto-approve download orders",
+      "autoApproveHelp": "A new order settles the moment the client places it, with no photographer approval step. Orders already waiting are not affected.",
       "createOrder": {
         "button": "Create order for client",
         "title": "Create an order for the client",

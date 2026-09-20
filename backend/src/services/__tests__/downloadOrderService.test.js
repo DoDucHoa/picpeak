@@ -26,12 +26,20 @@ function mockOrderRow(row) {
   return { row, update };
 }
 
-/** The insert path, with the payload kept so the snapshot can be inspected. */
-function mockInsert() {
+/**
+ * The insert path, with the payload kept so the snapshot can be inspected.
+ * `settingsRow` stands in for the event's row in event_download_quota_settings;
+ * omitting it (the default for every pre-existing test) means "no row at all",
+ * the same as a gallery that never touched its quota settings.
+ */
+function mockInsert(settingsRow) {
   const returning = jest.fn(async () => [{ id: 42, status: 'pending' }]);
   const insert = jest.fn(() => ({ returning }));
   db.mockImplementation((table) => {
     if (table === 'download_quota_orders') return { insert };
+    if (table === 'event_download_quota_settings') {
+      return { where: () => ({ first: async () => settingsRow }) };
+    }
     throw new Error(`unexpected table ${table}`);
   });
   return { insert, returning };
@@ -151,28 +159,70 @@ describe('createOrder', () => {
   });
 
   test('a second pending order surfaces as PendingOrderExistsError', async () => {
-    db.mockImplementation(() => ({
-      insert: () => ({ returning: async () => {
+    db.mockImplementation((table) => {
+      if (table === 'event_download_quota_settings') return { where: () => ({ first: async () => undefined }) };
+      return { insert: () => ({ returning: async () => {
         const err = new Error('duplicate key value violates unique constraint');
         err.code = '23505';
         err.constraint = 'download_quota_orders_one_pending';
         throw err;
-      } }),
-    }));
+      } }) };
+    });
     await expect(svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' }))
       .rejects.toBeInstanceOf(svc.PendingOrderExistsError);
   });
 
   test('an unrelated database error is not disguised as a pending order clash', async () => {
-    db.mockImplementation(() => ({
-      insert: () => ({ returning: async () => {
+    db.mockImplementation((table) => {
+      if (table === 'event_download_quota_settings') return { where: () => ({ first: async () => undefined }) };
+      return { insert: () => ({ returning: async () => {
         const err = new Error('null value in column "event_id"');
         err.code = '23502';
         throw err;
-      } }),
-    }));
+      } }) };
+    });
     await expect(svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' }))
       .rejects.not.toBeInstanceOf(svc.PendingOrderExistsError);
+  });
+
+  // The one-pending-per-event index only ever sees a row that stayed pending.
+  // Auto-approve settles the order in the same insert, so nothing is left
+  // behind to block whatever the client orders next.
+  test('auto-approves the order when the event turns it on, using the requested count', async () => {
+    const { insert } = mockInsert({ event_id: 1, auto_approve: true });
+    await svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' });
+
+    const payload = insert.mock.calls[0][0];
+    expect(payload.status).toBe('approved');
+    expect(payload.grants_unlimited).toBe(false);
+    expect(payload.granted_photo_count).toBe(20);
+    expect(payload.approved_by).toBeNull();
+    expect(payload.approved_at).toBeInstanceOf(Date);
+  });
+
+  test('auto-approving an unlimited package grants unlimited with no photo count', async () => {
+    const { insert } = mockInsert({ event_id: 1, auto_approve: true });
+    await svc.createOrder({ eventId: 1, packageId: 2, req: {}, origin: 'client' });
+
+    const payload = insert.mock.calls[0][0];
+    expect(payload.status).toBe('approved');
+    expect(payload.grants_unlimited).toBe(true);
+    expect(payload.granted_photo_count).toBeNull();
+  });
+
+  test('a settings row with auto-approve off still leaves the order pending', async () => {
+    const { insert } = mockInsert({ event_id: 1, auto_approve: false });
+    await svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' });
+
+    expect(insert.mock.calls[0][0].status).toBe('pending');
+    expect(insert.mock.calls[0][0].approved_by).toBeUndefined();
+  });
+
+  test('a gallery that never touched its quota settings still leaves the order pending', async () => {
+    const { insert } = mockInsert(undefined);
+    await svc.createOrder({ eventId: 1, packageId: 1, req: {}, origin: 'client' });
+
+    expect(insert.mock.calls[0][0].status).toBe('pending');
   });
 });
 

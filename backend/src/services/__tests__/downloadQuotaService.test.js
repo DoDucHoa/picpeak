@@ -70,6 +70,27 @@ describe('getQuotaState', () => {
     expect(state.enabled).toBe(false);
     expect(state.freeLimit).toBe(30);
   });
+
+  // The gallery-facing order screens word themselves differently depending on
+  // this: a client placing an order needs to know up front whether it settles
+  // immediately or waits on the photographer.
+  test('reports whether the gallery auto-approves its own orders', async () => {
+    mockTables({ settings: { quota_enabled: true, free_limit: 20, auto_approve: true }, ledgerCount: 0 });
+    const state = await svc.getQuotaState(1);
+    expect(state.autoApprove).toBe(true);
+  });
+
+  test('a gallery that never turned auto-approve on reports false, not undefined', async () => {
+    mockTables({ settings: { quota_enabled: true, free_limit: 20 }, ledgerCount: 0 });
+    const state = await svc.getQuotaState(1);
+    expect(state.autoApprove).toBe(false);
+  });
+
+  test('a gallery with no settings row at all still reports autoApprove as false', async () => {
+    mockTables({ settings: undefined, ledgerCount: 0 });
+    const state = await svc.getQuotaState(1);
+    expect(state.autoApprove).toBe(false);
+  });
 });
 
 describe('checkAllowance', () => {

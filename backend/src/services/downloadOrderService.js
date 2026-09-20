@@ -69,6 +69,15 @@ function parseJson(value) {
   }
 }
 
+/** Shared between an auto-approved insert and a manual approveOrder() decision. */
+function grantFromSnapshot(snapshot, requestedPhotoCount) {
+  const unlimited = snapshot?.kind === 'unlimited';
+  return {
+    grants_unlimited: unlimited,
+    granted_photo_count: unlimited ? null : requestedPhotoCount,
+  };
+}
+
 function isPendingClash(err) {
   if (!err || err.code !== '23505') return false;
   const detail = `${err.constraint || ''} ${err.detail || ''} ${err.message || ''}`;
@@ -103,13 +112,21 @@ async function createOrder({ eventId, packageId, req, origin = 'client', reason,
 
   const snapshot = freezePackage(pkg, currency);
   const now = new Date();
+  const requestedPhotoCount = snapshot.kind === 'unlimited' ? null : snapshot.photo_count;
+
+  // A gallery that never touched its quota settings has no row here at all,
+  // which reads the same as auto_approve being off.
+  const settings = await conn('event_download_quota_settings').where({ event_id: eventId }).first();
+  const autoApprove = !!settings?.auto_approve;
+  const grant = autoApprove ? grantFromSnapshot(snapshot, requestedPhotoCount) : null;
+
   const payload = {
     event_id: eventId,
     package_id: pkg.id,
     package_snapshot: JSON.stringify(snapshot),
-    requested_photo_count: snapshot.kind === 'unlimited' ? null : snapshot.photo_count,
-    grants_unlimited: false,
-    status: 'pending',
+    requested_photo_count: requestedPhotoCount,
+    grants_unlimited: autoApprove ? grant.grants_unlimited : false,
+    status: autoApprove ? 'approved' : 'pending',
     // Two origins only, and 'photographer' is the spelling the admin route and
     // the spec both use. Collapsing an unknown value into 'client' would erase
     // the audit trail behind a manual grant, which is the only reason the
@@ -125,6 +142,14 @@ async function createOrder({ eventId, packageId, req, origin = 'client', reason,
     created_at: now,
     updated_at: now,
   };
+
+  if (autoApprove) {
+    // No admin decided this one: approved_by stays null so the record never
+    // credits a human who never looked at the order.
+    payload.granted_photo_count = grant.granted_photo_count;
+    payload.approved_by = null;
+    payload.approved_at = now;
+  }
 
   try {
     // Two clients ordering at the same instant is exactly the case a
@@ -168,15 +193,14 @@ async function approveOrder({ orderId, adminId, grantedPhotoCount, conn = db }) 
   }
 
   const snapshot = parseJson(order.package_snapshot);
-  const unlimited = snapshot?.kind === 'unlimited';
   const requested = grantedPhotoCount == null ? order.requested_photo_count : grantedPhotoCount;
-  const granted = requested == null ? null : Number(requested);
+  const grant = grantFromSnapshot(snapshot, requested == null ? null : Number(requested));
   const now = new Date();
 
   await conn('download_quota_orders').where({ id: orderId }).update({
     status: 'approved',
-    grants_unlimited: unlimited,
-    granted_photo_count: unlimited ? null : granted,
+    grants_unlimited: grant.grants_unlimited,
+    granted_photo_count: grant.granted_photo_count,
     approved_by: adminId ?? null,
     approved_at: now,
     updated_at: now,
