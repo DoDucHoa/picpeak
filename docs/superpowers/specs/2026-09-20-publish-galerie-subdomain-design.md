@@ -115,8 +115,8 @@ flowchart LR
     V -->|"galerie.phoever.de"| CF["Cloudflare edge<br/>TLS, rate limiting"]
     CF -.->|"outbound tunnel"| CD["cloudflared container"]
     OP["Operator, large uploads"] -->|"Tailscale"| FE
-    CD --> FE["picpeak-frontend:80"]
-    FE --> BE["picpeak-backend:3001"]
+    CD --> FE["frontend, already on 127.0.0.1:3000"]
+    FE --> BE["backend"]
     BE --> PG[("Postgres")]
     BE --> ST[("storage bind mount")]
     subgraph NAS["NAS, no inbound port open"]
@@ -143,7 +143,9 @@ This phase ships alone. Nothing else starts until email is proven healthy afterw
 3. Set the apex and `www` to DNS-only, so Cloudflare answers the name but does not sit in
    the request path. The landing page then keeps its own certificate and its own
    behaviour, and this work cannot affect it.
-4. Lower the TTLs before the switch, so a rollback takes effect in minutes.
+4. Query the assigned Cloudflare nameservers directly, before the switch, and diff every
+   answer against the same query put to the IONOS nameservers. This is the actual safety
+   net, for the reason given below.
 5. Change the nameservers at IONOS.
 6. Prove mail end to end: send a message from an outside account to an `@phoever.de`
    address and read it in the real mailbox, then send one out and confirm it arrives
@@ -155,8 +157,16 @@ This phase ships alone. Nothing else starts until email is proven healthy afterw
 > either side to point at the cause. The transcription in step 1 is what prevents this,
 > and it cannot be reconstructed after the nameservers have moved.
 
-Rollback: point the nameservers back at IONOS. The IONOS zone is not deleted by the
-switch, so the old answers return once the lowered TTLs expire.
+Rollback: point the nameservers back at IONOS. The IONOS zone survives the switch, so the
+old answers return once resolvers stop using the cached delegation.
+
+> [!WARNING]
+> That rollback is slow, and it cannot be made fast. The delegation lives in the `.de`
+> registry, whose TTL is typically a full day and is not ours to shorten. Broken mail
+> therefore stays broken for up to 24 hours after the rollback is issued. Treat the
+> nameserver change as one-way for a day, which is why step 4 verifies the new zone
+> against the old one while the old one is still authoritative: it is the only check that
+> can still prevent the damage rather than merely start the clock on undoing it.
 
 ## Phase 2: Open the tunnel
 
@@ -170,11 +180,18 @@ of the repository. Adding a second compose file would also change the `-f` argum
 the `deploy-nas` skill passes on every deploy, so a standalone container keeps the deploy
 path exactly as it is.
 
-Attach the container to the stack's Docker network (declared as `picpeak-network` in the
-compose file; confirm the runtime name on the box, since Compose prefixes it with the
-project name) and point the public hostname at `http://picpeak-frontend:80`. Routing to
-the container rather than to the published host port keeps the traffic inside Docker and
-adds no new listener on the NAS.
+Give the container the host's own network namespace and point the public hostname at
+`http://127.0.0.1:3000`, the port the frontend already publishes.
+
+The tempting alternative, attaching the container to the stack's Docker network and
+targeting `picpeak-frontend:80`, is wrong here. A standalone container joined to a
+Compose-managed network keeps a reference to that specific network. A deploy that brings
+the stack down and back up can recreate the network, and the tunnel is then bound to one
+that no longer exists. What the operator sees is every visitor getting an error after an
+otherwise successful update, while the application itself is demonstrably healthy: a
+failure whose symptom points away from its cause. Host networking has no such coupling,
+adds no listener that is not already bound, and matches how `tailscaled` already runs on
+this box.
 
 Store the tunnel credential in a file with mode 600 under the deploy directory. It is a
 secret, so it is recorded in `.claude/nas-profile.md` by location only, never by value.
