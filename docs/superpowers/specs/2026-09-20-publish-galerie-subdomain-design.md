@@ -19,12 +19,55 @@ proxy entry, no hostname, no TLS.
 | Thing | Where it lives | Must not break |
 |---|---|---|
 | `phoever.de` landing page ("PhoEver Agency", built with Framer) | nginx on `164.90.246.232`, a host the operator has no access to | Yes |
-| Company email on `@phoever.de` | IONOS mail servers `mx00.ionos.de`, `mx01.ionos.de`, plus `_dmarc`, `mail`, `webmail`, `autodiscover` | Yes, critically |
+| Company email on `@phoever.de`, three mailboxes | IONOS mail servers `mx00.ionos.de` and `mx01.ionos.de`, an SPF record, three DKIM selectors and an autodiscover alias | Yes, critically |
 | Authoritative DNS | IONOS (`ns1029.ui-dns.de` and three siblings) | Moves in this work |
 | PicPeak stack | NAS at `/volume1/docker/picpeak`, `docker-compose.production.yml` | Yes |
 | Tailscale | `tailscaled` container on the NAS, tailnet `tailee3dba.ts.net` | Yes, it is the admin path |
 
 `galerie.phoever.de` does not resolve today, so the name is free.
+
+## Verified record inventory
+
+Read from the IONOS control panel on 2026-09-20 and cross-checked against live DNS. This
+is the list that has to arrive in Cloudflare intact, and it is the artefact that cannot be
+reconstructed once the nameservers have moved.
+
+```text
+CNAME  _dmarc                  dmarc.ionos.de
+CNAME  _domainconnect          _domainconnect.ionos.com
+MX     @            (10)       mx00.ionos.de
+MX     @            (10)       mx01.ionos.de
+TXT    @                       v=spf1 include:_spf-eu.ionos.com ~all
+CNAME  s1-ionos._domainkey     s1.dkim.ionos.com
+CNAME  s2-ionos._domainkey     s2.dkim.ionos.com
+CNAME  s42582890._domainkey    s42582890.dkim.ionos.com
+CNAME  autodiscover            adsredir.ionos.info
+A      @                       164.90.246.232
+A      www                     164.90.246.232
+```
+
+Three findings from verifying it, each of which removes or bounds a risk:
+
+**DNSSEC is not enabled.** A DS query to the `.de` registry returns a signed proof of
+absence. Had it been enabled, changing nameservers without first removing the DS record
+would have taken the entire domain off the internet, mail included, rather than breaking
+one service. That failure mode is not in play here.
+
+**`mail` and `webmail` do not exist.** An earlier probe of this design reported them as
+present. It was wrong: the probe read an exit code that `nslookup` sets to zero even for
+a non-existent name. Re-checking against the answer text shows both as NXDOMAIN, and the
+IONOS panel lists no record for either.
+
+**The landing page certificate is issued by Let's Encrypt and expires 2026-12-03**, so the
+remote host renews it itself rather than IONOS supplying it. Renewal works by Let's
+Encrypt calling back to the host over the domain name, and that callback path answers
+today, so keeping the two A records byte-identical is enough to protect it. Nothing about
+this migration reaches that host.
+
+> [!NOTE]
+> `_domainconnect` exists so IONOS can auto-configure third-party services into this zone.
+> It stops functioning once the zone is elsewhere. Copy it anyway: it is inert, and a
+> record that is present and unused is cheaper than discovering later that it was needed.
 
 ## Decisions
 
@@ -89,13 +132,14 @@ flowchart LR
 
 This phase ships alone. Nothing else starts until email is proven healthy afterwards.
 
-1. Export or transcribe the complete record set from the IONOS control panel before
-   touching anything. Cloudflare's importer discovers records by querying names it can
-   guess, so the records it reliably misses are the ones whose names cannot be guessed.
-   DKIM is exactly that case: the selector is a string IONOS chose, and it is only
-   visible in the IONOS panel.
+1. Transcribe the complete record set from the IONOS control panel before touching
+   anything. Done on 2026-09-20; see **Verified record inventory** above. Cloudflare's
+   importer discovers records by querying names it can guess, so the records it reliably
+   misses are the ones whose names cannot be guessed. DKIM is exactly that case, and this
+   zone proves the point: the selector `s42582890._domainkey` is a string IONOS chose and
+   is visible nowhere but that panel.
 2. Create the zone in Cloudflare, let the importer run, then compare its result line by
-   line against the transcription. Add by hand whatever is missing.
+   line against the inventory. Add by hand whatever is missing.
 3. Set the apex and `www` to DNS-only, so Cloudflare answers the name but does not sit in
    the request path. The landing page then keeps its own certificate and its own
    behaviour, and this work cannot affect it.
@@ -186,6 +230,7 @@ route answers whether or not the tunnel works, so a green result there proves no
 | Download | A photo downloads whole, and the download allowance shown afterwards matches the server's count |
 | Generated links | The email the system sends carries `https://galerie.phoever.de`, not an internal address |
 | Landing page | `https://phoever.de` and `https://www.phoever.de` still load, unchanged |
+| Certificate renewal | `http://phoever.de/.well-known/acme-challenge/<anything>` still answers, so the landing page can renew its own certificate before it expires on 2026-12-03 |
 | Mail | Inbound and outbound mail on `@phoever.de` both still work |
 
 ## Known constraints
