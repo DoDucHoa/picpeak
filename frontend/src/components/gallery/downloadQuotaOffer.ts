@@ -139,3 +139,27 @@ export function formatPackagePrice(
     return `${amount.toFixed(2)} ${currency}`;
   }
 }
+
+/**
+ * The per-photo price line shown next to a package's saving, e.g. "€0.60/photo".
+ *
+ * `unit_price` is printed exactly as the backend computed it (price divided by
+ * photo_count for that package), never recomputed here: this dialog's whole
+ * design is that every number on screen comes off the response body. Shown
+ * only where it adds information a guest cannot already see at a glance: a
+ * discounted multi-photo package. A one-photo package's unit price is the same
+ * number as its total, and an unlimited package has none to show.
+ */
+export function formatPackageUnitPrice(
+  pkg: DownloadPackage,
+  currency: string,
+  language: string,
+  t: Translate,
+): string | null {
+  if (pkg.savings_percent === null) return null;
+  if (pkg.unit_price === null) return null;
+  if (pkg.photo_count === null || pkg.photo_count <= 1) return null;
+
+  const price = formatPackagePrice(pkg.unit_price, currency, language);
+  return t('gallery.downloadQuota.perPhotoPrice', '{{price}}/photo', { price });
+}

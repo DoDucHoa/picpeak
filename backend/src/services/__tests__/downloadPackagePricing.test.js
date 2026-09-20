@@ -83,6 +83,21 @@ describe('decoratePackage', () => {
     expect(out.id).toBe(3);
     expect(out.name_i18n).toEqual({ en: 'Twenty' });
   });
+
+  test('the unit price is what this package itself costs per photo, not the gallery base rate', () => {
+    const out = decoratePackage({ kind: 'quantity', photo_count: 5, price: 3 }, 1);
+    expect(out.unit_price).toBe(0.6);
+  });
+
+  test('an unlimited package has no unit price, since it has no photo count to divide by', () => {
+    const out = decoratePackage({ kind: 'unlimited', photo_count: null, price: 300 }, 1);
+    expect(out.unit_price).toBeNull();
+  });
+
+  test('a price arriving as a decimal string still divides to a numeric unit price', () => {
+    const out = decoratePackage({ kind: 'quantity', photo_count: 5, price: '3.00' }, 1);
+    expect(out.unit_price).toBe(0.6);
+  });
 });
 
 describe('resolvePackages', () => {

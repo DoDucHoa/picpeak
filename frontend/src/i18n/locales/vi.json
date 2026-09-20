@@ -1239,6 +1239,7 @@
       "unavailable": "Tải ảnh đang tạm thời không khả dụng. Vui lòng thử lại sau giây lát.",
       "adjustSelection": "Chỉnh lại lựa chọn",
       "savings": "Tiết kiệm {{percent}}%",
+      "perPhotoPrice": "{{price}}/tấm",
       "autoLabelAll": "Toàn bộ ảnh",
       "autoLabelCount_one": "{{count}} ảnh",
       "autoLabelCount_other": "{{count}} ảnh",

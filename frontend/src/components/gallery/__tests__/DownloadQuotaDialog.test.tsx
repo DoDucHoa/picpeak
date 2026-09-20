@@ -57,6 +57,7 @@ const NAMED: DownloadPackage = {
   price: 18,
   name_i18n: { en: 'Small bundle', de: 'Kleines Paket', vi: 'Gói nhỏ' },
   savings_percent: 10,
+  unit_price: 0.9,
   auto_label: { count: 20, price: 18, savings_percent: 10 },
 };
 
@@ -67,6 +68,7 @@ const UNNAMED: DownloadPackage = {
   price: 40,
   name_i18n: null,
   savings_percent: 20,
+  unit_price: 0.8,
   auto_label: { count: 50, price: 40, savings_percent: 20 },
 };
 
@@ -77,6 +79,7 @@ const UNLIMITED: DownloadPackage = {
   price: 99,
   name_i18n: null,
   savings_percent: null,
+  unit_price: null,
   auto_label: { count: null, price: 99, savings_percent: null },
 };
 
@@ -107,17 +110,34 @@ describe('DownloadQuotaDialog', () => {
     );
   });
 
-  it('prints each package saving as the backend calculated it', () => {
+  it('prints each package saving as the backend calculated it, with the per photo price it divided out', () => {
     renderDialog();
 
-    expect(screen.getByText('Save 10%')).toBeInTheDocument();
-    expect(screen.getByText('Save 20%')).toBeInTheDocument();
+    expect(screen.getByText('Save 10% · €0.90/photo')).toBeInTheDocument();
+    expect(screen.getByText('Save 20% · €0.80/photo')).toBeInTheDocument();
   });
 
   it('omits the saving line for a package the backend gave no saving for', () => {
     renderDialog({ packages: [UNLIMITED] });
 
     expect(screen.queryByText(/Save/)).not.toBeInTheDocument();
+  });
+
+  it('omits the per photo price for a one photo package, where it only repeats the total', () => {
+    const oneShot: DownloadPackage = {
+      id: 4,
+      kind: 'quantity',
+      photo_count: 1,
+      price: 1,
+      name_i18n: null,
+      savings_percent: 5,
+      unit_price: 1,
+      auto_label: { count: 1, price: 1, savings_percent: 5 },
+    };
+    renderDialog({ packages: [oneShot] });
+
+    expect(screen.getByText('Save 5%')).toBeInTheDocument();
+    expect(screen.queryByText(/\/photo/)).not.toBeInTheDocument();
   });
 
   it('uses the photographer name where there is one', () => {

@@ -10,6 +10,7 @@ import { downloadQuotaService } from '../../services/downloadQuota.service';
 import {
   downloadPackageLabel,
   formatPackagePrice,
+  formatPackageUnitPrice,
 } from '../../components/gallery/downloadQuotaOffer';
 
 /**
@@ -29,6 +30,9 @@ export const DownloadOrderPage: React.FC = () => {
   const { packages, currency, pendingOrder, isLoading, refetch } = useDownloadQuota(slug);
 
   const chosen = packages.find((pkg) => pkg.id === packageId) || null;
+  const chosenUnitPrice = chosen
+    ? formatPackageUnitPrice(chosen, currency, i18n.language, (key, def, vars) => t(key, def, vars))
+    : null;
 
   const createOrder = useMutation({
     mutationFn: () => downloadQuotaService.createOrder(slug as string, packageId),
@@ -120,6 +124,7 @@ export const DownloadOrderPage: React.FC = () => {
                     {t('gallery.downloadQuota.savings', 'Save {{percent}}%', {
                       percent: chosen.savings_percent,
                     })}
+                    {chosenUnitPrice && <> · {chosenUnitPrice}</>}
                   </span>
                 )}
               </span>

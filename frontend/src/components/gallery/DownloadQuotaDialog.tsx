@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom';
 import { X, Clock, ChevronRight, AlertCircle } from 'lucide-react';
 
 import { Button, Card } from '../common';
-import { downloadPackageLabel, formatPackagePrice } from './downloadQuotaOffer';
+import {
+  downloadPackageLabel,
+  formatPackagePrice,
+  formatPackageUnitPrice,
+} from './downloadQuotaOffer';
 import type {
   DownloadOrder,
   DownloadPackage,
@@ -115,6 +119,9 @@ export const DownloadQuotaDialog: React.FC<DownloadQuotaDialogProps> = ({
                 const label = downloadPackageLabel(pkg, i18n.language, (key, def, vars) =>
                   t(key, def, vars),
                 );
+                const unitPrice = formatPackageUnitPrice(pkg, currency, i18n.language, (key, def, vars) =>
+                  t(key, def, vars),
+                );
                 return (
                   <li key={pkg.id}>
                     <Link
@@ -130,6 +137,7 @@ export const DownloadQuotaDialog: React.FC<DownloadQuotaDialogProps> = ({
                             {t('gallery.downloadQuota.savings', 'Save {{percent}}%', {
                               percent: pkg.savings_percent,
                             })}
+                            {unitPrice && <> · {unitPrice}</>}
                           </span>
                         )}
                       </span>

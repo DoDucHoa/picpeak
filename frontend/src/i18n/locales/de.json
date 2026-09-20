@@ -1741,6 +1741,7 @@
       "unavailable": "Downloads sind kurzzeitig nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
       "adjustSelection": "Auswahl anpassen",
       "savings": "{{percent}}% sparen",
+      "perPhotoPrice": "{{price}}/Foto",
       "autoLabelAll": "Alle Fotos",
       "autoLabelCount_one": "{{count}} Foto",
       "autoLabelCount_other": "{{count}} Fotos",

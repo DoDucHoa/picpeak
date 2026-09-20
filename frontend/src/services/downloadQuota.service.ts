@@ -21,6 +21,8 @@ export interface DownloadPackage {
   name_i18n: Record<string, string> | null;
   /** Computed by the backend from the configured per photo price. Never recomputed here. */
   savings_percent: number | null;
+  /** What this package itself costs per photo (price / photo_count), from the backend. Null for `unlimited`. */
+  unit_price: number | null;
   auto_label: { count: number | null; price: number; savings_percent: number | null };
 }
 

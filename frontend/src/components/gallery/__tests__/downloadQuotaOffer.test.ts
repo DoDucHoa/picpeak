@@ -2,8 +2,25 @@ import { describe, expect, it } from 'vitest';
 import {
   canDownloadPhotoNow,
   classifyDownloadRefusal,
+  formatPackageUnitPrice,
   readQuotaExceeded,
 } from '../downloadQuotaOffer';
+import type { DownloadPackage } from '../../../services/downloadQuota.service';
+
+const t = (key: string, def: string, vars?: Record<string, unknown>) =>
+  def.replace(/\{\{(\w+)\}\}/g, (_m, name: string) => String(vars?.[name] ?? ''));
+
+const pkg = (over: Partial<DownloadPackage> = {}): DownloadPackage => ({
+  id: 1,
+  kind: 'quantity',
+  photo_count: 5,
+  price: 3,
+  name_i18n: null,
+  savings_percent: 40,
+  unit_price: 0.6,
+  auto_label: { count: 5, price: 3, savings_percent: 40 },
+  ...over,
+});
 
 const jsonError = (status: number, data: unknown) => ({ response: { status, data } });
 const blobError = (status: number, data: unknown) => ({
@@ -124,5 +141,37 @@ describe('canDownloadPhotoNow', () => {
 
   it('is true for a client on an unlimited package (remaining === null)', () => {
     expect(canDownloadPhotoNow(1, true, true, null, new Set())).toBe(true);
+  });
+});
+
+describe('formatPackageUnitPrice', () => {
+  it('prints the price the backend divided out, not a locally recomputed one', () => {
+    expect(formatPackageUnitPrice(pkg({ unit_price: 0.6 }), 'EUR', 'en', t)).toBe('€0.60/photo');
+  });
+
+  it('omits it for a package the backend gave no saving for', () => {
+    expect(formatPackageUnitPrice(pkg({ savings_percent: null }), 'EUR', 'en', t)).toBeNull();
+  });
+
+  it('omits it for a one-photo package, where the unit price only repeats the total', () => {
+    expect(
+      formatPackageUnitPrice(
+        pkg({ photo_count: 1, price: 1, unit_price: 1, savings_percent: 5 }),
+        'EUR',
+        'en',
+        t,
+      ),
+    ).toBeNull();
+  });
+
+  it('omits it for an unlimited package, which has no unit price to show', () => {
+    expect(
+      formatPackageUnitPrice(
+        pkg({ kind: 'unlimited', photo_count: null, unit_price: null, savings_percent: null }),
+        'EUR',
+        'en',
+        t,
+      ),
+    ).toBeNull();
   });
 });

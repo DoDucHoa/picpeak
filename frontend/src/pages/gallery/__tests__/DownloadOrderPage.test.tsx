@@ -47,6 +47,7 @@ const PACKAGE = {
   price: 18,
   name_i18n: { en: 'Small bundle' },
   savings_percent: 10,
+  unit_price: 0.9,
   auto_label: { count: 20, price: 18, savings_percent: 10 },
 };
 
@@ -99,7 +100,7 @@ describe('DownloadOrderPage', () => {
     renderPage();
 
     expect(await screen.findByText('Small bundle')).toBeInTheDocument();
-    expect(screen.getByText('Save 10%')).toBeInTheDocument();
+    expect(screen.getByText('Save 10% · €0.90/photo')).toBeInTheDocument();
   });
 
   it('orders nothing on arrival, so reading the price costs the guest nothing', async () => {

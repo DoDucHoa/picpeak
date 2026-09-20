@@ -22,9 +22,16 @@ function decoratePackage(pkg, pricePerPhoto) {
     savings = pct > 0 ? pct : null;
   }
 
+  // What THIS package itself costs per photo, distinct from `pricePerPhoto`
+  // above which is the gallery's undiscounted base rate used only to derive
+  // the saving. Null for unlimited, which has no count to divide by.
+  const packageUnitPrice =
+    pkg.kind === 'quantity' && pkg.photo_count > 0 ? price / pkg.photo_count : null;
+
   return {
     ...pkg,
     savings_percent: savings,
+    unit_price: packageUnitPrice,
     auto_label: { count: pkg.photo_count, price, savings_percent: savings },
   };
 }
