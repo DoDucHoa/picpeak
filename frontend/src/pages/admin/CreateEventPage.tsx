@@ -23,6 +23,7 @@ import { CustomerAccountPicker } from '../../components/admin/CustomerAccountPic
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { adminDownloadQuotaService } from '../../services/adminDownloadQuota.service';
+import { useIsMounted } from '../../hooks/useIsMounted';
 import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 import { categoriesService } from '../../services/categories.service';
 import { settingsService } from '../../services/settings.service';
@@ -106,7 +107,7 @@ export const CreateEventPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { format } = useLocalizedDate();
-  const isMountedRef = useRef(true);
+  const isMountedRef = useIsMounted();
   // Re-entrancy guard for the create submit. The Button's
   // `disabled={createMutation.isPending}` covers the ordinary double-click, but
   // not a submission that never touches the button (implicit form submission,
@@ -115,12 +116,6 @@ export const CreateEventPage: React.FC = () => {
   const isSubmittingRef = useRef(false);
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   // const [showPreview, setShowPreview] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const [formData, setFormData] = useState<FormData>({
     event_type: 'wedding',
