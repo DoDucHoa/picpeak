@@ -96,4 +96,12 @@ describe('galleryService.fetchPhotoBlob: fallback only on a genuine 404', () => 
     });
     expect(apiMock.get).toHaveBeenCalledTimes(1);
   });
+
+  it('rethrows a 429 instead of falling back', async () => {
+    apiMock.get.mockRejectedValueOnce(axiosError(429, { error: 'Too many requests' }));
+    await expect(galleryService.fetchPhotoBlob('wedding-2026', 5)).rejects.toMatchObject({
+      response: { status: 429 },
+    });
+    expect(apiMock.get).toHaveBeenCalledTimes(1);
+  });
 });

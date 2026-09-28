@@ -7,7 +7,7 @@ const { db, logActivity } = require('../../database/db');
 const { formatBoolean } = require('../../utils/dbCompat');
 
 const { adminAuth } = require('../../middleware/auth');
-const { requirePermission, userHasAllPermissions } = require('../../middleware/permissions');
+const { requirePermission, userHasAllPermissions, userHasAnyPermission } = require('../../middleware/permissions');
 const { IDENTITY_PRESERVING_NORMALIZE_EMAIL } = require('../../utils/emailNormalization');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -24,14 +24,31 @@ const { parseBooleanInput } = require('../../utils/parsers');
 const eventTypeService = require('../../services/eventTypeService');
 const { normaliseEventTimeTriple } = require('../../services/eventService');
 const { hasColumnCached } = require('../../utils/schemaCache');
-const { requireEventOwnership } = require('../../middleware/ownership');
+const { requireEventOwnership, scopeEventsListQuery, withoutForeignEventSecrets, scopeEventsQuery } = require('../../middleware/ownership');
 
 const { galleryPasswordColumns, dropCopiesIfStorageOff } = require('../../utils/galleryPasswordVault');
+const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCredentialCutoff');
 
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
 const downloadZipService = require('../../services/downloadZipService');
 const { KEYBIND_MODES } = require('../../services/feedbackDefaults');
+const { GUEST_NAME_MODES } = require('../../services/photoCredit');
 const { validateHeroImageAnchor, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
+
+// Client PIN floor. The PIN guards the client review page and used to accept
+// any string, one character included. Six is the least that the login
+// lockout makes worth guessing at. An empty string keeps its meaning: "no
+// client password" on create, "leave it alone" on update. Existing events
+// are not touched; only a submitted value is checked, before it is hashed.
+const CLIENT_PASSWORD_MIN_LENGTH = 6;
+const validateClientPassword = (value) => {
+  if (typeof value !== 'string') throw new Error('Client password must be a string');
+  // Counted trimmed, so spaces cannot pad a short password past the floor.
+  if (value.length > 0 && value.trim().length < CLIENT_PASSWORD_MIN_LENGTH) {
+    throw new Error(`Client password must be at least ${CLIENT_PASSWORD_MIN_LENGTH} characters`);
+  }
+  return true;
+};
 
 /**
  * `events.slug` is UNIQUE, and both routes that mint one do a read-then-insert
@@ -166,7 +183,10 @@ async function queueGalleryCreatedEmail(event, { password, requirePassword } = {
       welcome_message: event.welcome_message || ''
     }),
     status: 'pending',
-    created_at: new Date()
+    created_at: new Date(),
+    // Explicit NULL: the column default is text on SQLite and never comes
+    // due (issue 1670) — see queueEmail.
+    scheduled_at: null
   });
   return true;
 }
@@ -225,6 +245,9 @@ module.exports = (router) => {
     body('color_theme').optional().trim(),
     body('allow_user_uploads').optional().isBoolean().toBoolean(),
     body('upload_category_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+    // Uploader names (#1561).
+    body('guest_name_mode').optional().isIn(GUEST_NAME_MODES),
+    body('show_credits_to_guests').optional().isBoolean().toBoolean(),
     body('allow_downloads').optional().isBoolean(),
     body('disable_right_click').optional().isBoolean(),
     body('enable_devtools_protection').optional().isBoolean(),
@@ -259,18 +282,7 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString().custom((value) => {
-      // Same floor as the gallery password above (#client-access-password):
-      // client access is a second way into the gallery, so an empty-ish
-      // secret must not be settable through the API either.
-      if (value === undefined || value === null || value === '') {
-        return true;
-      }
-      if (typeof value !== 'string' || value.trim().length < 6) {
-        throw new Error('Client password must be at least 6 characters long');
-      }
-      return true;
-    }),
+    body('client_password').optional().custom(validateClientPassword),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',
       'capture_date_desc', 'capture_date_asc',
@@ -336,10 +348,9 @@ module.exports = (router) => {
       // Build query
       let query = db('events');
 
-      // Editor role can only see their own events
-      if (req.admin.roleName === 'editor') {
-        query = query.where('created_by', req.admin.id);
-      }
+      // Roles other than super_admin and admin see their own events plus
+      // ownerless ones, the rule requireEventOwnership applies per event.
+      query = scopeEventsListQuery(query, req.admin);
 
       // Apply search filter
       if (search) {
@@ -403,7 +414,7 @@ module.exports = (router) => {
         created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
         expires_at: event.expires_at ? new Date(event.expires_at).toISOString() : null,
         archived_at: event.archived_at ? new Date(event.archived_at).toISOString() : null
-      })).map(mapEventForApi);
+      })).map((event) => withoutForeignEventSecrets(mapEventForApi(event), req.admin));
 
       res.json({
         events: eventsWithCounts,
@@ -424,14 +435,9 @@ module.exports = (router) => {
     try {
       const { id } = req.params;
 
-      let query = db('events').where('id', id);
-
-      // Editor role can only see their own events
-      if (req.admin.roleName === 'editor') {
-        query = query.where('created_by', req.admin.id);
-      }
-
-      const event = await query.first();
+      // Same visibility as the list: a role limited to its own events gets a
+      // 404 for anyone else's, not a 403 that confirms the event exists.
+      const event = await scopeEventsListQuery(db('events').where('id', id), req.admin).first();
 
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
@@ -481,8 +487,20 @@ module.exports = (router) => {
       } catch (e) {
         logger.warn('Failed to load customer assignments for event', { eventId: id, error: e.message });
       }
+      // Their customer groups (#1443) — only for an admin who may read
+      // customers; this route is guarded by events.view alone. Decoration:
+      // a failure here leaves the groups out rather than failing the page.
+      let groupsByCustomer = null;
+      try {
+        if (customerAccounts.length > 0 && await userHasAnyPermission(req.admin.id, ['customers.view'])) {
+          groupsByCustomer = await require('../../services/customerGroupsService')
+            .groupsForCustomers(customerAccounts.map((c) => c.id));
+        }
+      } catch (e) {
+        logger.warn('Failed to load customer groups for event', { eventId: id, error: e.message });
+      }
 
-      res.json(mapEventForApi({
+      res.json(withoutForeignEventSecrets(mapEventForApi({
         ...event,
         photo_count: parseInt(photoCount) || 0,
         total_size: parseInt(totalSize) || 0,
@@ -503,8 +521,9 @@ module.exports = (router) => {
           // button that then 400'd — or worse, reported success.
           is_active: c.is_active,
           can_sign_in: c.can_sign_in,
+          ...(groupsByCustomer ? { groups: groupsByCustomer.get(Number(c.id)) || [] } : {}),
         })),
-      }));
+      }), req.admin));
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to fetch event details');
     }
@@ -572,10 +591,22 @@ module.exports = (router) => {
         const policyError = await checkGalleryPasswordPolicy(password, event.event_name);
         if (policyError) return res.status(400).json(policyError);
 
-        await db('events').where('id', id).update({
-          password_hash: await bcrypt.hash(password, getBcryptRounds()),
-          ...(await galleryPasswordColumns({ password })),
-        });
+        // Re-entering the current password is not a change: keep the hash and
+        // the sessions opened with it. A new password ends those sessions.
+        const copyColumns = await galleryPasswordColumns({ password });
+        // Kept only while the stored hash is still the one compared: a reset
+        // landing in between must not leave this request's copy (and email)
+        // disagreeing with the hash. Otherwise it is written as a change.
+        const keptHash = await sameAsStored(password, event.password_hash)
+          && await db('events').where({ id, password_hash: event.password_hash })
+            .update(Object.keys(copyColumns).length ? copyColumns : { updated_at: new Date().toISOString() });
+        if (!keptHash) {
+          await db('events').where('id', id).update({
+            password_hash: await bcrypt.hash(password, getBcryptRounds()),
+            ...(await credentialChangeColumns('gallery')),
+            ...copyColumns,
+          });
+        }
         await dropCopiesIfStorageOff(id);
       }
 
@@ -666,6 +697,8 @@ module.exports = (router) => {
 
       const requirePassword = parseBooleanInput(event.require_password, true);
       const publishUpdates = { is_draft: formatBoolean(false) };
+      let publishKeepsHash = false;
+      let publishWritesPassword = false;
       if (requirePassword && password) {
       // Re-hash so the stored hash matches what the email carries — even if
       // the admin mistypes vs. what was set at draft creation, the gallery
@@ -673,11 +706,24 @@ module.exports = (router) => {
         const policyError = await checkGalleryPasswordPolicy(password, event.event_name);
         if (policyError) return res.status(400).json(policyError);
 
-        publishUpdates.password_hash = await bcrypt.hash(password, getBcryptRounds());
         Object.assign(publishUpdates, await galleryPasswordColumns({ password }));
+        publishKeepsHash = await sameAsStored(password, event.password_hash);
+        publishWritesPassword = true;
       }
-      await db('events').where('id', id).update(publishUpdates);
-      if (publishUpdates.password_hash) await dropCopiesIfStorageOff(id);
+      // An unchanged password keeps the hash only while it is still the one
+      // compared; a password change landing in between makes this a change.
+      const published = publishKeepsHash
+        ? await db('events').where({ id, password_hash: event.password_hash }).update(publishUpdates)
+        : 0;
+      if (!published) {
+        if (publishWritesPassword) {
+          publishUpdates.password_hash = await bcrypt.hash(password, getBcryptRounds());
+          Object.assign(publishUpdates, await credentialChangeColumns('gallery'));
+        }
+        await db('events').where('id', id).update(publishUpdates);
+      }
+      // Whenever a recoverable copy was written, not only when the hash changed.
+      if (publishWritesPassword) await dropCopiesIfStorageOff(id);
 
       // Notify the customer — unless the admin asked to publish quietly
       // (#1235). Everything else about publishing still happens: the gallery
@@ -879,6 +925,9 @@ module.exports = (router) => {
         created_by: req.admin.id,
         allow_user_uploads: source.allow_user_uploads,
         upload_category_id: source.upload_category_id,
+        // Uploader names are part of the gallery's configuration (#1561).
+        guest_name_mode: source.guest_name_mode || 'off',
+        show_credits_to_guests: formatBoolean(parseBooleanInput(source.show_credits_to_guests, false)),
         allow_downloads: source.allow_downloads,
         disable_right_click: source.disable_right_click,
         enable_devtools_protection: source.enable_devtools_protection,
@@ -914,6 +963,9 @@ module.exports = (router) => {
         hero_divider_style: source.hero_divider_style || 'wave',
         hero_image_anchor: source.hero_image_anchor || 'center',
         photo_cap: source.photo_cap || null,
+        // The limit is part of the package; the grants belong to the source
+        // gallery's client and stay behind (issue 1560).
+        download_limit: source.download_limit || null,
         is_draft: formatBoolean(true),
         default_photo_sort: source.default_photo_sort || 'upload_date_desc',
         // Client-access secrets and the OG-share opt-in deliberately do NOT
@@ -1015,6 +1067,9 @@ module.exports = (router) => {
     body('welcome_message').optional({ nullable: true, checkFalsy: true }).trim(),
     body('color_theme').optional({ nullable: true }),
     body('allow_user_uploads').optional().isBoolean(),
+    // Uploader names (#1561).
+    body('guest_name_mode').optional().isIn(GUEST_NAME_MODES),
+    body('show_credits_to_guests').optional().isBoolean(),
     // Reveal mode (#838): hide the gallery from guests until reveal.
     body('reveal_mode').optional().isBoolean(),
     body('reveal_at').optional({ nullable: true, checkFalsy: true }).isISO8601(),
@@ -1045,6 +1100,9 @@ module.exports = (router) => {
       return !isNaN(num) && Number.isInteger(num);
     }).withMessage('hero_photo_id must be an integer or null'),
     body('allow_downloads').optional().isBoolean(),
+    // Download limit (issue 1560). null clears it; the column is a signed
+    // 32-bit int like photo_cap.
+    body('download_limit').optional({ nullable: true }).isInt({ min: 1, max: 2147483647 }).toInt(),
     body('disable_right_click').optional().isBoolean(),
     body('watermark_downloads').optional().isBoolean(),
     body('watermark_text').optional().trim(),
@@ -1081,18 +1139,7 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString().custom((value) => {
-      // Same floor as the gallery password above (#client-access-password):
-      // client access is a second way into the gallery, so an empty-ish
-      // secret must not be settable through the API either.
-      if (value === undefined || value === null || value === '') {
-        return true;
-      }
-      if (typeof value !== 'string' || value.trim().length < 6) {
-        throw new Error('Client password must be at least 6 characters long');
-      }
-      return true;
-    }),
+    body('client_password').optional().custom(validateClientPassword),
     body('regenerate_client_token').optional().isBoolean(),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',
@@ -1181,6 +1228,9 @@ module.exports = (router) => {
         'archive_size',
         // Server-managed timestamps
         'download_zip_generated_at', 'archived_at', 'revealed_at', 'event_reminder_sent_at',
+        // Credential-change cutoffs: clearing one would revive the sessions
+        // the password change ended.
+        'gallery_password_changed_at', 'client_password_changed_at',
         // Lifecycle — governed by dedicated permission-gated routes
         // (events.archive/restore, publish, activate/deactivate), not events.edit.
         'is_archived', 'is_draft', 'is_active',
@@ -1330,6 +1380,12 @@ module.exports = (router) => {
       // Plaintexts to remember after the row is written (#1271); each key is
       // only set when this request changed that password.
       const recoverable = {};
+      // Credentials this request changed; sessions opened with the old one end.
+      const credentialChanges = new Set();
+      // Hashes left alone because the submitted password matched; the write is
+      // conditional on them so a concurrent change cannot slip underneath.
+      let keptGalleryHash = false;
+      let keptClientHash = false;
       if (Object.prototype.hasOwnProperty.call(updates, 'client_password') && updates.client_password) {
         updates.client_password_hash = await bcrypt.hash(updates.client_password, getBcryptRounds());
         recoverable.clientPassword = updates.client_password;
@@ -1339,6 +1395,7 @@ module.exports = (router) => {
       }
       if (updates.regenerate_client_token) {
         updates.client_share_token = crypto.randomBytes(32).toString('hex');
+        credentialChanges.add('client');
       }
       delete updates.regenerate_client_token;
 
@@ -1389,25 +1446,38 @@ module.exports = (router) => {
       });
 
       // Check if event exists
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only edit their own events
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
 
       const currentRequirePassword = parseBooleanInput(event.require_password, true);
 
+      // Resubmitting the current client password is not a change: keep the hash
+      // and the client sessions opened with it.
+      if (updates.client_password_hash) {
+        if (await sameAsStored(recoverable.clientPassword, event.client_password_hash)) {
+          delete updates.client_password_hash;
+          keptClientHash = true;
+        } else {
+          credentialChanges.add('client');
+        }
+      }
+
       if (hasRequirePasswordUpdate && requirePasswordUpdate === true && !currentRequirePassword && !newPasswordPlain) {
         return res.status(400).json({ error: 'Password must be provided when enabling password requirement.' });
       }
 
       if (newPasswordPlain) {
-        updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
         recoverable.password = newPasswordPlain;
+        if (!(await sameAsStored(newPasswordPlain, event.password_hash))) {
+          updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
+          credentialChanges.add('gallery');
+        } else {
+          keptGalleryHash = true;
+        }
       } else if (hasRequirePasswordUpdate && requirePasswordUpdate === false && currentRequirePassword) {
         updates.password_hash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), getBcryptRounds());
         recoverable.password = null;
@@ -1510,6 +1580,11 @@ module.exports = (router) => {
         }
       }
 
+      // Written through formatBoolean like the other event flags (#1561).
+      if (Object.prototype.hasOwnProperty.call(updates, 'show_credits_to_guests')) {
+        updates.show_credits_to_guests = formatBoolean(parseBooleanInput(updates.show_credits_to_guests, false));
+      }
+
       // Reveal mode (#838). Turning the toggle ON from off clears
       // revealed_at, so a gallery can be re-hidden after a reveal;
       // reveal_at accepts null/'' to drop a schedule.
@@ -1546,6 +1621,9 @@ module.exports = (router) => {
       // Handle client access fields (#172)
       if (Object.prototype.hasOwnProperty.call(updates, 'client_access_enabled')) {
         updates.client_access_enabled = formatBoolean(updates.client_access_enabled);
+        if (!parseBooleanInput(updates.client_access_enabled, false) && parseBooleanInput(event.client_access_enabled, false)) {
+          credentialChanges.add('client');
+        }
         // Auto-generate client share token when first enabling
         if (parseBooleanInput(updates.client_access_enabled, false) && !event.client_share_token && !updates.client_share_token) {
           updates.client_share_token = crypto.randomBytes(32).toString('hex');
@@ -1557,10 +1635,25 @@ module.exports = (router) => {
       // which would surface as a 500 for an otherwise-valid no-op request
       // (e.g. a body of only protected fields). (codex review.)
       if (Object.keys(recoverable).length > 0) Object.assign(updates, await galleryPasswordColumns(recoverable));
+      if (credentialChanges.size > 0) Object.assign(updates, await credentialChangeColumns(...credentialChanges));
       if (Object.keys(updates).length > 0) {
-        await db('events')
-          .where('id', id)
-          .update(updates);
+        let eventUpdate = db('events').where('id', id);
+        if (keptGalleryHash) eventUpdate = eventUpdate.where('password_hash', event.password_hash);
+        if (keptClientHash) eventUpdate = eventUpdate.where('client_password_hash', event.client_password_hash);
+        const updated = await eventUpdate.update(updates);
+        if (!updated && (keptGalleryHash || keptClientHash)) {
+          // A password changed underneath: write the submitted ones as changes.
+          if (keptGalleryHash) {
+            updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
+            credentialChanges.add('gallery');
+          }
+          if (keptClientHash) {
+            updates.client_password_hash = await bcrypt.hash(recoverable.clientPassword, getBcryptRounds());
+            credentialChanges.add('client');
+          }
+          Object.assign(updates, await credentialChangeColumns(...credentialChanges));
+          await db('events').where('id', id).update(updates);
+        }
       }
       if (Object.keys(recoverable).length > 0) await dropCopiesIfStorageOff(id);
 
@@ -1680,12 +1773,9 @@ module.exports = (router) => {
     try {
       const { id } = req.params;
 
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only edit their own events
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
@@ -1730,13 +1820,9 @@ module.exports = (router) => {
       const { id } = req.params;
       const { days } = req.body;
 
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only touch their own events (defence in depth alongside
-      // requireEventOwnership).
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }

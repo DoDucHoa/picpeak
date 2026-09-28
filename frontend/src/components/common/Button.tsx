@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -32,7 +32,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       primary: 'btn-primary',
       secondary: 'btn-secondary',
       outline: 'btn-outline',
-      ghost: 'bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300',
+      ghost: 'bg-transparent hover:bg-hover text-body',
+      // Status colours keep Tailwind's red scale in both modes (STYLING.md).
+      danger: 'bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white',
     };
 
     const sizes = {

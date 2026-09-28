@@ -1,6 +1,8 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useLeaveGuard } from '../../contexts/UnsavedChangesContext';
 import {
+  ArrowLeft,
   LayoutDashboard,
   Calendar,
   Archive,
@@ -18,6 +20,7 @@ import {
   Github,
   Send,
   ShoppingCart,
+  type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +32,41 @@ import { useAdminDarkMode } from '../../contexts/AdminDarkModeContext';
 import { useFeatureFlags, type FeatureKey } from '../../contexts/FeatureFlagsContext';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { buildResourceUrl } from '../../utils/url';
+import {
+  DEFAULT_SETTINGS_TAB,
+  SETTINGS_PATH,
+  isValidSettingsTab,
+  settingsTabHref,
+  useSettingsNavGroups,
+} from '../../features/settings/settingsNav';
+import { useClientsNavItems } from './ClientsLayout';
+import { useAccountingNavItems } from './AccountingLayout';
+
+// A section that takes over the sidebar while the admin is inside it:
+// the main menu is replaced by the section's own navigation, with a
+// "Back to menu" row and the section title pinned on top.
+interface SidebarSectionItem {
+  key: string;
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  /** Navigate with history.replace (tab switches inside one page). */
+  replace?: boolean;
+}
+interface SidebarSectionGroup {
+  /** Omitted for sections with a single, unlabelled list. */
+  label?: string;
+  items: SidebarSectionItem[];
+}
+interface SidebarSection {
+  key: string;
+  /** Route prefix that activates the section. */
+  path: string;
+  title: string;
+  icon: LucideIcon;
+  groups: SidebarSectionGroup[];
+}
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -146,6 +184,18 @@ export const adminNavigation: NavItem[] = [
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, collapsed = false, onToggleCollapse }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { confirmLeave, isAnyDirty } = useLeaveGuard();
+  // A settings form with unsaved edits gets to say no before the sidebar
+  // navigates away from it (UnsavedChangesProvider).
+  const guardedClick = (e: React.MouseEvent, href: string, replace: boolean | undefined, after: () => void) => {
+    // A modified click (Cmd/Ctrl, Shift, middle button) opens another tab
+    // and leaves this form where it is, so there is nothing to guard.
+    const modified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
+    if (!isAnyDirty || modified) { after(); return; }
+    e.preventDefault();
+    void confirmLeave().then((ok) => { if (ok) { after(); navigate(href, { replace: !!replace }); } });
+  };
   const { t } = useTranslation();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const { flags } = useFeatureFlags();
@@ -175,7 +225,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
   const showLogoBrand = logoInSidebar && !!sidebarBrandImageUrl;
   const brandAlt = publicSettings?.branding_company_name?.trim() || t('admin.title');
 
+  const settingsGroups = useSettingsNavGroups();
   const filteredNavigation = adminNavigation.filter((item) => {
+    // Settings follows the tabs this role can see, not `settings.view`
+    // alone: a tab accepts narrower permissions, and the section is the
+    // only way to those tabs once it takes the menu over.
+    if (item.href === SETTINGS_PATH) return settingsGroups.length > 0;
     if (item.permission && !hasPermission(item.permission as string)) return false;
     if (item.permissionAny?.length
       && !item.permissionAny.some((p) => hasPermission(p))) return false;
@@ -191,10 +246,83 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
     return true;
   });
 
+  // Sections take over the sidebar: while the admin is inside Settings,
+  // CRM or Accounting the main menu is replaced by that section's
+  // navigation, with a "Back to menu" row on top. `peekMain` lets the
+  // admin flip back to the main menu without leaving the page; it resets
+  // on every navigation so clicking the section entry again (or
+  // deep-linking) lands in section mode.
+  const [peekMain, setPeekMain] = useState(false);
+  useEffect(() => { setPeekMain(false); }, [location.key]);
+
+  const clientsItems = useClientsNavItems();
+  const accountingItems = useAccountingNavItems();
+  const urlTab = new URLSearchParams(location.search).get('tab');
+  const activeSettingsTab = isValidSettingsTab(urlTab) ? urlTab : DEFAULT_SETTINGS_TAB;
+  const isUnder = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(`${href}/`);
+
+  const sections: SidebarSection[] = [
+    {
+      key: 'settings',
+      path: SETTINGS_PATH,
+      title: t('navigation.settings'),
+      icon: Settings,
+      groups: settingsGroups.map((g) => ({
+        label: g.label,
+        items: g.items.map((i) => ({
+          key: i.key,
+          href: settingsTabHref(i.key),
+          label: i.label,
+          icon: i.icon,
+          active: activeSettingsTab === i.key,
+          replace: true,
+        })),
+      })),
+    },
+    {
+      key: 'clients',
+      path: '/admin/clients',
+      title: t('navigation.clients'),
+      icon: Briefcase,
+      groups: [{
+        items: clientsItems.map((i) => ({
+          key: i.key, href: i.to, label: i.label, icon: i.icon, active: isUnder(i.to),
+        })),
+      }],
+    },
+    {
+      key: 'accounting',
+      path: '/admin/accounting',
+      title: t('navigation.accounting'),
+      icon: Landmark,
+      groups: [{
+        items: accountingItems.map((i) => ({
+          key: i.key, href: i.to, label: i.label, icon: i.icon, active: isUnder(i.to),
+        })),
+      }],
+    },
+  ];
+  const activeSection = sections.find((sec) => isUnder(sec.path)) ?? null;
+  const section = peekMain ? null : activeSection;
+
   // Desktop width: full nav (w-64) vs icon rail (w-16). Mobile is always
   // w-64 since the collapse affordance only applies on lg+ viewports.
   const widthClasses = collapsed ? 'w-64 lg:w-16' : 'w-64';
   const showLabels = !collapsed;
+
+  const itemClass = (isActive: boolean) => `flex items-center py-2 text-sm font-medium rounded-lg transition-colors ${
+    collapsed ? 'px-3 lg:px-0 lg:justify-center' : 'px-3'
+  } ${
+    isActive
+      ? 'bg-accent-dark text-white'
+      : 'text-body hover:bg-hover-soft hover:text-heading'
+  }`;
+  const iconClass = (isActive: boolean) => `w-5 h-5 flex-shrink-0 ${
+    collapsed ? 'mr-3 lg:mr-0' : 'mr-3'
+  } ${
+    isActive ? 'text-white' : 'text-neutral-400'
+  }`;
 
   return (
     <div
@@ -205,7 +333,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
       // leave a visible step in the horizontal divider where the
       // sidebar meets the main column. Shadow uses the same neutral
       // border colors so it looks identical to the previous border.
-      className={`fixed inset-y-0 left-0 z-50 ${widthClasses} bg-white dark:bg-neutral-900 shadow-[1px_0_0_0_theme(colors.neutral.200)] dark:shadow-[1px_0_0_0_theme(colors.neutral.700)] transform transition-all duration-200 ease-in-out lg:relative lg:translate-x-0 lg:h-screen ${
+      className={`fixed inset-y-0 left-0 z-50 ${widthClasses} bg-shell shadow-[1px_0_0_0_theme(colors.neutral.200)] dark:shadow-[1px_0_0_0_theme(colors.neutral.700)] transform transition-all duration-200 ease-in-out lg:relative lg:translate-x-0 lg:h-screen ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
@@ -216,11 +344,23 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
             it sits in admins' muscle-memory zone for chrome controls.
             When collapsed on desktop the title hides and the row
             becomes an empty spacer (no rail-width fight). */}
-        <div className={`flex items-center h-16 border-b border-neutral-200 dark:border-neutral-700 flex-shrink-0 ${
+        <div className={`flex items-center h-16 border-b border-line flex-shrink-0 ${
           collapsed ? 'lg:justify-center lg:px-2 px-6 justify-between' : 'justify-between px-6'
         }`}>
           <div className="flex items-center gap-2 min-w-0">
-            {showLogoBrand ? (
+            {section ? (
+              <>
+                {/* Section mode: the section's icon + title replace the
+                    brand while the admin is inside Settings / CRM /
+                    Accounting, so the sidebar reads top-down as
+                    "where am I → back → pages". On the collapsed rail
+                    only the icon shows, centered like the favicon. */}
+                <section.icon className="w-6 h-6 flex-shrink-0 text-body" />
+                <span className={`text-xl font-bold text-heading truncate ${collapsed ? 'lg:hidden' : ''}`}>
+                  {section.title}
+                </span>
+              </>
+            ) : showLogoBrand ? (
               <>
                 {/* Logo brand variant — fed by Branding > Logo
                     Position = "Sidebar". On the collapsed rail, only
@@ -239,7 +379,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
                     next to the logo so the brand row doesn't feel
                     empty there. */}
                 {collapsed && (
-                  <span className="text-xl font-bold text-neutral-900 dark:text-neutral-100 lg:hidden truncate">
+                  <span className="text-xl font-bold text-heading lg:hidden truncate">
                     {brandAlt}
                   </span>
                 )}
@@ -247,12 +387,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
             ) : (
               <>
                 {showLabels && (
-                  <span className="text-xl font-bold text-neutral-900 dark:text-neutral-100">{t('admin.title')}</span>
+                  <span className="text-xl font-bold text-heading">{t('admin.title')}</span>
                 )}
                 {/* When collapsed on desktop the title is hidden; on mobile we
                     always show it because the rail-narrow style only applies at lg+ */}
                 {collapsed && (
-                  <span className="text-xl font-bold text-neutral-900 dark:text-neutral-100 lg:hidden">{t('admin.title')}</span>
+                  <span className="text-xl font-bold text-heading lg:hidden">{t('admin.title')}</span>
                 )}
               </>
             )}
@@ -266,43 +406,117 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className={`flex-1 py-4 space-y-1 overflow-y-auto overflow-x-hidden min-h-0 ${
-          collapsed ? 'px-4 lg:px-2' : 'px-4'
-        }`}>
-          {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href ||
-                           (item.href !== '/admin/dashboard' && location.pathname.startsWith(item.href));
-            const label = t(item.nameKey);
-
-            return (
-              <NavLink
-                key={item.nameKey}
-                to={item.href}
-                onClick={() => onClose()}
-                title={collapsed ? label : undefined}
-                className={`flex items-center py-2 text-sm font-medium rounded-lg transition-colors ${
-                  collapsed ? 'px-3 lg:px-0 lg:justify-center' : 'px-3'
-                } ${
-                  isActive
-                    ? 'bg-accent-dark text-white'
-                    : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100'
-                }`}
+        {/* Section mode: back row pinned above the scrolling list so it
+            stays reachable however long the list gets. It uses the item
+            styles so it sits in the same type scale and icon column as
+            the list. The section title lives in the brand row above. */}
+        {section && (
+          <div className="flex-shrink-0 animate-panel-in-right">
+            <div className={`border-b border-line py-2 ${
+              collapsed ? 'px-4 lg:px-2' : 'px-4'
+            }`}>
+              <button
+                type="button"
+                onClick={() => setPeekMain(true)}
+                title={collapsed ? t('admin.backToMenu', 'Back to menu') : undefined}
+                className={`w-full text-left ${itemClass(false)}`}
               >
-                {/* Selected item: solid accent-dark fill with white text/icon
-                    for unambiguous high-contrast selection — matches the
-                    .tile-selected pattern used in the customizer. The accent
-                    -dark token defaults to the legacy primary green so users
-                    who haven't set CI colours yet see no migration regression. */}
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${
-                  collapsed ? 'mr-3 lg:mr-0' : 'mr-3'
-                } ${
-                  isActive ? 'text-white' : 'text-neutral-400'
-                }`} />
-                <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
-              </NavLink>
-            );
-          })}
+                <ArrowLeft className={iconClass(false)} />
+                <span className={collapsed ? 'lg:hidden' : ''}>{t('admin.backToMenu', 'Back to menu')}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation. Two panels share this slot: the main menu and the
+            active section's navigation (see `section`). Re-keying the
+            wrapper replays a short slide so the switch reads as a
+            drill-down. */}
+        <nav
+          aria-label={section ? section.title : undefined}
+          className={`flex-1 py-4 overflow-y-auto overflow-x-hidden min-h-0 ${
+            collapsed ? 'px-4 lg:px-2' : 'px-4'
+          }`}
+        >
+          {section ? (
+            <div key={section.key} className="animate-panel-in-right">
+              <div className={collapsed ? 'space-y-4 lg:space-y-2' : 'space-y-4'}>
+                {section.groups.map((group, groupIndex) => (
+                  <div key={group.label ?? groupIndex}>
+                    {group.label && (
+                      <h3 className={`px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted ${
+                        collapsed ? 'lg:hidden' : ''
+                      }`}>
+                        {group.label}
+                      </h3>
+                    )}
+                    {/* Collapsed rail: the group label has no room, so a
+                        hairline between groups keeps the icon column
+                        readable. */}
+                    {collapsed && groupIndex > 0 && (
+                      <div className="hidden lg:block mx-2 mb-2 border-t border-line" />
+                    )}
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const isActive = item.active;
+                        // Link, not NavLink: NavLink decides "active" from the
+                        // pathname alone, and every Settings item shares one
+                        // pathname with a different ?tab=, so it would mark
+                        // all of them aria-current="page". Active state is
+                        // computed here and set explicitly.
+                        return (
+                          <Link
+                            key={item.key}
+                            to={item.href}
+                            replace={item.replace}
+                            onClick={(e) => guardedClick(e, item.href, item.replace, () => onClose())}
+                            title={collapsed ? item.label : undefined}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={itemClass(isActive)}
+                          >
+                            <item.icon className={iconClass(isActive)} />
+                            <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div key="main" className={`space-y-1 ${peekMain ? 'animate-panel-in-left' : ''}`}>
+              {filteredNavigation.map((item) => {
+                const isActive = location.pathname === item.href ||
+                               (item.href !== '/admin/dashboard' && location.pathname.startsWith(item.href));
+                const label = t(item.nameKey);
+
+                return (
+                  <NavLink
+                    key={item.nameKey}
+                    to={item.href}
+                    onClick={(e) => guardedClick(e, item.href, false, () => {
+                      // Clicking the current section's entry while peeking
+                      // at the main menu hands the sidebar back to section
+                      // mode even if the URL doesn't change.
+                      if (item.href === activeSection?.path) setPeekMain(false);
+                      onClose();
+                    })}
+                    title={collapsed ? label : undefined}
+                    className={itemClass(isActive)}
+                  >
+                    {/* Selected item: solid accent-dark fill with white text/icon
+                        for unambiguous high-contrast selection — matches the
+                        .tile-selected pattern used in the customizer. The accent
+                        -dark token defaults to the legacy primary green so users
+                        who haven't set CI colours yet see no migration regression. */}
+                    <item.icon className={iconClass(isActive)} />
+                    <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* Desktop collapse / expand toggle.
@@ -312,13 +526,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
             rail can always be re-expanded. Hidden on mobile (the X
             in the brand row already closes the sheet there). */}
         {onToggleCollapse && (
-          <div className={`hidden lg:flex flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700 py-2 ${
+          <div className={`hidden lg:flex flex-shrink-0 border-t border-line py-2 ${
             collapsed ? 'justify-center px-2' : 'justify-end px-4'
           }`}>
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:text-heading hover:bg-hover-soft transition-colors"
               aria-label={collapsed ? t('admin.expandSidebar', 'Expand sidebar') : t('admin.collapseSidebar', 'Collapse sidebar')}
               title={collapsed ? t('admin.expandSidebar', 'Expand sidebar') : t('admin.collapseSidebar', 'Collapse sidebar')}
             >
@@ -342,7 +556,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
             the user lacks the permission. VersionInfo + StorageInfo each
             have their own loading states so admins see "—" / a spinner
             instead of nothing during the actual data fetch. */}
-        {(permissionsLoading || hasPermission('settings.view')) && (
+        {/* Hidden in section mode: the section list needs the vertical
+            space more than the version / storage widgets, which are one
+            click away on the main menu. */}
+        {!section && (permissionsLoading || hasPermission('settings.view')) && (
           <div className={`flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
             {/* Version Info */}
             <VersionInfo />
@@ -357,7 +574,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
               href={repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mx-4 mb-3 flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
+              className="mx-4 mb-3 flex items-center gap-2 text-xs text-muted hover:text-body transition-colors"
               title={t('admin.viewOnGithub', 'View PicPeak on GitHub')}
             >
               <Github className="w-3.5 h-3.5" />
@@ -391,15 +608,15 @@ const StorageInfo: React.FC = () => {
   const progressBarClass = isOverSoftLimit ? 'bg-red-600' : 'bg-accent-dark';
   const containerClass = isOverSoftLimit
     ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800'
-    : 'bg-neutral-100 dark:bg-neutral-800';
+    : 'bg-subtle';
   const softLimitDisplay = settingsService.formatBytes(limitInUse);
 
   return (
-    <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
+    <div className="p-4 border-t border-line">
       <div className={`${containerClass} rounded-lg p-3 transition-colors duration-300`}>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-neutral-700 dark:text-neutral-300">{t('admin.storageUsed')}</span>
-          <span className="font-medium text-neutral-900 dark:text-neutral-100">
+          <span className="text-body">{t('admin.storageUsed')}</span>
+          <span className="font-medium text-heading">
             {/* The `+` marks a floor: part of the storage root was unreadable,
                 so the real figure — and the percentage below — is higher than
                 this. Without it an EACCES subtree reads as "safely under the
@@ -407,13 +624,13 @@ const StorageInfo: React.FC = () => {
             {settingsService.formatBytes(storageInfo.total_used)}{storageInfo.storage_partial ? '+' : ''}
           </span>
         </div>
-        <div className="mt-2 w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+        <div className="mt-2 w-full bg-fill rounded-full h-2">
           <div
             className={`${progressBarClass} h-2 rounded-full transition-all duration-300`}
             style={{ width: `${Math.min(usagePercent, 100)}%` }}
           />
         </div>
-        <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+        <p className="text-xs text-soft mt-1">
           {t('admin.storagePercent', { percent: usagePercent, limit: softLimitDisplay })}
         </p>
       </div>

@@ -30,6 +30,9 @@ import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import { useDownloadPhoto } from '../../../hooks/useGallery';
 import { useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
+import { useDownloadQuota } from '../../../contexts/DownloadQuotaContext';
+import { DownloadQuotaNotice } from '../DownloadQuotaNotice';
+import { isDownloadLimitError, showDownloadLimitReached } from '../../../utils/downloadLimit';
 import { toast } from 'react-toastify';
 import { useDownloadGate } from '../../../contexts/DownloadGateContext';
 import { canDownloadPhotoNow } from '../downloadQuotaOffer';
@@ -37,6 +40,8 @@ import { canDownloadPhotoNow } from '../downloadQuotaOffer';
 import './GalleryPremiumLayout.css';
 import { lightboxImageUrl } from '../imageTiers';
 import { renderPremiumLightboxImage } from './PremiumLightboxImage';
+
+const isVideoPhoto = (photo: Photo) => photo.media_type === 'video' || photo.type === 'video';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -337,7 +342,10 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       // multi-megabyte originals to show a photo on screen. `download` below
       // deliberately stays on photo.url: what a guest saves must be the full
       // original.
-      src: lightboxImageUrl(photo),
+      // A video's original cannot render as an image slide anyway, and on a
+      // gallery with a download limit fetching it takes a slot (issue 1560),
+      // which a neighbour preload must not do: show its poster instead.
+      src: isVideoPhoto(photo) ? (photo.thumbnail_url || photo.url) : lightboxImageUrl(photo),
       // The download handler used to recover the photo by matching slide.src
       // against photo.url. src is a derivative now, so that lookup would find
       // nothing and Download would silently do nothing (#1166 review).
@@ -350,8 +358,16 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       title: showOriginalFilename
         ? (photo.original_filename || photo.filename)
         : undefined,
+      // Photo credit (#1561), same wording as PhotoLightbox. Only present
+      // when the gallery shows names to this viewer.
+      description: photo.credit_name
+        ? (photo.uploaded_by_guest
+          ? t('gallery.credits.uploadedBy', { name: photo.credit_name })
+          : t('gallery.credits.photoBy', { name: photo.credit_name }))
+        : undefined,
     }));
-  }, [filteredPhotos, allowDownloads, showOriginalFilename, imageDimensions]);
+  }, [filteredPhotos, allowDownloads, showOriginalFilename, imageDimensions, t]);
+  const showCaptions = showOriginalFilename || slides.some((slide) => !!slide.description);
 
   const handleLike = useCallback(async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -444,9 +460,21 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
     }
   }, [selectedPhotos, filteredPhotos, onSelectAll, onDeselectAll]);
 
+  // Download limit (issue 1560).
+  const downloadQuota = useDownloadQuota();
+  const selectedPhotoList = useMemo(
+    () => photos.filter((photo) => selectedPhotos.has(photo.id)),
+    [photos, selectedPhotos]
+  );
+  const selectionOverQuota = !downloadQuota.allows(selectedPhotoList);
+
   const handleDownloadSelected = useCallback(async () => {
     if (selectedPhotos.size === 0) return;
     const ids = Array.from(selectedPhotos);
+    if (selectionOverQuota) {
+      showDownloadLimitReached({ remaining: downloadQuota.remaining ?? 0 });
+      return;
+    }
     // #858: hand off to the resolution picker when the gallery offers a choice.
     if (downloadChoices && downloadChoices.length > 1 && onPickResolution) {
       onPickResolution(ids);
@@ -459,6 +487,8 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
     } catch (error) {
+      // The limit refusal already told the guest why (issue 1560).
+      if (isDownloadLimitError(error)) return;
       // Same refusal handling as this layout's own lightbox/photo download:
       // a guest or an exhausted client gets the dialog/notice the server
       // explained, not a generic failure toast, and never the optimistic
@@ -467,7 +497,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
         toast.error(t('gallery.downloadError'));
       }
     }
-  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota]);
+  }, [selectedPhotos, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota, selectionOverQuota, downloadQuota.remaining]);
 
   const handleDownloadFromLightbox = useCallback((slide: { src?: string; photoId?: number }) => {
     if (!allowDownloads || !slide.src) return;
@@ -495,12 +525,17 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
       return;
     }
 
+    if (!downloadQuota.canDownload(photo)) {
+      showDownloadLimitReached({ remaining: 0 });
+      return;
+    }
+
     analyticsService.trackDownload(photo.id, slug, false);
     downloadPhotoMutation.mutate(
       { slug, photoId: photo.id, filename: photo.filename },
       { onError: (error) => { void downloadGate.reportDownloadFailure(error); } },
     );
-  }, [allowDownloads, filteredPhotos, slug, downloadPhotoMutation, downloadGate]);
+  }, [allowDownloads, filteredPhotos, slug, downloadPhotoMutation, downloadGate, downloadQuota]);
 
   const formattedDate = eventDate ? new Date(eventDate).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -594,6 +629,15 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
                   <button
                     className="gallery-premium-download-btn"
                     onClick={handleDownloadSelected}
+                    aria-disabled={selectionOverQuota || undefined}
+                    style={selectionOverQuota ? { opacity: 0.5 } : undefined}
+                    title={selectionOverQuota
+                      ? t('gallery.downloadLimit.selectionTooLarge', {
+                        cost: downloadQuota.costOf(selectedPhotoList),
+                        remaining: downloadQuota.remaining ?? 0,
+                        defaultValue: 'Download limit: this selection needs {{cost}} downloads, only {{remaining}} left',
+                      })
+                      : undefined}
                   >
                     <Package className="w-3 h-3 mr-1 inline" />
                     {t('common.download')} ({selectedPhotos.size})
@@ -637,6 +681,13 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
 
       {/* Main Gallery */}
       <main className="gallery-premium-main">
+        {/* Download limit (issue 1560): the client's counter, or a guest's
+            preview-size note. */}
+        {allowDownloads && (downloadQuota.limited || downloadQuota.previewOnly) && (
+          <div className="mb-4 text-center">
+            <DownloadQuotaNotice />
+          </div>
+        )}
         <MasonryPhotoAlbum
           photos={albumPhotos}
           render={{
@@ -708,7 +759,7 @@ export const GalleryPremiumLayout: React.FC<GalleryPremiumLayoutProps> = ({
           Zoom,
           Fullscreen,
           ...(allowDownloads ? [Download] : []),
-          ...(showOriginalFilename ? [Captions] : []),
+          ...(showCaptions ? [Captions] : []),
         ]}
         animation={{ fade: 300, swipe: 250 }}
         styles={{

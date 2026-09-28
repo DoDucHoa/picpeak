@@ -34,30 +34,20 @@ const chunkedUpload = require('../services/chunkedUploadService');
 const watermarkGeneratorService = require('../services/watermarkGeneratorService');
 const downloadZipService = require('../services/downloadZipService');
 const { findReplacementCandidate, replacePhoto } = require('../services/photoReplacementService');
-const { requireEventOwnership } = require('../middleware/ownership');
+const { requireEventOwnership, canAccessEvent } = require('../middleware/ownership');
 const { getStorage } = require('../services/storage');
 const { errorResponse } = require('../utils/routeHelpers');
 const logger = require('../utils/logger');
 const router = express.Router();
 
 // Get storage path from environment or default
-const getStoragePath = () => process.env.STORAGE_PATH || path.join(__dirname, '../../../storage');
+const { getStoragePath } = require('../config/storage');
 
-// Resolve a numeric category id within the scope of one event: it must belong
-// to that event or be a global category (#500 / #525 — the same contract the
-// public v1 upload route enforces). Returns undefined for an out-of-scope id,
-// which every caller turns into a 400 rather than silently filing the photo
-// under another event's category.
-const findScopedCategory = (eventId, categoryId) => db('photo_categories')
-  .where({ id: categoryId })
-  .andWhere(function () {
-    this.where({ event_id: eventId }).orWhere('is_global', true);
-  })
-  .first();
-
-const outOfScopeCategoryError = (categoryId) => ({
-  error: `Unknown or out-of-scope category_id ${categoryId}`
-});
+// Category ids are resolved within one event's scope (#500 / #525); shared
+// with the gallery upload route.
+const { findScopedCategory, outOfScopeCategoryError } = require('../utils/categoryScope');
+const { photoCapOf, countEventPhotos } = require('../services/photoCap');
+const { manualCreditFields, CREDIT_NONE } = require('../services/photoCredit');
 
 // Configure multer for file uploads
 // IMPORTANT: Using synchronous functions to prevent file corruption
@@ -93,7 +83,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const { validateFileType, createFileUploadValidator } = require('../utils/fileSecurityUtils');
+const { validateFileType, createFileUploadValidator, normalizeUploadMimeType } = require('../utils/fileSecurityUtils');
 
 // Create a multer instance that uses dynamically resolved allowed MIME types.
 // The allowed types are fetched from the database once per request (before multer
@@ -122,6 +112,9 @@ const createUpload = (maxFileSizeBytes) => multer({
   fileFilter: (req, file, cb) => {
     // req.allowedMimeTypes is populated by the middleware that runs before multer
     const allowedMimeTypes = req.allowedMimeTypes || ['image/jpeg', 'image/png', 'image/webp'];
+    // Assigned, not just compared: multer copies this object into req.files,
+    // so the content validator and the stored mime_type see the canonical type.
+    file.mimetype = normalizeUploadMimeType(file.originalname, file.mimetype);
 
     if (validateFileType(file.originalname, file.mimetype, allowedMimeTypes)) {
       return cb(null, true);
@@ -480,6 +473,9 @@ router.post('/:eventId/upload', adminAuth, requirePermission('photos.upload'), r
             mime_type: file.mimetype,
             processing_status: 'pending',
             upload_id: uploadId,
+            // Explicit rather than the column default (#1561); the worker
+            // reads the EXIF credit for admin rows.
+            uploaded_by: 'admin',
           })
           .returning('id');
         const photoId = inserted[0]?.id || inserted[0];
@@ -577,12 +573,10 @@ async function loadUploadGroup(req, res) {
   }
 
   const eventId = photos[0].event_id;
-  let eventQuery = db('events').where('id', eventId);
-  if (req.admin.roleName === 'editor') {
-    eventQuery = eventQuery.where('created_by', req.admin.id);
-  }
-  const event = await eventQuery.first();
-  if (!event) {
+  // Upload status lists the event's photo filenames, so it follows the same
+  // rule as the photo routes: 404 unless the admin can act on the event.
+  const event = await db('events').where('id', eventId).first();
+  if (!event || !canAccessEvent(req.admin, event)) {
     res.status(404).json({ error: 'Event not found' });
     return null;
   }
@@ -703,18 +697,13 @@ router.post(
       const photo = await db('photos').where({ id: req.params.photoId }).first();
       if (!photo) return res.status(404).json({ error: 'Photo not found' });
 
-      // Ownership scope: any non-super_admin may only retry photos in events
-      // they own — matching requireEventOwnership (which scopes both the
-      // admin and editor roles; only super_admin bypasses). Previously this
-      // checked the editor role alone, leaving admin-role users able to
+      // Ownership: the rule requireEventOwnership enforces, which can't run
+      // here because the route is keyed by photo, not by event. Previously
+      // this checked the editor role alone, leaving admin-role users able to
       // reprocess another admin's photos.
-      if (req.admin.roleName !== 'super_admin') {
-        const event = await db('events')
-          .where({ id: photo.event_id })
-          .first();
-        if (event && event.created_by && event.created_by !== req.admin.id) {
-          return res.status(404).json({ error: 'Photo not found' });
-        }
+      const event = await db('events').where({ id: photo.event_id }).first();
+      if (event && !canAccessEvent(req.admin, event)) {
+        return res.status(404).json({ error: 'Photo not found' });
       }
 
       if (photo.processing_status !== 'failed') {
@@ -1140,6 +1129,20 @@ router.post('/:eventId/photos/bulk-update', adminAuth, requirePermission('photos
       updateData.auto_categorized = false;
     }
 
+    // Credit (#1561): correct or clear a name on many photos at once — the
+    // joke name a guest used on 40 uploads is the case this exists for.
+    if (Object.prototype.hasOwnProperty.call(updates, 'credit_name')) {
+      const creditFields = manualCreditFields(updates.credit_name);
+      if (creditFields.error) {
+        return res.status(400).json({ error: creditFields.error });
+      }
+      Object.assign(updateData, creditFields);
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
     await db('photos')
       .whereIn('id', photoIds)
       .where('event_id', eventId)
@@ -1156,6 +1159,57 @@ router.post('/:eventId/photos/bulk-update', adminAuth, requirePermission('photos
     res.json({ message: `${photoIds.length} photos updated successfully` });
   } catch (error) {
     errorResponse(res, error, 500, 'Failed to update photos');
+  }
+});
+
+// Photo credits (#1561) — the names on this event's photos with their counts,
+// for the grid's filter. `none` counts the photos without a name.
+router.get('/:eventId/photos/credits', adminAuth, requirePermission('photos.view'), requireEventOwnership, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId, 10);
+    const rows = await db('photos')
+      .where('event_id', eventId)
+      .whereNotNull('credit_name')
+      .groupBy('credit_name')
+      .select('credit_name')
+      .count('id as count')
+      .orderBy('credit_name', 'asc');
+    const none = await db('photos')
+      .where('event_id', eventId)
+      .whereNull('credit_name')
+      .count('id as count')
+      .first();
+    res.json({
+      credits: rows.map((r) => ({ name: r.credit_name, count: Number(r.count) })),
+      none: Number(none?.count || 0),
+    });
+  } catch (error) {
+    errorResponse(res, error, 500, 'Failed to load photo credits');
+  }
+});
+
+// Correct or clear one photo's credit (#1561). Its own route rather than a
+// field on PATCH /photos/:photoId, which clears the category of any request
+// that leaves category_id out.
+router.put('/:eventId/photos/:photoId/credit', adminAuth, requirePermission('photos.edit'), requireEventOwnership, async (req, res) => {
+  try {
+    const { eventId, photoId } = req.params;
+    const creditFields = manualCreditFields(req.body?.credit_name);
+    if (creditFields.error) {
+      return res.status(400).json({ error: creditFields.error });
+    }
+    const updated = await db('photos')
+      .where({ id: photoId, event_id: eventId })
+      .update(creditFields);
+    if (!updated) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    await logActivity('photo_credit_updated', {
+      photo_id: Number(photoId), cleared: creditFields.credit_name === null,
+    }, parseInt(eventId, 10), { type: 'admin', id: req.admin.id, name: req.admin.username });
+    res.json({ credit_name: creditFields.credit_name, credit_source: creditFields.credit_source });
+  } catch (error) {
+    errorResponse(res, error, 500, 'Failed to update photo credit');
   }
 });
 
@@ -1218,7 +1272,7 @@ router.get('/:eventId/photos/:photoId/download', adminAuth, requirePermission('p
 router.get('/:eventId/photos', adminAuth, requirePermission('photos.view'), requireEventOwnership, async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { category_id, type, search, sort = 'date', has_likes, has_favorites, has_comments, min_rating, color_label } = req.query;
+    const { category_id, type, search, sort = 'date', has_likes, has_favorites, has_comments, min_rating, color_label, credit } = req.query;
     const order = ['asc', 'desc'].includes(req.query.order) ? req.query.order : 'desc';
     const logic = req.query.logic === 'OR' ? 'OR' : 'AND';
 
@@ -1247,6 +1301,17 @@ router.get('/:eventId/photos', adminAuth, requirePermission('photos.view'), requ
     // Keep type filter for backwards compatibility
     if (type) {
       query = query.where({ 'photos.type': type });
+    }
+
+    // Credit filter (#1561): an exact name, or CREDIT_NONE for the photos
+    // that carry none. Exact, not LIKE: the value comes from the names list
+    // below, and "Anna" must not also match "Annabel".
+    if (typeof credit === 'string' && credit !== '') {
+      if (credit === CREDIT_NONE) {
+        query = query.whereNull('photos.credit_name');
+      } else {
+        query = query.where('photos.credit_name', credit);
+      }
     }
 
     // Search by filename. original_filename is included because that is the
@@ -1429,7 +1494,12 @@ router.get('/:eventId/photos', adminAuth, requirePermission('photos.view'), requ
         // column showed 0 regardless of what the DB counted. This, not
         // stale data, was why per-image downloads always displayed 0.
         view_count: photo.view_count || 0,
-        download_count: photo.download_count || 0
+        download_count: photo.download_count || 0,
+        // Photo credit (#1561). The admin always sees it, whatever the
+        // event's show-to-guests switch says.
+        credit_name: photo.credit_name || null,
+        credit_source: photo.credit_source || null,
+        uploaded_by: photo.uploaded_by === 'guest' ? 'guest' : 'admin'
       }))
     });
   } catch (error) {
@@ -1733,7 +1803,7 @@ router.post('/:eventId/chunked-upload/:uploadId/chunk/:chunkIndex', adminAuth, r
       return res.status(error.statusCode).json({ error: error.message });
     }
     logger.error('Error uploading chunk:', error);
-    res.status(500).json({ error: error.message || 'Failed to upload chunk' });
+    res.status(500).json({ error: 'Failed to upload chunk' });
   }
 });
 
@@ -1742,6 +1812,29 @@ router.post('/:eventId/chunked-upload/:uploadId/complete', adminAuth, requirePer
   try {
     const { eventId, uploadId } = req.params;
     const { category_id } = req.body;
+
+    // Same rules as the batch upload route: the photo cap and the category
+    // scope. Checked before the merge, so a refused upload writes nothing.
+    const event = await db('events').where({ id: eventId }).first();
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const rawParsed = category_id ? parseInt(category_id, 10) : NaN;
+    const parsedCategoryId = rawParsed > 0 ? rawParsed : null;
+    if (parsedCategoryId && !(await findScopedCategory(event.id, parsedCategoryId))) {
+      await chunkedUpload.abortUpload(uploadId).catch(() => {});
+      return res.status(400).json(outOfScopeCategoryError(parsedCategoryId));
+    }
+    const photoCap = photoCapOf(event);
+    if (photoCap) {
+      const currentCount = await countEventPhotos(event.id);
+      if (currentCount + 1 > photoCap) {
+        await chunkedUpload.abortUpload(uploadId).catch(() => {});
+        return res.status(400).json({
+          error: `Photo cap exceeded. This event allows a maximum of ${photoCap} photos. Currently ${currentCount} photos exist, and you are trying to upload 1 more.`
+        });
+      }
+    }
 
     // Complete the chunked upload (merge chunks)
     const mergedFile = await chunkedUpload.completeUpload(uploadId);
@@ -1785,7 +1878,7 @@ router.post('/:eventId/chunked-upload/:uploadId/complete', adminAuth, requirePer
       return res.status(error.statusCode).json({ error: error.message });
     }
     logger.error('Error completing chunked upload:', error);
-    res.status(500).json({ error: error.message || 'Failed to complete upload' });
+    res.status(500).json({ error: 'Failed to complete upload' });
   }
 });
 

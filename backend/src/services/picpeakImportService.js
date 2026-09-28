@@ -19,7 +19,10 @@ const fsp = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const StreamZip = require('node-stream-zip');
+const { pipeline } = require('stream/promises');
+const { Transform, Writable } = require('stream');
 const { assertZipEntriesWithin } = require('../utils/safePath');
+const { STORED_PATH_COLUMNS, relocateStoredPath } = require('../utils/storedPath');
 const { db } = require('../database/db');
 const knexConfig = require('../../knexfile');
 const { getStoragePath } = require('../config/storage');
@@ -27,6 +30,7 @@ const { hasColumnCached } = require('../utils/schemaCache');
 const { setSessionsValidAfter } = require('../utils/sessionCutoff');
 const logger = require('../utils/logger');
 const { PICPEAK_FORMAT_VERSION, EXCLUDED_TABLES, listDataTables } = require('./picpeakExportService');
+const { normaliseSqliteEmailQueue } = require('../utils/queueTimestamps');
 const {
   dedupeExternalPhotos,
   createExternalRelpathIndex,
@@ -41,10 +45,137 @@ function migrationOrder(name) {
   return m ? parseInt(m[1], 10) : -1;
 }
 
+// What an uploaded .picpeak may expand to. The upload itself is capped by
+// multer, but a small archive can inflate far beyond it, and extraction used to
+// write every entry to the temp dir unchecked. The sizes an archive declares
+// are only a first, cheap check: a crafted archive can understate them (local
+// headers override the directory, and a data-descriptor flag turns off
+// node-stream-zip's length check), so the bytes actually decompressed are
+// counted as well, while extracting and while reading the manifest. Defaults
+// are generous (a full backup includes every photo); the free space of the
+// extraction directory is what actually protects the disk.
+const DEFAULT_MAX_ENTRIES = 2000000;
+const DEFAULT_MAX_EXPANDED_BYTES = 1024 * 1024 * 1024 * 1024; // 1 TiB
+const DEFAULT_MAX_MANIFEST_BYTES = 16 * 1024 * 1024;
+
+function positiveEnvNumber(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function archiveLimitError(message, statusCode) {
+  const err = new Error(message);
+  err.statusCode = statusCode;
+  return err;
+}
+
+async function freeBytes(dir) {
+  if (typeof fsp.statfs !== 'function') return Infinity;
+  const stats = await fsp.statfs(dir);
+  const available = Number(stats.bavail) * Number(stats.bsize);
+  return Number.isFinite(available) ? available : Infinity;
+}
+
+function expandedTooLarge(bytes, maxBytes, available) {
+  return available < maxBytes
+    ? archiveLimitError(
+      `The backup expands to more than ${bytes > available ? bytes : available} bytes, but only ${available} bytes are free for extracting it.`,
+      507,
+    )
+    : archiveLimitError(
+      `The backup expands to more than the limit of ${maxBytes} bytes (PICPEAK_IMPORT_MAX_EXPANDED_BYTES).`,
+      413,
+    );
+}
+
+/**
+ * Refuse, from what the archive declares, an archive with more entries
+ * (files and directories alike: each one is created on disk) than the cap, or
+ * whose declared size exceeds the byte cap or the free space of the directory
+ * it is about to be extracted to. The declared sizes can understate, so
+ * extractWithinLimits() enforces the same budget on the real bytes.
+ */
+async function assertArchiveWithinLimits(entries, extractDir) {
+  const maxEntries = positiveEnvNumber('PICPEAK_IMPORT_MAX_ENTRIES', DEFAULT_MAX_ENTRIES);
+  const maxBytes = positiveEnvNumber('PICPEAK_IMPORT_MAX_EXPANDED_BYTES', DEFAULT_MAX_EXPANDED_BYTES);
+  let count = 0;
+  let total = 0;
+  for (const entry of entries || []) {
+    if (!entry) continue;
+    count += 1;
+    if (!entry.isDirectory) total += Number(entry.size) || 0;
+  }
+  if (count > maxEntries) {
+    throw archiveLimitError(
+      `The backup contains ${count} entries, more than the limit of ${maxEntries} (PICPEAK_IMPORT_MAX_ENTRIES).`,
+      413,
+    );
+  }
+  const available = await freeBytes(extractDir);
+  if (total > Math.min(maxBytes, available)) throw expandedTooLarge(total, maxBytes, available);
+  return { entries: count, expandedBytes: total };
+}
+
+/** A pass-through stream that fails once more than `budget.remaining` bytes went through it. */
+function byteBudget(budget, onExceed) {
+  return new Transform({
+    transform(chunk, _encoding, callback) {
+      budget.remaining -= chunk.length;
+      if (budget.remaining < 0) return callback(onExceed());
+      return callback(null, chunk);
+    },
+  });
+}
+
+/**
+ * Extract every entry into extractDir, counting the bytes actually
+ * decompressed against the smaller of the byte cap and the free space, and
+ * stopping at the first byte over. Entry names were checked for traversal by
+ * assertZipEntriesWithin() before this runs.
+ */
+async function extractWithinLimits(zip, entries, extractDir) {
+  const maxBytes = positiveEnvNumber('PICPEAK_IMPORT_MAX_EXPANDED_BYTES', DEFAULT_MAX_EXPANDED_BYTES);
+  const available = await freeBytes(extractDir);
+  const limit = Math.min(maxBytes, available);
+  const budget = { remaining: limit };
+  const root = path.resolve(extractDir);
+  for (const entry of entries) {
+    const target = path.resolve(root, entry.name);
+    if (entry.isDirectory) {
+      await fsp.mkdir(target, { recursive: true });
+      continue;
+    }
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    await pipeline(
+      await zip.stream(entry.name),
+      byteBudget(budget, () => expandedTooLarge(limit - budget.remaining, maxBytes, available)),
+      fs.createWriteStream(target),
+    );
+  }
+  return { expandedBytes: limit - budget.remaining };
+}
+
+/** Read one entry into memory, refusing it past maxBytes of real content. */
+async function readEntryWithin(zip, name, maxBytes, onExceed) {
+  const chunks = [];
+  await pipeline(
+    await zip.stream(name),
+    byteBudget({ remaining: maxBytes }, onExceed),
+    new Writable({
+      write(chunk, _encoding, callback) { chunks.push(chunk); callback(); },
+    }),
+  );
+  return Buffer.concat(chunks);
+}
+
 async function readManifestFromZip(picpeakPath) {
   const zip = new StreamZip.async({ file: picpeakPath });
   try {
-    return JSON.parse((await zip.entryData('manifest.json')).toString('utf8'));
+    const maxManifestBytes = positiveEnvNumber('PICPEAK_IMPORT_MAX_MANIFEST_BYTES', DEFAULT_MAX_MANIFEST_BYTES);
+    const tooLarge = () => archiveLimitError('The backup manifest is too large to be a PicPeak manifest.', 400);
+    const entry = await zip.entry('manifest.json');
+    if (entry && Number(entry.size) > maxManifestBytes) throw tooLarge();
+    return JSON.parse((await readEntryWithin(zip, 'manifest.json', maxManifestBytes, tooLarge)).toString('utf8'));
   } finally {
     await zip.close();
   }
@@ -252,6 +383,9 @@ async function resyncSequences(tables) {
 const PRESERVED_AUTH_FIELDS = [
   'username', 'email', 'password_hash', 'is_active', 'must_change_password',
   'two_factor_enabled', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enrolled_at',
+  // Whether SSO may link to this row by email (migration 227) — auth state,
+  // so a backup must not set it for the operator either.
+  'email_link_eligible',
 ];
 
 // The json/jsonb columns of a table (Postgres only). The pg driver returns
@@ -329,11 +463,98 @@ function coerceForTargetEngine(rows, { timestamps, booleans }) {
   });
 }
 
+// Columns that name a file by a key relative to a root this install joins it
+// onto: the storage root for archives, photos and their derived files, the
+// external media root for referenced photos. Readers contain most of them
+// (photoResolver, the storage backends), but archive_path and watermark_path
+// are joined raw in places, and the rows arrive here straight from the
+// archive's ndjson, so a crafted .picpeak could plant `../` values that reach
+// files outside storage. No legitimate row carries a `..` segment in any of
+// these columns, so the whole import is refused rather than the row skipped:
+// a backup that was tampered with is not one to restore in part.
+const CONTAINED_PATH_COLUMNS = {
+  events: ['archive_path'],
+  photos: ['path', 'thumbnail_path', 'watermark_path', 'external_relpath'],
+};
+
+function assertContainedPaths(table, rows) {
+  const columns = CONTAINED_PATH_COLUMNS[table];
+  if (!columns) return;
+  for (const row of rows) {
+    for (const column of columns) {
+      const value = row[column];
+      if (typeof value !== 'string' || !value) continue;
+      if (value.split(/[\\/]+/).includes('..')) {
+        throw archiveLimitError(
+          `The backup's ${table}.${column} contains a path that climbs out of its directory (${JSON.stringify(value)}); the archive is refused.`,
+          400,
+        );
+      }
+    }
+  }
+}
+
+// Stored file paths (storedPath.js). A source install recorded generated PDFs,
+// signature images and uploads as absolute paths under ITS storage root; the
+// files land under this install's root (restoreFiles), so each path is
+// rewritten to the storage-relative form, which resolves here whatever the
+// two roots are called. When a path has more than one candidate suffix, the
+// one the archive actually carries under files/ wins. Values that are already
+// relative, or name nothing under a storage folder, are left as they are.
+function relocateStoredPaths(table, rows, filesDir) {
+  const columns = STORED_PATH_COLUMNS.filter((c) => c.table === table).map((c) => c.column);
+  if (!columns.length) return rows;
+  const inArchive = (rel) => fs.existsSync(path.join(filesDir, ...rel.split('/')));
+  return rows.map((row) => {
+    const out = { ...row };
+    for (const col of columns) {
+      if (typeof out[col] === 'string') out[col] = relocateStoredPath(out[col], inArchive);
+    }
+    return out;
+  });
+}
+
+// Tables a migration seeds with mandatory system/lookup rows ONLY at table-
+// creation time (inside its `hasTable` guard, or — product_usage_state — a
+// one-time row-existence check that behaves the same way once the migration
+// has run), with no runtime re-seed path anywhere else in the app. Unlike
+// genuine user-data tables, clearing these to empty on a restore whose
+// archive predates the seeding migration is wrong: the row(s) are gone for
+// good (migrations never re-run once applied) and either crash a live
+// endpoint (product_usage_state) or silently break a feature with no
+// recovery UI (accounting chart of accounts/VAT codes/categories, CRM
+// payment-term templates, the contract block library). Verified by reading
+// each migration + its consuming service; other seed-in-guard tables such as
+// `business_profile`, `roles`/`permissions`, `backup_paths` and the various
+// email templates already self-heal at runtime (see businessProfileService
+// .getProfile(), _permissionsBoot.js, _backupPathsBoot.js, etc.) and are
+// deliberately NOT listed here.
+//
+// Guarded contract (seedOnlyTablesContract.test.js): after running every core
+// migration on a fresh DB, the set of exported tables that hold rows must
+// equal SEED_ONLY_TABLES plus that test's commented exemption list. A new
+// migration that seeds rows therefore fails the test until its table is
+// classified: add it HERE when an archive can predate the table and nothing
+// reseeds it at runtime; add it to the test's exemption list (with the reason)
+// otherwise. Never list a table that holds user data: a listed table the
+// archive lacks keeps its LOCAL rows across the restore, which is the #1586
+// leak shape this clear exists to close.
+const SEED_ONLY_TABLES = new Set([
+  'product_usage_state',        // migrations/core/201_product_usage.js — id=1 singleton; UsageService.status() dereferences it unguarded
+  'ledger_accounts',             // migrations/core/129_create_ledger_accounts_and_vat_codes.js — Swiss/LI chart of accounts
+  'vat_codes',                   // migrations/core/129_create_ledger_accounts_and_vat_codes.js — MWST codes, FK to ledger_accounts
+  'expense_categories',          // migrations/core/124_create_inbound_documents_and_expenses.js — default expense category labels
+  'payment_term_templates',      // migrations/core/107_crm_consolidated.js — legacy system payment-term templates
+  'payment_net_days_templates',  // migrations/core/107_crm_consolidated.js — split net-days templates
+  'payment_timing_templates',    // migrations/core/107_crm_consolidated.js — split timing templates
+  'contract_blocks',             // migrations/core/107_crm_consolidated.js (orig. 130) — system contract clause library
+]);
+
 // Whole-DB replace in one transaction with FK enforcement suspended (pg:
 // session_replication_role=replica on the trx connection, reset before commit;
 // sqlite: defer_foreign_keys so checks run at commit). knex_migrations is never
 // in the data set, so the target's schema/migration state is left intact.
-async function replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { crossEngine = false } = {}) {
+async function replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { crossEngine = false, allTables } = {}) {
   await db.transaction(async (trx) => {
     if (isPostgres()) {
       try {
@@ -366,7 +587,35 @@ async function replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { c
       await dropExternalRelpathIndex(trx);
     }
 
-    for (const table of tables) {
+    // Clear every table the CURRENT schema exports (`allTables`), not just
+    // the tables this archive's manifest lists (`tables`, a subset of it).
+    // An archive made before a table existed carries no rows for it, so
+    // clearing only `tables` would leave that table's LOCAL rows in place —
+    // attached to whatever restored row happens to reuse the same id (#1586:
+    // an archive predating customer_groups left local group memberships
+    // pointing at the wrong restored customers after the restore). For a
+    // feature absent from the archive, empty is the correct restored state.
+    //
+    // This subsumes the one-off fix this used to be (clearing
+    // accounting_change_history when the archive predated it): `allTables`
+    // already includes that table whenever this instance has it, which is
+    // the same condition that fix checked for explicitly.
+    //
+    // Exception: a SEED_ONLY_TABLES table whose rows the archive does NOT
+    // carry (the archive predates the migration that seeds it) is skipped
+    // here rather than cleared — see SEED_ONLY_TABLES above. When the
+    // archive DOES carry the table (it's in `tables`), clear it as normal:
+    // the reinsert loop below replaces it with the archive's rows, and
+    // skipping the clear would leave stale local rows colliding with the
+    // reinserted ones on unique constraints (e.g. ledger_accounts.number).
+    const manifestTableSet = new Set(tables);
+    const tablesToClear = new Set(allTables || tables);
+    // Download limit grants (issue 1560) too: an archive made before they
+    // existed would leave local grants on restored photos whose ids happen
+    // to match, using up those galleries' quotas.
+    if (await trx.schema.hasTable('event_download_grants')) tablesToClear.add('event_download_grants');
+    for (const table of tablesToClear) {
+      if (SEED_ONLY_TABLES.has(table) && !manifestTableSet.has(table)) continue;
       await trx(table).del();
     }
 
@@ -399,7 +648,12 @@ async function replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { c
         toSerialise = new Set();
       }
       prepared = serialiseJsonColumns(prepared, toSerialise);
+      prepared = relocateStoredPaths(table, prepared, path.join(path.dirname(dataDir), 'files'));
+      assertContainedPaths(table, prepared);
       await trx.batchInsert(table, prepared, 100);
+      // Archived queue rows come back as they were, text timestamps included,
+      // and migration 256 will not run again on this target (issue 1670).
+      if (table === 'email_queue') await normaliseSqliteEmailQueue(trx);
     }
 
     // Restore the constraint the load ran without. Deduping first because the
@@ -508,18 +762,27 @@ async function importFromPicpeak({ picpeakPath, currentAdminId }) {
       // Reject ZIP-slip entries before extracting — a crafted .picpeak could
       // otherwise write outside the staging dir via `../` entry names
       // (same class as GHSA-jfhw-fj23-fx6x).
-      assertZipEntriesWithin(Object.values(await zip.entries()), staging);
-      await zip.extract(null, staging);
+      const entries = Object.values(await zip.entries());
+      assertZipEntriesWithin(entries, staging);
+      await assertArchiveWithinLimits(entries, staging);
+      await extractWithinLimits(zip, entries, staging);
     } finally {
       await zip.close();
     }
 
     const dataDir = path.join(staging, 'data');
-    // Only touch tables that (a) the uploaded manifest lists AND (b) actually
-    // exist as real tables in THIS database. listDataTables() already excludes
-    // knex_migrations/_lock (EXCLUDED_TABLES), so a crafted or corrupted
-    // .picpeak can never make the restore delete the migration bookkeeping — or
-    // any table that isn't a genuine data table here.
+    // `tables` (loaded from the archive) is restricted to tables that (a) the
+    // uploaded manifest lists AND (b) actually exist as real tables in THIS
+    // database. listDataTables() already excludes knex_migrations/_lock
+    // (EXCLUDED_TABLES), so a crafted or corrupted .picpeak can never make
+    // the restore delete the migration bookkeeping — or any table that isn't
+    // a genuine data table here.
+    //
+    // `dbTables` itself (every real, non-excluded table in THIS database) is
+    // also passed to replaceAllTables as the CLEARING set (#1586): a table
+    // this instance has but the archive's manifest doesn't list still gets
+    // wiped, so a feature added after the archive was made doesn't leave
+    // local rows behind attached to reused ids from the restore.
     const dbTables = new Set(await listDataTables());
     const manifestTables = Object.keys(manifest.tables || {});
     const tables = manifestTables.filter((tbl) => dbTables.has(tbl) && !EXCLUDED_TABLES.has(tbl));
@@ -528,7 +791,7 @@ async function importFromPicpeak({ picpeakPath, currentAdminId }) {
       logger.warn(`[picpeak-import] ignoring ${skipped.length} backup table(s) not present in this DB (or protected): ${skipped.join(', ')}`);
     }
 
-    await replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { crossEngine });
+    await replaceAllTables(tables, dataDir, currentAdmin, roleSnapshot, { crossEngine, allTables: [...dbTables] });
 
     // Post-commit fixups (must NOT run inside the restore transaction):
     //  - resync Postgres identity sequences left behind by the explicit-id
@@ -572,6 +835,16 @@ async function importFromPicpeak({ picpeakPath, currentAdminId }) {
       externalPathsConverted = false;
       externalPathError = err.message;
       logger.error(`picpeakImport: external path conversion FAILED — originals will not resolve until this is retried: ${err.message}`);
+    }
+    // The standard contract template was checked against the database this
+    // import replaced (#1445).
+    require('./contract/defaultTemplate').forgetEnsured();
+    // A restored profile may still carry the retired PDF font path (#1445),
+    // which the renderer no longer reads; move it now that its file is back.
+    try {
+      await require('./pdf/uploadedFonts').migrateLegacyFont(logger);
+    } catch (err) {
+      logger.warn(`picpeakImport: moving the restored custom PDF font failed: ${err.message}`);
     }
     // Face data (#1074): queue ONLY once the files are on disk. The archive
     // carries no face rows and the export blanked photos.face_status, but the
@@ -627,15 +900,20 @@ async function importFromPicpeak({ picpeakPath, currentAdminId }) {
 }
 
 module.exports = {
+  assertContainedPaths,
   importFromPicpeak,
   readManifestFromZip,
   validateManifest,
+  assertArchiveWithinLimits,
+  extractWithinLimits,
   // exported for testing — the cross-engine coercion (#1038)
   epochToIso,
   coerceForTargetEngine,
   typedColumnsFor,
+  relocateStoredPaths,
   reinjectCurrentAdmin,
   captureOperatorRole,
   preserveOperatorRole,
   resyncSequences,
+  SEED_ONLY_TABLES,
 };

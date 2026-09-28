@@ -20,7 +20,9 @@ const { PDFDocument } = require('pdf-lib');
 const { db, logActivity } = require('../database/db');
 const { AppError } = require('../utils/errors');
 const logger = require('../utils/logger');
+const { toStoredPath } = require('../utils/storedPath');
 const invoiceService = require('./invoiceService');
+const { auditedInsert, auditedUpdate, auditedDelete } = require('./accountingHistory');
 // Tri-state proof-attach resolver — single source of truth lives with the
 // send-time attachment logic (no require cycle: rebillProofs never imports us).
 const { resolveDefaultAttach } = require('./invoice/rebillProofs');
@@ -33,6 +35,9 @@ const { resolveDefaultAttach } = require('./invoice/rebillProofs');
  * null restores logActivity's 'system' attribution for those.
  */
 const adminActor = (adminId) => (adminId ? { type: 'admin', id: adminId } : null);
+
+// Actor for the accounting change history: the admin, or null (system).
+const historyActor = (adminId) => adminId || null;
 
 const DISPOSITIONS = ['rebill', 'durchlaufend', 'eigener_aufwand', 'duplikat', 'abgelehnt'];
 const TAX_TREATMENTS = ['domestic', 'reverse_charge_service', 'foreign_vat_non_reclaimable', 'import_goods'];
@@ -190,7 +195,7 @@ async function recordInboundDocument({ source, filePath, originalFilename, mimeT
   const row = {
     source: source || 'upload',
     original_filename: originalFilename || null,
-    file_path: filePath,
+    file_path: toStoredPath(filePath),
     mime_type: mimeType || null,
     file_sha256: fileSha256,
     status: duplicateOfId ? 'duplicate' : 'unsorted',
@@ -205,7 +210,11 @@ async function recordInboundDocument({ source, filePath, originalFilename, mimeT
     created_at: now,
     updated_at: now,
   };
-  const inserted = await db('inbound_documents').insert(row).returning('id');
+  // The mailbox poller records with no admin: attribute it to the intake.
+  const inserted = await auditedInsert(db, 'inbound_documents', row, {
+    actor: adminId || (row.source === 'email' ? 'email-intake' : null),
+    source: 'inbound.record',
+  });
   const id = typeof inserted[0] === 'object' ? inserted[0].id : inserted[0];
   await logActivity('incoming_invoice_captured', { inboundDocumentId: id, source: row.source, duplicate: !!duplicateOfId }, null, adminActor(adminId));
   return getInbound(id);
@@ -255,7 +264,9 @@ async function updateInbound(id, payload, adminId) {
   for (const [camel, snake] of Object.entries(INBOUND_EDITABLE)) {
     if (payload[camel] !== undefined) patch[snake] = payload[camel] === '' ? null : payload[camel];
   }
-  await db('inbound_documents').where({ id }).update(patch);
+  await auditedUpdate(db, 'inbound_documents', { id }, patch, {
+    actor: historyActor(adminId), source: 'inbound.update',
+  });
   await logActivity('incoming_invoice_updated', { inboundDocumentId: id }, null, adminActor(adminId));
   return getInbound(id);
 }
@@ -319,7 +330,8 @@ function isInvoiceMutable(invoice) {
  * invoice and recompute the invoice totals, so the disposition can change.
  * Refuses when the invoice is already issued (Storno required instead).
  */
-async function unwindBilledLine(trx, doc) {
+async function unwindBilledLine(trx, doc, adminId) {
+  const audit = { actor: historyActor(adminId), source: 'inbound.unwindRebill' };
   const invoice = doc.billedInvoiceId
     ? await trx('invoices').where({ id: doc.billedInvoiceId }).first()
     : null;
@@ -330,7 +342,7 @@ async function unwindBilledLine(trx, doc) {
     );
   }
   if (doc.billedInvoiceLineItemId) {
-    await trx('invoice_line_items').where({ id: doc.billedInvoiceLineItemId }).del();
+    await auditedDelete(trx, 'invoice_line_items', { id: doc.billedInvoiceLineItemId }, audit);
   }
   if (invoice) {
     const allItems = await trx('invoice_line_items').where({ invoice_id: invoice.id });
@@ -340,7 +352,7 @@ async function unwindBilledLine(trx, doc) {
       // It's mutable (checked above) and never issued, so delete it outright
       // (PR #636 review #5). For a monthly draft this just means the next append
       // re-creates one.
-      await trx('invoices').where({ id: invoice.id }).del();
+      await auditedDelete(trx, 'invoices', { id: invoice.id }, audit);
       return;
     }
     let netMinor = 0;
@@ -350,12 +362,12 @@ async function unwindBilledLine(trx, doc) {
     const vatRate = Number(invoice.vat_rate || 0);
     const vatMinor = Math.round(netMinor * vatRate / 100);
     const shippingMinor = Number(invoice.shipping_amount_minor || 0);
-    await trx('invoices').where({ id: invoice.id }).update({
+    await auditedUpdate(trx, 'invoices', { id: invoice.id }, {
       net_amount_minor: netMinor,
       vat_amount_minor: vatMinor,
       total_amount_minor: netMinor + vatMinor + shippingMinor,
       updated_at: new Date(),
-    });
+    }, audit);
   }
 }
 
@@ -387,11 +399,11 @@ async function billInboundNow(trx, id, customerAccountId, eventId, disposition, 
   const invoiceId = Array.isArray(invoiceIds) ? invoiceIds[0] : null;
   if (!invoiceId) throw new AppError('Failed to create the re-bill invoice', 500, 'REBILL_FAILED');
   const line = await trx('invoice_line_items').where({ invoice_id: invoiceId }).orderBy('id', 'desc').first('id');
-  await trx('inbound_documents').where({ id }).update({
+  await auditedUpdate(trx, 'inbound_documents', { id }, {
     billed_invoice_id: invoiceId,
     billed_invoice_line_item_id: line ? line.id : null,
     updated_at: new Date(),
-  });
+  }, { actor: historyActor(adminId), source: 'inbound.billNow' });
   // NOTE: no logActivity here — it writes via the GLOBAL db, which deadlocks
   // when called inside this transaction on a SQLite-backed install (a second
   // write connection blocks on the held write lock). Callers log AFTER commit.
@@ -437,7 +449,7 @@ async function categorizeInbound(id, payload, adminId) {
     }
 
     // #1: unwind any prior re-bill so the disposition can change.
-    if (doc.billedInvoiceId) await unwindBilledLine(trx, doc);
+    if (doc.billedInvoiceId) await unwindBilledLine(trx, doc, adminId);
 
     // Markup is a re-bill concept only. A pass-through (durchlaufender Posten)
     // is invoiced at cost / VAT-neutral, so it never carries a markup.
@@ -466,7 +478,9 @@ async function categorizeInbound(id, payload, adminId) {
       updated_at: new Date(),
     };
     if (disposition === 'duplikat' && payload.duplicateOfId) patch.duplicate_of_id = payload.duplicateOfId;
-    await trx('inbound_documents').where({ id }).update(patch);
+    await auditedUpdate(trx, 'inbound_documents', { id }, patch, {
+      actor: historyActor(adminId), source: 'inbound.categorize',
+    });
 
     if (customerAccountId) {
       const customer = await trx('customer_accounts').where({ id: customerAccountId }).first();
@@ -501,12 +515,12 @@ async function rebillInbound(id, payload, adminId, trx0) {
     if (doc.totalAmountMinor == null && doc.netAmountMinor == null) {
       throw new AppError('Set the invoice amount before re-billing (0 is allowed).', 400, 'AMOUNT_REQUIRED');
     }
-    if (doc.billedInvoiceId) await unwindBilledLine(trx, doc);
+    if (doc.billedInvoiceId) await unwindBilledLine(trx, doc, adminId);
     const markup = await resolveMarkup(
       { markupType: doc.markupType, markupPercent: doc.markupPercent, markupFlatMinor: doc.markupFlatMinor },
       payload, payload.contractId, trx,
     );
-    await trx('inbound_documents').where({ id }).update({
+    await auditedUpdate(trx, 'inbound_documents', { id }, {
       disposition: 'rebill',
       status: 'categorized',
       customer_account_id: payload.customerAccountId,
@@ -515,7 +529,7 @@ async function rebillInbound(id, payload, adminId, trx0) {
       markup_percent: markup.type === 'percent' ? markup.percent : null,
       markup_flat_minor: markup.type === 'flat' ? markup.flatMinor : null,
       updated_at: new Date(),
-    });
+    }, { actor: historyActor(adminId), source: 'inbound.rebill' });
     return billInboundNow(trx, id, payload.customerAccountId, payload.eventId || doc.eventId || null, 'rebill', markup, adminId);
   };
   const invoiceId = trx0 ? await run(trx0) : await db.transaction(run);
@@ -603,15 +617,15 @@ async function buildPendingRebillLineItems(trx, customer) {
 
 // Stamp each inbound document with the invoice + its specific line-item id.
 // `lineIds` is aligned to `docs` order.
-async function stampBilledRebills(trx, docs, invoiceId, lineIds) {
+async function stampBilledRebills(trx, docs, invoiceId, lineIds, adminId) {
   const now = new Date();
   for (let i = 0; i < docs.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
-    await trx('inbound_documents').where({ id: docs[i].id }).update({
+    await auditedUpdate(trx, 'inbound_documents', { id: docs[i].id }, {
       billed_invoice_id: invoiceId,
       billed_invoice_line_item_id: lineIds[i] || null,
       updated_at: now,
-    });
+    }, { actor: historyActor(adminId), source: 'inbound.billPending' });
   }
 }
 
@@ -645,7 +659,7 @@ async function billPendingRebills(customerId, adminId) {
     const insertedLines = await trx('invoice_line_items').where({ invoice_id: invoiceId }).orderBy('position', 'asc');
     const lineByPos = new Map(insertedLines.map((li) => [li.position, li.id]));
     const lineIds = pending.map((_, i) => lineByPos.get(i + 1) || null);
-    await stampBilledRebills(trx, pending, invoiceId, lineIds);
+    await stampBilledRebills(trx, pending, invoiceId, lineIds, adminId);
 
     return { invoiceId, count: pending.length };
   });
@@ -760,13 +774,13 @@ async function markInboundSupplierPayment(id, { paid, paidAt, paymentMethod, pay
   if (paymentMethod && !PAYMENT_METHODS.includes(paymentMethod)) {
     throw new AppError(`paymentMethod must be one of ${PAYMENT_METHODS.join(', ')}`, 400, 'BAD_PAYMENT_METHOD');
   }
-  await db('inbound_documents').where({ id }).update({
+  await auditedUpdate(db, 'inbound_documents', { id }, {
     supplier_paid: !!paid,
     supplier_paid_at: paid ? (paidAt ? new Date(paidAt) : new Date()) : null,
     supplier_payment_method: paid ? (paymentMethod || null) : null,
     supplier_payment_ref: paid ? (paymentReference || null) : null,
     updated_at: new Date(),
-  });
+  }, { actor: historyActor(adminId), source: 'inbound.supplierPayment' });
   await logActivity('incoming_invoice_supplier_payment', { inboundDocumentId: id, paid: !!paid }, null, adminActor(adminId));
   return getInbound(id);
 }
@@ -855,7 +869,9 @@ async function createExpense(payload, adminId, { receiptPath } = {}) {
     kmRateMinor: settings.kmRateMinor,
     perDiemRateMinor: settings.perDiemRateMinor,
   });
-  const inserted = await db('expenses').insert(row).returning('id');
+  const inserted = await auditedInsert(db, 'expenses', row, {
+    actor: historyActor(adminId), source: 'expense.create',
+  });
   const id = typeof inserted[0] === 'object' ? inserted[0].id : inserted[0];
   await logActivity('expense_created', { expenseId: id, kind: row.kind }, null, adminActor(adminId));
   return getExpense(id);
@@ -889,7 +905,9 @@ async function updateExpense(id, payload, adminId, { receiptPath } = {}) {
     if (payload[camel] !== undefined) patch[snake] = payload[camel] === '' ? null : payload[camel];
   }
   if (receiptPath) patch.receipt_path = receiptPath;
-  await db('expenses').where({ id }).update(patch);
+  await auditedUpdate(db, 'expenses', { id }, patch, {
+    actor: historyActor(adminId), source: 'expense.update',
+  });
   await logActivity('expense_updated', { expenseId: id }, null, adminActor(adminId));
   return getExpense(id);
 }
@@ -919,7 +937,7 @@ async function rebillExpense(id, payload, adminId, trx0) {
     const invoiceId = Array.isArray(invoiceIds) ? invoiceIds[0] : null;
     if (!invoiceId) throw new AppError('Failed to create invoice', 500, 'INVOICE_FAILED');
     const line = await trx('invoice_line_items').where({ invoice_id: invoiceId }).orderBy('id', 'desc').first('id');
-    await trx('expenses').where({ id }).update({
+    await auditedUpdate(trx, 'expenses', { id }, {
       billed_invoice_id: invoiceId,
       billed_invoice_line_item_id: line ? line.id : null,
       billed_at: new Date(),
@@ -929,8 +947,8 @@ async function rebillExpense(id, payload, adminId, trx0) {
       markup_flat_minor: markup.type === 'flat' ? markup.flatMinor : null,
       status: 'invoiced',
       updated_at: new Date(),
-    });
-    await logActivity('expense_invoiced', { expenseId: id, invoiceId }, null, adminActor(adminId));
+    }, { actor: historyActor(adminId), source: 'expense.rebill' });
+    await logActivity('expense_invoiced', { expenseId: id, invoiceId }, null, adminActor(adminId), trx);
     return invoiceId;
   };
   const invoiceId = trx0 ? await run(trx0) : await db.transaction(run);
@@ -943,13 +961,13 @@ async function markExpensePaid(id, { paid, paidAt, paymentMethod, paymentReferen
   if (paymentMethod && !PAYMENT_METHODS.includes(paymentMethod)) {
     throw new AppError(`paymentMethod must be one of ${PAYMENT_METHODS.join(', ')}`, 400, 'BAD_PAYMENT_METHOD');
   }
-  await db('expenses').where({ id }).update({
+  await auditedUpdate(db, 'expenses', { id }, {
     supplier_paid: !!paid,
     supplier_paid_at: paid ? (paidAt ? new Date(paidAt) : new Date()) : null,
     payment_method: paid ? (paymentMethod || null) : null,
     payment_reference: paid ? (paymentReference || null) : null,
     updated_at: new Date(),
-  });
+  }, { actor: historyActor(adminId), source: 'expense.markPaid' });
   await logActivity('expense_paid', { expenseId: id, paid: !!paid }, null, adminActor(adminId));
   return getExpense(id);
 }

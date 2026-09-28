@@ -4649,11 +4649,6 @@
     "message": "Chúng tôi hiện đang thực hiện bảo trì theo lịch để cải thiện dịch vụ. Chúng tôi sẽ hoạt động trở lại trong thời gian ngắn.",
     "urgentMatters": "Đối với các vấn đề khẩn cấp, vui lòng liên hệ"
   },
-  "migrationBanner": {
-    "title": "Kho lưu trữ hình ảnh của PicPeak đã chuyển địa chỉ",
-    "body": "Cập nhật docker-compose.yml của bạn để lấy từ {{newPath}}; địa chỉ cũ sẽ không còn được cập nhật nữa.",
-    "link": "Xem ghi chú di chuyển"
-  },
   "passwordChange": {
     "title": "Đổi mật khẩu",
     "currentPassword": "Mật khẩu hiện tại",
@@ -7248,15 +7243,10 @@
       "previewPdf": "Xem trước PDF",
       "integrity": {
         "title": "Kiểm tra tính toàn vẹn PDF",
-        "help": "Tính lại hash của các file PDF chưa ký và đã ký trên ổ đĩa, rồi so sánh với giá trị SHA-256 đã lưu khi tài liệu được phát hành. Phát hiện lỗi hỏng bản sao lưu hoặc chỉnh sửa thủ công kể từ khi khách hàng nhận được bản của họ.",
         "verify": "Xác minh",
         "reverify": "Xác minh lại",
-        "unsignedTitle": "PDF chưa ký",
-        "signedTitle": "PDF đã ký",
         "match": "Hash khớp",
         "mismatch": "Hash không khớp: file đã bị thay đổi",
-        "missing": "Không tìm thấy file trên ổ đĩa",
-        "notIssued": "Chưa phát hành",
         "expected": "dự kiến",
         "actual": "thực tế",
         "error": "Kiểm tra tính toàn vẹn thất bại."

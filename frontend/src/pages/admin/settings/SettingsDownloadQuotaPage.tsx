@@ -166,10 +166,10 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
       <Card padding="lg">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
           <div>
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+            <h2 className="text-lg font-semibold text-heading">
               {t('downloadQuotaAdmin.packages.title', 'Download packages')}
             </h2>
-            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="mt-1 text-xs text-muted">
               {t(
                 'downloadQuotaAdmin.packages.help',
                 'What a client can buy once a gallery runs out of free downloads. A gallery with its own price list replaces this one rather than adding to it.',
@@ -189,7 +189,7 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
 
         <div className="mt-4 space-y-3">
           {rows.length === 0 && (
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="text-sm text-soft">
               {t('downloadQuotaAdmin.packages.empty', 'No package yet. Add one to let clients buy more downloads.')}
             </p>
           )}
@@ -198,7 +198,7 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
             <div
               key={row.id ?? `new-${index}`}
               data-testid={row.id == null ? `download-package-new-${index}` : `download-package-${row.id}`}
-              className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto_auto] gap-3 items-end rounded-md border border-neutral-200 dark:border-neutral-700 p-3"
+              className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto_auto] gap-3 items-end rounded-md border border-line p-3"
             >
               <Input
                 type="number"
@@ -225,23 +225,23 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
                 onChange={(e) => patchRow(index, { price: e.target.value })}
               />
               <div>
-                <span className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                <span className="block text-sm font-medium text-body mb-1.5">
                   {t('downloadQuotaAdmin.packages.nameColumn', 'Name shown to the client')}
                 </span>
-                <p className="text-sm text-neutral-700 dark:text-neutral-300 truncate">
+                <p className="text-sm text-body truncate">
                   {row.nameI18n?.[i18n.language]
                     || row.nameI18n?.en
                     || t('downloadQuotaAdmin.packages.autoName', 'Generated from the count and price')}
                 </p>
               </div>
               <div className="text-sm">
-                <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">
+                <span className="block text-xs font-medium text-muted mb-1.5">
                   {t('downloadQuotaAdmin.packages.savingsColumn', 'Saves')}
                 </span>
                 {/* Backend figure only. An empty cell means the backend sent
                     none, which is the case for the global list: it has no per
                     photo price to compare against. */}
-                <span className="text-neutral-700 dark:text-neutral-300">
+                <span className="text-body">
                   {row.savingsPercent == null
                     ? t('downloadQuotaAdmin.packages.savingsUnknown', 'Not calculated here')
                     : `${row.savingsPercent}%`}
@@ -287,22 +287,22 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
       </Card>
 
       <Card padding="lg">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-lg font-semibold text-heading">
           {t('downloadQuotaAdmin.packages.importTitle', 'Import package names')}
         </h2>
-        <p className="mt-1 mb-3 text-xs text-neutral-500 dark:text-neutral-400">
+        <p className="mt-1 mb-3 text-xs text-muted">
           {t(
             'downloadQuotaAdmin.packages.importHelp',
             'Matching is by package id. An id this install does not have is skipped, and both counts are reported below.',
           )}
         </p>
-        <pre className="mb-3 overflow-x-auto rounded-md bg-neutral-100 dark:bg-neutral-800 p-3 text-xs text-neutral-700 dark:text-neutral-300">
+        <pre className="mb-3 overflow-x-auto rounded-md bg-subtle p-3 text-xs text-body">
 {`{ "packages": [ { "id": 3, "name": { "en": "20 photos", "de": "20 Fotos", "vi": "20 anh" } } ] }`}
         </pre>
 
         <label
           htmlFor="download-package-import"
-          className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5"
+          className="block text-sm font-medium text-body mb-1.5"
         >
           {t('downloadQuotaAdmin.packages.importLabel', 'Import package names (JSON)')}
         </label>
@@ -320,7 +320,7 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
         />
 
         {runImport.isPending && (
-          <p className="mt-3 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-3 flex items-center gap-2 text-sm text-soft">
             <Upload className="w-4 h-4" aria-hidden />
             {t('downloadQuotaAdmin.packages.importing', 'Importing...')}
           </p>
@@ -335,7 +335,7 @@ export const SettingsDownloadQuotaPage: React.FC = () => {
 
         {importResult && (
           <div className="mt-3 text-sm">
-            <p className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
+            <p className="flex items-center gap-2 text-body">
               <CheckCircle2 className="w-4 h-4 text-green-600" aria-hidden />
               {t('downloadQuotaAdmin.packages.importResult', '{{imported}} name imported, {{skipped}} skipped', {
                 imported: importResult.imported,

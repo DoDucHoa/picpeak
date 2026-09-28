@@ -24,6 +24,7 @@ const archiver = require('archiver');
 
 const { db } = require('../database/db');
 const logger = require('../utils/logger');
+const { pipeStreamToResponse } = require('../utils/streamResponse');
 const { formatBoolean } = require('../utils/dbCompat');
 const { getAppSetting } = require('../utils/appSettings');
 const { getStorage } = require('./storage');
@@ -33,10 +34,12 @@ const { sanitizeForZipEntry } = require('../utils/filenameSanitizer');
 const { filterOwnedEventIds } = require('../middleware/ownership');
 
 // Unambiguous alphabet for the client upload token — no 0/O/1/I/L to keep it
-// easy to read aloud / type from an email. 6 chars ≈ 31 bits; brute force is
-// mitigated by the per-route rate limiter + IP lockout on the upload endpoint.
+// easy to read aloud / type from an email. 31 characters, so 10 of them give
+// about 49.6 bits; the 6-character codes issued before (about 29.7 bits)
+// stay valid, the route accepts 4 to 16. Guessing is further slowed by the
+// per-route rate limiter and the per-network lockout on the upload endpoint.
 const UPLOAD_TOKEN_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const UPLOAD_TOKEN_LENGTH = 6;
+const UPLOAD_TOKEN_LENGTH = 10;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,9 +52,9 @@ function generateDownloadToken() {
   return crypto.randomBytes(32).toString('hex'); // 64 hex chars
 }
 
-function generateUploadTokenCandidate() {
+function generateUploadTokenCandidate(length = UPLOAD_TOKEN_LENGTH) {
   let out = '';
-  for (let i = 0; i < UPLOAD_TOKEN_LENGTH; i += 1) {
+  for (let i = 0; i < length; i += 1) {
     // crypto.randomInt is unbiased over [0, len); a plain byte % len would
     // over-represent the first (256 % len) characters of the alphabet.
     out += UPLOAD_TOKEN_ALPHABET[crypto.randomInt(0, UPLOAD_TOKEN_ALPHABET.length)];
@@ -83,8 +86,9 @@ async function generateUniqueUploadToken(conn = db) {
     const clash = await conn('transfers').where({ upload_token: candidate }).first('id');
     if (!clash) return candidate;
   }
-  // Astronomically unlikely; fall back to a longer token so we never loop.
-  return generateUploadTokenCandidate() + generateUploadTokenCandidate();
+  // Astronomically unlikely; fall back to a longer token so we never loop,
+  // still within the 16 characters the public route accepts.
+  return generateUploadTokenCandidate(UPLOAD_TOKEN_LENGTH + 4);
 }
 
 /** Storage-relative directory that holds a transfer's client uploads. */
@@ -542,8 +546,23 @@ function assertDownloadable(transfer) {
   return { ok: true };
 }
 
-/** Record one download and, if it hit the cap, flip the link inactive. */
-async function recordDownload(transfer, { kind = 'all', photoId = null, ip = null } = {}) {
+/**
+ * Claim one download before anything is streamed. The count and the cap are
+ * compared in the same UPDATE, so concurrent requests cannot all pass a cap
+ * they read from the same snapshot. Returns false when the link is disabled or
+ * its cap is used up; the caller answers 410 without streaming. A claimed
+ * download counts even if the client disconnects mid-stream, which is the
+ * "disable after N downloads" intent.
+ */
+async function claimDownload(transfer, { kind = 'all', photoId = null, ip = null } = {}) {
+  const claimed = await db('transfers')
+    .where({ id: transfer.id, is_active: formatBoolean(true) })
+    .whereNull('deleted_at')
+    .andWhere((q) => q.whereNull('max_downloads')
+      .orWhere('max_downloads', '<=', 0)
+      .orWhere('download_count', '<', db.ref('max_downloads')))
+    .increment('download_count', 1);
+  if (!claimed) return false;
   await db('transfer_downloads').insert({
     transfer_id: transfer.id,
     kind,
@@ -551,7 +570,6 @@ async function recordDownload(transfer, { kind = 'all', photoId = null, ip = nul
     ip,
     downloaded_at: new Date(),
   });
-  await db('transfers').where({ id: transfer.id }).increment('download_count', 1);
 
   const cap = Number(transfer.max_downloads) || 0;
   if (cap > 0) {
@@ -573,6 +591,7 @@ async function recordDownload(transfer, { kind = 'all', photoId = null, ip = nul
       });
     }
   }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -702,7 +721,28 @@ async function loadTransferExtraFiles(transferId) {
  * Stream a single ORIGINAL file from a transfer to `res`. Returns false when
  * the file id isn't part of this transfer or the bytes are missing.
  */
-async function streamTransferFile(transfer, rawFileId, res) {
+/**
+ * Run the caller's pre-stream check (the download claim) for a source that is
+ * already open. A refused claim or a claim that throws (a failed DB write)
+ * closes the source, so it never holds a file descriptor or S3 connection.
+ */
+async function allowStream(beforeStream, openStream) {
+  if (!beforeStream) return true;
+  const close = () => {
+    if (openStream && typeof openStream.destroy === 'function') openStream.destroy();
+  };
+  let allowed;
+  try {
+    allowed = await beforeStream();
+  } catch (err) {
+    close();
+    throw err;
+  }
+  if (!allowed) close();
+  return Boolean(allowed);
+}
+
+async function streamTransferFile(transfer, rawFileId, res, { beforeStream = null } = {}) {
   // Public file ids are prefixed (see getPublicView): `p<id>` = referenced
   // gallery photo, `x<id>` = admin-uploaded file. Tolerate a bare number as a
   // photo id for safety.
@@ -712,7 +752,7 @@ async function streamTransferFile(transfer, rawFileId, res) {
   if (!Number.isFinite(numId) || numId <= 0) return false;
 
   if (prefix === 'x') {
-    return streamTransferExtraFile(transfer, numId, res);
+    return streamTransferExtraFile(transfer, numId, res, { beforeStream });
   }
 
   const row = await db('transfer_files')
@@ -757,19 +797,23 @@ async function streamTransferFile(transfer, rawFileId, res) {
     if (!fs.existsSync(abs)) return false;
     source = { type: 'file', value: abs };
   }
+  // The file exists: let the caller claim the download before any byte goes
+  // out. A refused claim leaves the response untouched.
+  if (!(await allowStream(beforeStream, source.type === 'stream' ? source.value : null))) return false;
 
   res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-  if (source.type === 'stream') {
-    source.value.pipe(res);
-  } else {
-    fs.createReadStream(source.value).pipe(res);
-  }
+  // Through the helper, never a bare pipe: the local read stream opens lazily
+  // and an S3 body can drop mid-transfer, and a source 'error' with no
+  // listener is an uncaught throw that ends the process. This route is
+  // public, so that would be an unauthenticated crash.
+  const body = source.type === 'stream' ? source.value : fs.createReadStream(source.value);
+  pipeStreamToResponse(body, res, { context: `transfer ${transfer.id} photo ${row.id}` });
   return true;
 }
 
 /** Stream a single admin-uploaded deliverable file from storage to `res`. */
-async function streamTransferExtraFile(transfer, extraId, res) {
+async function streamTransferExtraFile(transfer, extraId, res, { beforeStream = null } = {}) {
   const row = await db('transfer_extra_files')
     .where({ id: extraId, transfer_id: transfer.id })
     .first();
@@ -781,9 +825,10 @@ async function streamTransferExtraFile(transfer, extraId, res) {
     if (!srcStat) return false;
   }
   const stream = await storage.get(row.stored_path);
+  if (!(await allowStream(beforeStream, stream))) return false;
   res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(row.original_filename)}"`);
-  stream.pipe(res);
+  pipeStreamToResponse(stream, res, { context: `transfer ${transfer.id} extra file ${row.id}` });
   return true;
 }
 
@@ -1001,9 +1046,10 @@ module.exports = {
   // public
   getTransferByToken,
   getTransferByUploadToken,
+  generateUniqueUploadToken,
   getPublicView,
   assertDownloadable,
-  recordDownload,
+  claimDownload,
   streamTransferArchive,
   streamTransferFile,
   streamTransferExtraFile,

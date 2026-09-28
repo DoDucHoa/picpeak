@@ -39,6 +39,7 @@ maybe('download quota gate on the real route', () => {
       t.string('slug');
       t.boolean('allow_downloads').defaultTo(true);
       t.boolean('watermark_downloads').defaultTo(false);
+      t.integer('download_limit').nullable();
     });
     await pgDb.schema.createTable('admin_users', (t) => t.increments('id').primary());
     await pgDb.schema.createTable('photo_categories', (t) => {

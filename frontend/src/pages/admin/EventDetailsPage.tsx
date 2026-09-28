@@ -15,8 +15,9 @@ import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
 import { cssTemplatesService, type EnabledTemplate } from '../../services/cssTemplates.service';
 import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
-import { safeParseDate } from './event-details/utils';
+import { safeParseDate, eventHasGuests } from './event-details/utils';
 import { INITIAL_EDIT_FORM, type EditFormState, type EventDetailsTab } from './event-details/types';
+import type { CustomerGroup } from '../../services/customerAdmin.service';
 import { EventDetailsHeader } from './event-details/EventDetailsHeader';
 import { EventTabs } from './event-details/EventTabs';
 import { OverviewTab } from './event-details/OverviewTab';
@@ -59,9 +60,6 @@ export const EventDetailsPage: React.FC = () => {
     require_name_email: false,
     moderate_comments: true,
     show_feedback_to_guests: true,
-    enable_rate_limiting: false,
-    rate_limit_window_minutes: 15,
-    rate_limit_max_requests: 10,
   });
   // Read ?tab=… on mount, same shape as SettingsPage so both surfaces answer
   // deep links identically; an unknown value falls back to the default tab and
@@ -157,15 +155,19 @@ export const EventDetailsPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // Guests is only rendered in guest identity mode, so a ?tab=guests deep link
-  // on any other event would show an empty content area. Snap back once the
-  // settings have actually loaded — not while they're still undefined.
+  // Guests exist in guest identity mode, and for uploader names (#1561) in
+  // any mode — the host must be able to remove or merge those too.
+  const showGuestsTab = eventHasGuests(event, eventFeedbackSettings);
+
+  // Guests is only rendered when the event can have any, so a ?tab=guests
+  // deep link on any other event would show an empty content area. Snap back
+  // once both have actually loaded — not while they're still undefined.
   useEffect(() => {
-    if (feedbackSettingsLoading) return;
-    if (activeTab === 'guests' && eventFeedbackSettings?.identity_mode !== 'guest') {
+    if (feedbackSettingsLoading || eventLoading) return;
+    if (activeTab === 'guests' && !showGuestsTab) {
       setActiveTab('overview');
     }
-  }, [feedbackSettingsLoading, eventFeedbackSettings?.identity_mode, activeTab]);
+  }, [feedbackSettingsLoading, eventLoading, showGuestsTab, activeTab]);
 
   // Update local feedback settings when fetched from server
   useEffect(() => {
@@ -388,7 +390,7 @@ export const EventDetailsPage: React.FC = () => {
   if (eventError || !event) {
     return (
       <Card padding="lg">
-        <p className="text-neutral-900 dark:text-neutral-100">{t('events.notFound', 'Event not found')}</p>
+        <p className="text-heading">{t('events.notFound', 'Event not found')}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/events')}>
           {t('events.backToEvents')}
         </Button>
@@ -419,6 +421,8 @@ export const EventDetailsPage: React.FC = () => {
         ? (() => { const d = new Date(event.reveal_at); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })()
         : '',
       upload_category_id: event.upload_category_id || null,
+      guest_name_mode: event.guest_name_mode || 'off',
+      show_credits_to_guests: Boolean(event.show_credits_to_guests),
       hero_photo_id: event.hero_photo_id || null,
       customer_name: event.customer_name || '',
       customer_email: event.customer_email || '',
@@ -450,6 +454,7 @@ export const EventDetailsPage: React.FC = () => {
       hero_image_anchor: event.hero_image_anchor || 'center',
       // Photo cap
       photo_cap: event.photo_cap || 0,
+      download_limit: event.download_limit || 0,
       // Default photo sort
       default_photo_sort: event.default_photo_sort || 'upload_date_desc',
       // Per-event promotional override (#440)
@@ -460,8 +465,9 @@ export const EventDetailsPage: React.FC = () => {
       // Customer accounts (#354). The backend returns
       // `customer_accounts: [{ id, email, display_name, ... }]`; map to
       // the picker's shape.
-      customer_accounts: ((event as { customer_accounts?: Array<{ id: number; email: string; display_name?: string | null }> }).customer_accounts || [])
-        .map((c) => ({ id: c.id, email: c.email, displayName: c.display_name ?? null })),
+      // `groups` only comes with customers.view (#1443).
+      customer_accounts: ((event as { customer_accounts?: Array<{ id: number; email: string; display_name?: string | null; groups?: CustomerGroup[] }> }).customer_accounts || [])
+        .map((c) => ({ id: c.id, email: c.email, displayName: c.display_name ?? null, groups: c.groups })),
       // Per-event social-share opt-in (#474). Coerce explicitly so
       // SQLite's 0/1 and Postgres's true/false both render the switch
       // in the right state on first paint.
@@ -563,6 +569,8 @@ export const EventDetailsPage: React.FC = () => {
     const updateData: any = {
       expires_at: editForm.expires_at || null,
       allow_user_uploads: editForm.allow_user_uploads,
+      guest_name_mode: editForm.guest_name_mode,
+      show_credits_to_guests: editForm.show_credits_to_guests,
       reveal_mode: editForm.allow_user_uploads && editForm.reveal_mode,
       reveal_at: editForm.allow_user_uploads && editForm.reveal_mode && editForm.reveal_at
         ? new Date(editForm.reveal_at).toISOString()
@@ -585,6 +593,7 @@ export const EventDetailsPage: React.FC = () => {
       hero_image_anchor: editForm.hero_image_anchor,
       // Photo cap
       photo_cap: editForm.photo_cap > 0 ? editForm.photo_cap : null,
+      download_limit: editForm.download_limit > 0 ? editForm.download_limit : null,
       // Default photo sort
       default_photo_sort: editForm.default_photo_sort,
       // Header style settings (decoupled from layout, #158)
@@ -763,8 +772,8 @@ export const EventDetailsPage: React.FC = () => {
         <CategoriesTab id={id} />
       )}
 
-      {/* Guests Tab (only visible when identity_mode === 'guest') */}
-      {activeTab === 'guests' && eventFeedbackSettings?.identity_mode === 'guest' && (
+      {/* Guests Tab (guest identity mode, or uploader names on) */}
+      {activeTab === 'guests' && showGuestsTab && (
         <AdminGuestsList eventId={parseInt(id!)} eventName={event.event_name} />
       )}
 

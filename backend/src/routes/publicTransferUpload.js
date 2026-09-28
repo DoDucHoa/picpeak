@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
+const { rateLimitKey } = require('../utils/rateLimitKey');
 const { param } = require('express-validator');
 const { handleAsync, validateRequest, successResponse } = require('../utils/routeHelpers');
 const { requireFeatureFlag } = require('../middleware/requireFeatureFlag');
@@ -36,20 +37,25 @@ const router = express.Router();
 // probed) once an admin disables the feature under Settings → Features.
 router.use(requireFeatureFlag('transfers'));
 
-const getStoragePath = () => process.env.STORAGE_PATH || path.join(__dirname, '../../../storage');
+const { getStoragePath } = require('../config/storage');
 const MAX_FILES_PER_UPLOAD = 25;
 const DEFAULT_ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/tiff', 'application/pdf', 'application/zip'];
 
-const infoLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
-const uploadLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const infoLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, keyGenerator: rateLimitKey });
+const uploadLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, keyGenerator: rateLimitKey });
 
 // Upload tokens are drawn from an unambiguous alphabet (see transferService).
 // Accept a small range of lengths so a future longer token still validates.
 const TOKEN_RE = /^[A-Za-z0-9]{4,16}$/;
 
 async function loadUploadTransfer(req, res) {
-  const ip = clientIpForAudit(req);
-  if (tokenLock.isIpLocked(ip)) {
+  // Keyed like the limiters above: an IPv6 /64 counts as one client, so a
+  // guesser rotating addresses inside one allocation does not reset the
+  // count. The audit log keeps the full address (clientIpForAudit).
+  const ip = rateLimitKey(req);
+  // Short upload codes retain their pre-lookup lockout, isolated from the
+  // high-entropy document links so one surface cannot disable the other.
+  if (tokenLock.isIpLocked(ip, 'transfer_uploads')) {
     res.status(429).json({ error: 'Too many invalid attempts. Try again later.', code: 'TOKEN_LOOKUP_LOCKED' });
     return null;
   }
@@ -60,7 +66,7 @@ async function loadUploadTransfer(req, res) {
   }
   const transfer = await transferService.getTransferByUploadToken(token);
   if (!transfer) {
-    tokenLock.recordBadAttempt(ip);
+    tokenLock.recordBadAttempt(ip, 'transfer_uploads');
     res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
     return null;
   }

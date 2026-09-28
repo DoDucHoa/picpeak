@@ -19,6 +19,9 @@ import {
   StoryScrollToTop
 } from './story';
 import { PhotoLightbox } from '../PhotoLightbox';
+import { DownloadQuotaNotice } from '../DownloadQuotaNotice';
+import { useDownloadQuota } from '../../../contexts/DownloadQuotaContext';
+import { isDownloadLimitError, showDownloadLimitReached } from '../../../utils/downloadLimit';
 
 import './GalleryStoryLayout.css';
 
@@ -176,6 +179,8 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
     setLightboxIndex(index >= 0 ? index : 0);
   }, [photos]);
 
+  const downloadQuota = useDownloadQuota();
+
   const handleDownloadAll = useCallback(async () => {
     // Whole-gallery path when available: posting ids would hit the server's
     // 500-id cap and silently truncate a large gallery (#1160).
@@ -184,6 +189,11 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
       return;
     }
     const ids = photos.map(p => p.id);
+    // Download limit (issue 1560): all or nothing, so refuse before asking.
+    if (!downloadQuota.allows(photos)) {
+      showDownloadLimitReached({ remaining: downloadQuota.remaining ?? 0 });
+      return;
+    }
     // #858: hand off to the resolution picker when the gallery offers a choice.
     if (downloadChoices && downloadChoices.length > 1 && onPickResolution) {
       onPickResolution(ids);
@@ -196,6 +206,8 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
       refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
     } catch (error) {
+      // The limit refusal already told the guest why (issue 1560).
+      if (isDownloadLimitError(error)) return;
       // A guest or an exhausted client gets the dialog/notice the server
       // explained, not a generic failure toast, and never the optimistic
       // "Downloading..." this used to show before the request could be refused.
@@ -203,7 +215,7 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
         toast.error(t('gallery.downloadError'));
       }
     }
-  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota]);
+  }, [photos, onDownloadEverything, slug, t, downloadChoices, onPickResolution, downloadGate, refreshDownloadQuota, downloadQuota]);
 
   // #1160: a folder-only root has no photos to show here, but the folder tiles
   // above prove the gallery isn't empty — render the shell (hero, logout,
@@ -332,6 +344,7 @@ export const GalleryStoryLayout: React.FC<GalleryStoryLayoutProps> = ({
             {t('common.downloadAll', 'Download All Photos')}
           </button>
         )}
+        {allowDownloads && <DownloadQuotaNotice className="mt-2" />}
       </footer>
 
       {/* Lightbox. It owns the whole feedback surface on this theme — ratings,

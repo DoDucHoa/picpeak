@@ -177,7 +177,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
       <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Download className="w-5 h-5" aria-hidden />
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          <h2 className="text-lg font-semibold text-heading">
             {t('downloadQuotaAdmin.card.title', 'Download allowance')}
           </h2>
         </div>
@@ -192,7 +192,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         </div>
       </div>
 
-      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+      <p className="text-xs text-muted mb-3">
         {t(
           'downloadQuotaAdmin.card.help',
           'The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.',
@@ -208,7 +208,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         />
         {t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders')}
       </div>
-      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+      <p className="text-xs text-muted mb-3">
         {t(
           'downloadQuotaAdmin.card.autoApproveHelp',
           'A new order settles the moment the client places it, with no photographer approval step. Orders already waiting are not affected.',
@@ -220,7 +220,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
       {enabled && (
         <div className="mb-4">
           {quota.unlimited ? (
-            <p className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+            <p className="flex items-center gap-2 text-sm text-body">
               <InfinityIcon className="w-4 h-4" aria-hidden />
               {t('downloadQuotaAdmin.card.progressUnlimited', '{{used}} photos delivered, no limit', {
                 used: quota.used,
@@ -228,14 +228,14 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
             </p>
           ) : (
             <>
-              <p className="text-sm text-neutral-700 dark:text-neutral-300">
+              <p className="text-sm text-body">
                 {t('downloadQuotaAdmin.card.progress', '{{used}} of {{total}} photos delivered', {
                   used: quota.used,
                   total: quota.total,
                 })}
               </p>
               <div
-                className="mt-1.5 h-2 w-full rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden"
+                className="mt-1.5 h-2 w-full rounded-full bg-fill overflow-hidden"
                 role="progressbar"
                 aria-valuenow={quota.used}
                 aria-valuemin={0}
@@ -323,10 +323,10 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
       {showCreateOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-lg w-full" role="dialog" aria-modal="true">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h2 className="text-xl font-semibold text-heading mb-2">
               {t('downloadQuotaAdmin.card.createOrder.title', 'Create an order for the client')}
             </h2>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+            <p className="text-sm text-soft mb-4">
               {t(
                 'downloadQuotaAdmin.card.createOrder.help',
                 'Placed on the client behalf, for instance after agreeing an extension over the phone. Nothing is charged automatically: approve it yourself once you are ready to grant the photos.',
@@ -335,7 +335,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
 
             <label
               htmlFor="create-order-package"
-              className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5"
+              className="block text-sm font-medium text-body mb-1.5"
             >
               {t('downloadQuotaAdmin.card.createOrder.packageLabel', 'Package')}
             </label>
@@ -345,7 +345,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
                 text={t('downloadQuotaAdmin.card.createOrder.loadingPackages', 'Loading packages')}
               />
             ) : (packagesData?.packages ?? []).length === 0 ? (
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 {t(
                   'downloadQuotaAdmin.card.createOrder.noPackages',
                   'No package is set up yet. Add one under Download packages first.',
@@ -371,7 +371,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
 
             <label
               htmlFor="create-order-reason"
-              className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5"
+              className="block text-sm font-medium text-body mb-1.5"
             >
               {t('downloadQuotaAdmin.card.createOrder.reasonLabel', 'Reason (kept with the order)')}
             </label>

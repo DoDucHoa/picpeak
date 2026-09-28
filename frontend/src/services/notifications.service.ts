@@ -459,6 +459,10 @@ export const notificationsService = {
         return { icon: 'Download', color: 'text-green-600' };
       case 'download_order_created':
         return { icon: 'ShoppingCart', color: 'text-amber-600' };
+      case 'api_photo_downloaded':
+      case 'api_photos_downloaded':
+      case 'api_photos_zip_downloaded':
+        return { icon: 'Download', color: 'text-cyan-600' };
       case 'photo_favorite':
         return { icon: 'Heart', color: 'text-pink-600' };
       default:

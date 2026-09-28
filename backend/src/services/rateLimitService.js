@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { db } = require('../database/db');
 const logger = require('../utils/logger');
 const { getAdminTokenFromRequest, getGalleryTokenFromRequest } = require('../utils/tokenUtils');
+const { rateLimitKey } = require('../utils/rateLimitKey');
 
 // What applies when app_settings has no row for a key — a fresh install has
 // none. Keyed by setting name so the admin settings read can surface the
@@ -120,10 +121,12 @@ function clearSettingsCache() {
  */
 function isAuthenticated(req) {
   try {
-    const slugMatch = req.path.match(/\/api\/(?:gallery|secure-images)\/([^/]+)/);
+    const slugMatch = req.path.match(/\/api\/gallery\/([^/]+)/);
     const slug = slugMatch ? slugMatch[1] : req.requestedSlug;
     const token = getAdminTokenFromRequest(req) || getGalleryTokenFromRequest(req, slug);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Same verification the auth middleware applies: a token that would not
+    // pass adminAuth must not buy an unlimited budget either.
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'], issuer: 'picpeak-auth' });
     
     // Check if token is valid
     if (!decoded || typeof decoded !== 'object') {
@@ -179,7 +182,7 @@ function isOwnGalleryImageRequest(req) {
   try {
     const token = getGalleryTokenFromRequest(req, slug);
     if (!token) return false;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'], issuer: 'picpeak-auth' });
     return Boolean(decoded) && typeof decoded === 'object'
       && decoded.type === 'gallery' && decoded.eventSlug === slug;
   } catch (error) {
@@ -240,7 +243,7 @@ async function createRateLimiter(store = new MemoryStore()) {
       const isAuthEndpoint = req.path.match(/\/(auth|login|gallery\/[^/]+\/verify)$/);
       return isAuthEndpoint ? currentConfig.authMaxRequests : currentConfig.maxRequests;
     },
-    keyGenerator: (req) => req.ip,
+    keyGenerator: rateLimitKey,
     skip: async (req) => {
       const currentConfig = await getRateLimitSettings();
       return shouldSkipRateLimit(req, currentConfig);
@@ -307,7 +310,7 @@ async function createAuthRateLimiter(store = new MemoryStore()) {
       return currentConfig.authMaxRequests;
     },
     skipSuccessfulRequests: true,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: rateLimitKey,
     skip: async () => {
       const currentConfig = await getRateLimitSettings();
       return !currentConfig.enabled;

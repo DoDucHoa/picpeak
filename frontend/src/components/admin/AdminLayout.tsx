@@ -3,11 +3,13 @@ import { Outlet, Navigate } from 'react-router-dom';
 
 import { useAdminAuth } from '../../contexts';
 import { FeatureFlagsProvider } from '../../contexts/FeatureFlagsContext';
+import { UploadSessionProvider } from '../../contexts/UploadSessionContext';
+import { UploadProgressBar } from './UploadProgressBar';
+import { UnsavedChangesProvider } from '../../contexts/UnsavedChangesContext';
 import { useSessionTimeout } from '../../hooks/useSessionTimeout';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { MaintenanceBanner } from './MaintenanceBanner';
-import { MigrationBanner } from './MigrationBanner';
 import { MandatoryPasswordChangeModal } from './MandatoryPasswordChangeModal';
 
 const SIDEBAR_COLLAPSED_KEY = 'admin-sidebar-collapsed';
@@ -34,7 +36,7 @@ export const AdminLayout: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-accent-dark border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-neutral-600">Loading...</p>
@@ -53,13 +55,22 @@ export const AdminLayout: React.FC = () => {
   // /api/admin/feature-flags has a session cookie attached.
   return (
     <FeatureFlagsProvider>
-      <AdminLayoutInner
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        sidebarCollapsed={sidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-        mustChangePassword={mustChangePassword}
-      />
+      {/* Photo uploads run here, above the page, so the upload modal can close
+          as soon as an upload starts and the bar survives navigating within
+          the admin. Settings forms register their dirty state in
+          UnsavedChangesProvider; the sidebar and header ask before navigating
+          away from unsaved edits. */}
+      <UploadSessionProvider>
+        <UnsavedChangesProvider>
+          <AdminLayoutInner
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            sidebarCollapsed={sidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            mustChangePassword={mustChangePassword}
+          />
+        </UnsavedChangesProvider>
+      </UploadSessionProvider>
     </FeatureFlagsProvider>
   );
 };
@@ -80,7 +91,7 @@ const AdminLayoutInner: React.FC<AdminLayoutInnerProps> = ({ sidebarOpen, setSid
     // colour class inherited it through `body { color: var(--color-text) }` and
     // rendered near-invisible on a dark-toned theme. Components with an
     // explicit class or `text-theme` still win over this.
-    <div className="h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex overflow-hidden">
+    <div className="h-screen bg-canvas text-heading flex overflow-hidden">
       {/* Mandatory Password Change Modal */}
       {mustChangePassword && <MandatoryPasswordChangeModal />}
       
@@ -123,10 +134,9 @@ const AdminLayoutInner: React.FC<AdminLayoutInnerProps> = ({ sidebarOpen, setSid
         {/* Maintenance mode banner */}
         <MaintenanceBanner />
 
-        {/* One-time migration banner — flip the constant in MigrationBanner.tsx
-            (or remove this mount) after operators have had time to update their
-            docker-compose.yml. See #669. */}
-        <MigrationBanner />
+        {/* Live upload progress, sticky under the header */}
+        <UploadProgressBar />
+
         {!mustChangePassword && <Suspense fallback={null}><ProductUsageNotice /></Suspense>}
         {!mustChangePassword && <Suspense fallback={null}><UsageReportingPrompt /></Suspense>}
 

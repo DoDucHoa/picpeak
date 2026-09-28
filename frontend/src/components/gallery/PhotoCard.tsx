@@ -9,6 +9,8 @@ import { FeedbackIdentityModal } from './FeedbackIdentityModal';
 import { feedbackService } from '../../services/feedback.service';
 import { ColorLabelBadge } from './ColorLabelBadge';
 import { useGuestIdentityOptional } from '../../contexts/GuestIdentityContext';
+import { useDownloadQuota } from '../../contexts/DownloadQuotaContext';
+import { downloadLimitReachedMessage } from '../../utils/downloadLimit';
 import { useInputMode } from '../../hooks/useInputMode';
 import type { Photo } from '../../types';
 
@@ -41,7 +43,8 @@ export interface PhotoCardProps {
    * Outer band, in `rootMargin` form. When set, a tile that leaves it is
    * unmounted again rather than kept for the life of the page (#1287). Opt-in
    * per layout: only a layout whose skeleton holds the tile's box can release
-   * without reflowing, which today is Grid (`aspect-square`).
+   * without reflowing, which today is Grid (`aspect-square`) and Mosaic (an
+   * explicit `aspectRatio` on the tile).
    */
   releaseRootMargin?: string;
   skeletonClassName?: string;
@@ -121,6 +124,11 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
   const guestIdentity = useGuestIdentityOptional();
   // Already spent a slot, so re-downloading it costs nothing (#download-quota).
   const delivered = useIsPhotoDelivered(photo.id);
+  // Download limit (issue 1560): shown as unavailable once nothing is left.
+  // aria-disabled rather than disabled, so the click still reaches the
+  // handler (which explains the refusal) instead of falling through to the
+  // tile and opening the lightbox.
+  const withinDownloadLimit = useDownloadQuota().canDownload(photo);
   const [overlayVisible, setOverlayVisible] = useState(false);
   // #1275 — the input in use right now, not what the device is capable of.
   // On a hybrid the two disagree, and acting on the device's primary pointer
@@ -206,9 +214,9 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
   const inView = !lazy || (releases ? rendered : withinLoadBand);
 
   // Tile width for the responsive tier (#1095), measured rather than inferred.
-  // The observer entry only exists for `lazy` cards, and Mosaic, Masonry and
-  // Timeline do not pass it — Mosaic is 1-up on mobile where Grid is 2-up, so
-  // those are exactly the layouts a breakpoint guess gets most wrong.
+  // The observer entry only exists for `lazy` cards, and Masonry and
+  // Timeline do not pass it — those are exactly the layouts a breakpoint
+  // guess gets most wrong.
   //
   // Gated: the image is not rendered until this has run, so AuthenticatedImage
   // never mounts with a src it would have to replace. Attaching the observer
@@ -447,6 +455,9 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                       hideOverlay();
                     }}
                     aria-label={t('gallery.downloadPhoto', 'Download photo')}
+                    aria-disabled={!withinDownloadLimit || undefined}
+                    title={withinDownloadLimit ? undefined : downloadLimitReachedMessage()}
+                    style={withinDownloadLimit ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
                   >
                     <Download className={actionIconClass} />
                   </button>

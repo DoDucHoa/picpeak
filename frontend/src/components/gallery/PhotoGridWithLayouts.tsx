@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Package } from 'lucide-react';
 import { toast as toastify } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,9 @@ import { analyticsService } from '../../services/analytics.service';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDownloadGate } from '../../contexts/DownloadGateContext';
 import { canDownloadPhotoNow } from './downloadQuotaOffer';
+import { useDownloadQuota } from '../../contexts/DownloadQuotaContext';
+import { isDownloadLimitError, showDownloadLimitReached } from '../../utils/downloadLimit';
+import { DownloadQuotaNotice } from './DownloadQuotaNotice';
 
 // Import all layouts
 import {
@@ -194,6 +197,13 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
     setSelectedPhotos(newSelected);
   };
 
+  // Download limit (issue 1560).
+  const downloadQuota = useDownloadQuota();
+  const selectedPhotoList = useMemo(
+    () => photos.filter((photo) => selectedPhotos.has(photo.id)),
+    [photos, selectedPhotos]
+  );
+
   const handleDownload = (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -215,6 +225,13 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
       return;
     }
 
+    // Download limit (issue 1560): say why instead of sending a request the
+    // server is bound to refuse.
+    if (!downloadQuota.canDownload(photo)) {
+      showDownloadLimitReached({ remaining: 0 });
+      return;
+    }
+    
     // Track individual photo download
     analyticsService.trackDownload(photo.id, slug, false);
 
@@ -236,6 +253,12 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
   const handleDownloadSelected = async () => {
     if (selectedPhotos.size === 0) return;
     const ids = Array.from(selectedPhotos);
+    // Download limit (issue 1560): the selection stays, so the guest can
+    // trim it to what is left.
+    if (!downloadQuota.allows(selectedPhotoList)) {
+      showDownloadLimitReached({ remaining: downloadQuota.remaining ?? 0 });
+      return;
+    }
 
     // Resolution picker (#858): when the gallery offers a choice, hand off to
     // the modal — it drives the job build and does the download itself.
@@ -246,10 +269,9 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
 
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
-      // Charge the allowance the same way the single-photo button does. The
-      // server writes the ledger after the response has been flushed, so a
-      // refetch here would read the pre-download numbers and leave the badge
-      // and the "Already downloaded" marks stale until a manual reload.
+      // Re-read the allowance the same way the single-photo button does. The
+      // server claims the slots before it streams, so a refetch reads the new
+      // numbers for the badge and the "Already downloaded" marks.
       refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
       // Only a download that actually happened ends the selection. This used
@@ -268,6 +290,9 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
       // exhausted client gets the dialog/notice the server explained, not a
       // generic failure toast, and never the optimistic "Downloading..." this
       // used to show before the request even had a chance to be refused.
+      // The limit refusal already told the guest why (issue 1560); the
+      // selection stays for trimming either way.
+      if (isDownloadLimitError(error)) return;
       if (!(await downloadGate.reportDownloadFailure(error))) {
         toastify.error(t('gallery.downloadError'));
       }
@@ -446,6 +471,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
                     size="sm"
                     leftIcon={<Package className="w-4 h-4" />}
                     onClick={handleDownloadSelected}
+                    disabled={!downloadQuota.allows(selectedPhotoList)}
                     className="text-xs sm:text-sm"
                   >
                     <span className="hidden sm:inline">{t('gallery.downloadSelected', { count: selectedPhotos.size })}</span>
@@ -453,6 +479,9 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
                   </Button>
                 )}
               </div>
+              {allowDownloads && selectedPhotos.size > 0 && (
+                <DownloadQuotaNotice photos={selectedPhotoList} className="text-xs sm:text-sm" />
+              )}
             </div>
           )}
         </div>
@@ -490,6 +519,7 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
           choices={downloadChoices}
           standardResolution={downloadStandard}
           photoIds={resolutionPickerIds}
+          quotaPhotos={photos.filter((photo) => resolutionPickerIds.includes(photo.id))}
           onClose={() => {
             setResolutionPickerIds(null);
             setSelectedPhotos(new Set());

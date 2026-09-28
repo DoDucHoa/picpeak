@@ -39,9 +39,7 @@ const { getClientIp } = require('../utils/requestIp');
 const { sanitizePasswordInput } = require('../utils/passwordInput');
 const {
   validatePasswordInContext,
-  MAX_PASSWORD_LENGTH,
-  getBcryptRounds,
-  logPasswordValidationFailure
+  MAX_PASSWORD_LENGTH
 } = require('../utils/passwordValidation');
 const router = express.Router();
 
@@ -377,7 +375,7 @@ router.post('/logout', async (req, res) => {
       endSession(token);
 
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'], issuer: 'picpeak-auth' });
         logger.info('User logged out', { 
           userId: decoded.id,
           username: decoded.username,
@@ -773,6 +771,7 @@ router.get('/session', async (req, res) => {
       // every protected endpoint rejected them with 401, producing a
       // /admin/login → /admin/dashboard → /admin/login redirect loop).
       const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: ['HS256'],
         issuer: 'picpeak-auth'
       });
 
@@ -833,87 +832,6 @@ router.get('/session', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: 'Session check failed' });
-  }
-});
-
-// Admin password change with validation
-router.post('/admin/change-password', [
-  body('currentPassword').notEmpty(),
-  body('newPassword').notEmpty(),
-  body('confirmPassword').notEmpty()
-    .custom((value, { req }) => value === req.body.newPassword)
-    .withMessage('Passwords do not match')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: safeValidationErrors(errors) });
-    }
-
-    const { currentPassword, newPassword } = req.body;
-    const ipAddress = getClientIp(req);
-
-    // Get admin from request (should be set by auth middleware)
-    if (!req.admin) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    const adminId = req.admin.id;
-
-    // Get admin user
-    const admin = await db('admin_users').where({ id: adminId }).first();
-    if (!admin) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Verify current password
-    const validPassword = await bcrypt.compare(currentPassword, admin.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
-    }
-
-    // Validate new password
-    const passwordValidation = validatePasswordInContext(newPassword, 'admin', {
-      username: admin.username,
-      email: admin.email
-    });
-
-    if (!passwordValidation.valid) {
-      logPasswordValidationFailure('admin_password_change', passwordValidation.errors, {
-        userId: adminId,
-        username: admin.username
-      });
-
-      return res.status(400).json({
-        error: 'Password does not meet security requirements',
-        details: passwordValidation.errors,
-        score: passwordValidation.score,
-        feedback: passwordValidation.feedback
-      });
-    }
-
-    // Hash new password with configurable rounds
-    const hashedPassword = await bcrypt.hash(newPassword, getBcryptRounds());
-
-    // Update password and track change time
-    await db('admin_users').where('id', adminId).update({
-      password_hash: hashedPassword,
-      password_changed_at: new Date(),
-      must_change_password: false
-    });
-
-    // Log password change
-    logger.info('Admin password changed', {
-      userId: adminId,
-      username: admin.username,
-      ip: ipAddress
-    });
-
-    res.json({
-      message: 'Password changed successfully',
-      score: passwordValidation.score
-    });
-  } catch (error) {
-    errorResponse(res, error, 500, 'Failed to change password');
   }
 });
 
@@ -1052,7 +970,7 @@ router.get('/admin/sso/callback', async (req, res) => {
 
   let stash;
   try {
-    stash = jwt.verify(stashCookie, process.env.JWT_SECRET, { issuer: 'picpeak-auth' });
+    stash = jwt.verify(stashCookie, process.env.JWT_SECRET, { algorithms: ['HS256'], issuer: 'picpeak-auth' });
     if (stash.type !== 'oidc_state') throw new Error('wrong token type');
   } catch (_) {
     return fail('state');
@@ -1112,6 +1030,8 @@ router.get('/admin/sso/callback', async (req, res) => {
       OIDC_NOT_PROVISIONED: 'not_provisioned',
       OIDC_NO_EMAIL: 'no_email',
       OIDC_NO_ROLE: 'no_role',
+      OIDC_EMAIL_UNVERIFIED: 'email_unverified',
+      OIDC_EMAIL_AMBIGUOUS: 'email_ambiguous',
       OIDC_BAD_CLAIMS: 'idp',
     };
     const key = codeMap[error.code] || 'idp';

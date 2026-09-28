@@ -10,7 +10,9 @@ const { formatShortDate } = require('../../utils/dateFormatter');
 const { getFrontendBaseUrl, DEFAULT_ABSOLUTE_BASE } = require('../../utils/frontendUrl');
 const emailProcessor = require('../emailProcessor');
 const { ensureInt } = require('../../utils/numericHelpers');
+const { toMillis } = require('../../utils/queueTimestamps');
 const { formatMajor } = require('./helpers');
+const { auditedInsert, auditedUpdate } = require('../accountingHistory');
 const { applyReminder, resolveAdminEmailForInvoice, resolvePerReminderFeeMinor, resolveSkontoPercentForInvoice } = require('./reminders');
 
 // Payment-check token lifetime (GHSA-wg94-f86h-vq68 hardening). This
@@ -23,17 +25,40 @@ const { applyReminder, resolveAdminEmailForInvoice, resolvePerReminderFeeMinor, 
 // link on the next tick.
 const PAYMENT_CHECK_TOKEN_TTL_MS = 72 * 60 * 60 * 1000; // 72h
 
+// Once per invoice per day, so a daily scheduler tick doesn't mail the same
+// admin about the same invoice again (see queuePaymentCheckEmail).
+const PAYMENT_CHECK_THROTTLE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Refuse a payment-check link whose expiry has passed — or can't be read.
+ *
+ * `expires_at` is NOT NULL (migration 107), so a missing value is as
+ * unreadable as a garbled one, and `new Date(x).getTime() < Date.now()` is
+ * false for both: the link would keep working forever. `toMillis` reads the
+ * shapes the engines actually store (a Date from PostgreSQL, epoch ms from
+ * SQLite, ISO strings) and returns null when it can't, which counts as
+ * expired.
+ */
+function assertNotExpired(row) {
+  const expiresAt = toMillis(row.expires_at);
+  if (expiresAt == null || expiresAt < Date.now()) {
+    throw new AppError('This link has expired', 410, 'TOKEN_EXPIRED');
+  }
+}
+
 /**
  * Record a payment against an invoice. Supports partial payments
  * (multiple rows accumulate into `paid_amount_minor`). Status flips
  * to `paid` once the running total meets or exceeds total_amount_minor.
  */
-async function markPaid(id, { amountMinor, paidAt, paymentMethod, reference, notes, skontoApplied }, adminId) {
-  const invoice = await db('invoices').where({ id }).first();
-  if (!invoice) throw new AppError('Invoice not found', 404);
-  if (invoice.status === 'cancelled') {
-    throw new AppError('Cannot mark a cancelled invoice as paid', 409);
-  }
+async function markPaid(id, payment, adminId) {
+  return recordPayment(id, payment, adminId, adminId);
+}
+
+// markPaid with the change-history actor kept apart from
+// recorded_by_admin_id: the payment-check link records the payment on
+// behalf of the invoice's admin, but the history names the link.
+async function recordPayment(id, { amountMinor, paidAt, paymentMethod, reference, notes, skontoApplied }, adminId, actor) {
   const amount = ensureInt(amountMinor);
   if (amount <= 0) {
     throw new AppError('amount must be > 0', 400);
@@ -45,12 +70,24 @@ async function markPaid(id, { amountMinor, paidAt, paymentMethod, reference, not
   // later template/percentage edits — the tax-report row stays
   // accurate for years.
   const skontoFlag = Boolean(skontoApplied);
-  const skontoAmountMinor = skontoFlag
-    ? Math.max(0, ensureInt(invoice.total_amount_minor) - amount)
-    : null;
+  let invoice;
+  let skontoAmountMinor;
 
   const markResult = await db.transaction(async (trx) => {
-    await trx('invoice_payment_log').insert({
+    // Serialize payments before inserting their FK children or reading the
+    // running sum. Otherwise two successful inserts can overwrite the total
+    // with different partial sums, even with a compatible recorder lock.
+    const invoiceQuery = trx('invoices').where({ id });
+    if (trx.client.config.client === 'pg') invoiceQuery.forNoKeyUpdate();
+    invoice = await invoiceQuery.first();
+    if (!invoice) throw new AppError('Invoice not found', 404);
+    if (invoice.status === 'cancelled') {
+      throw new AppError('Cannot mark a cancelled invoice as paid', 409);
+    }
+    skontoAmountMinor = skontoFlag
+      ? Math.max(0, ensureInt(invoice.total_amount_minor) - amount)
+      : null;
+    await auditedInsert(trx, 'invoice_payment_log', {
       invoice_id: id,
       amount_minor: amount,
       paid_at: paidAt ? new Date(paidAt) : new Date(),
@@ -61,7 +98,7 @@ async function markPaid(id, { amountMinor, paidAt, paymentMethod, reference, not
       skonto_applied: skontoFlag,
       skonto_amount_minor: skontoAmountMinor,
       created_at: new Date(),
-    });
+    }, { actor, source: 'invoice.markPaid' });
     const sumRow = await trx('invoice_payment_log').where({ invoice_id: id }).sum('amount_minor as total').first();
     const total = ensureInt(sumRow?.total || 0);
     // Consider the invoice paid when the recorded payments cover the
@@ -93,39 +130,44 @@ async function markPaid(id, { amountMinor, paidAt, paymentMethod, reference, not
       update.status = 'paid';
       update.paid_at = paidAt ? new Date(paidAt) : new Date();
     }
-    await trx('invoices').where({ id }).update(update);
+    await auditedUpdate(trx, 'invoices', { id }, update, { actor, source: 'invoice.markPaid' });
 
+    // Pass trx: through the global db this insert waits on the single-
+    // connection SQLite pool for the connection this transaction holds.
     try { await logActivity(isFull ? 'invoice_paid' : 'invoice_partial_payment',
       { invoiceId: id, amountMinor: amount, totalPaidMinor: total },
-      invoice.event_id || null, `admin:${adminId}`); } catch (_) { /* non-fatal */ }
-
-    // Migration 127 — admin payment-received notification. Fires only
-    // on the transition into 'paid' so admins don't get duplicate
-    // emails when additional payment-log rows are recorded after the
-    // invoice already cleared (rare but possible — e.g. late-fee
-    // top-up). Queued after the transaction so a failed email never
-    // rolls back a recorded payment. Carried Skonto context lets the
-    // template show the discount line conditionally.
-    if (isFull && invoice.status !== 'paid') {
-      try {
-        await queueInvoicePaidAdminNotification({
-          invoice,
-          paidTotalMinor: total,
-          paymentMethod: paymentMethod || invoice.payment_method || null,
-          paymentReference: reference || invoice.payment_reference || null,
-          paidAt: paidAt ? new Date(paidAt) : new Date(),
-          skontoApplied: skontoFlag,
-          skontoAmountMinor: skontoAmountMinor || 0,
-        });
-      } catch (err) {
-        // Notification is best-effort — don't surface a 500 to the
-        // admin when the recorded payment itself succeeded.
-        logger.warn('invoice_paid admin notification failed to queue', { invoiceId: id, err: err.message });
-      }
-    }
+      invoice.event_id || null, `admin:${adminId}`, trx); } catch (_) { /* non-fatal */ }
 
     return { paidTotalMinor: total, status: isFull ? 'paid' : invoice.status };
   });
+
+  // Migration 127 — admin payment-received notification. Fires only
+  // on the transition into 'paid' so admins don't get duplicate
+  // emails when additional payment-log rows are recorded after the
+  // invoice already cleared (rare but possible — e.g. late-fee
+  // top-up). Queued after the transaction so a failed email never
+  // rolls back a recorded payment. It used to run inside it despite
+  // this comment, and its global-db reads and email_queue insert then
+  // stalled on SQLite's single connection until the notification was
+  // dropped. Carried Skonto context lets the template show the
+  // discount line conditionally.
+  if (markResult.status === 'paid' && invoice.status !== 'paid') {
+    try {
+      await queueInvoicePaidAdminNotification({
+        invoice,
+        paidTotalMinor: markResult.paidTotalMinor,
+        paymentMethod: paymentMethod || invoice.payment_method || null,
+        paymentReference: reference || invoice.payment_reference || null,
+        paidAt: paidAt ? new Date(paidAt) : new Date(),
+        skontoApplied: skontoFlag,
+        skontoAmountMinor: skontoAmountMinor || 0,
+      });
+    } catch (err) {
+      // Notification is best-effort — don't surface a 500 to the
+      // admin when the recorded payment itself succeeded.
+      logger.warn('invoice_paid admin notification failed to queue', { invoiceId: id, err: err.message });
+    }
+  }
 
   // Fire invoice.paid for the workflow engine ONLY on the transition into
   // 'paid' (mirrors the admin-notification guard above). After the commit so a
@@ -215,16 +257,23 @@ async function queueInvoicePaidAdminNotification({
   } catch (_) { /* non-fatal */ }
 }
 
-async function queuePaymentCheckEmail(invoiceId, { skipThrottle = false } = {}) {
+async function queuePaymentCheckEmail(invoiceId, { skipThrottle = false, actor = null } = {}) {
   const invoice = await db('invoices').where({ id: invoiceId }).first();
   if (!invoice) return { sent: false, reason: 'not_found' };
   if (!['sent', 'overdue'].includes(invoice.status)) {
     return { sent: false, reason: `wrong_status_${invoice.status}` };
   }
   const now = new Date();
-  if (!skipThrottle && invoice.last_payment_check_at) {
-    const last = new Date(invoice.last_payment_check_at).getTime();
-    if (now.getTime() - last < 24 * 60 * 60 * 1000) {
+  const nowIso = now.toISOString();
+  if (!skipThrottle) {
+    // Read through toMillis for the same reason assertNotExpired does: a
+    // stamp `new Date(x).getTime()` can't parse is NaN, and `now - NaN <
+    // 24h` is false, so the throttle silently stops holding and every tick
+    // mails the admin again. Unlike the expiry, null here means NOT
+    // throttled — the other way round would stop payment checks for this
+    // invoice for good, and the cost of this way is one extra email.
+    const last = toMillis(invoice.last_payment_check_at);
+    if (last != null && now.getTime() - last < PAYMENT_CHECK_THROTTLE_MS) {
       return { sent: false, reason: 'throttled_24h' };
     }
   }
@@ -240,13 +289,17 @@ async function queuePaymentCheckEmail(invoiceId, { skipThrottle = false } = {}) 
   await db('invoice_payment_check_tokens').insert({
     invoice_id: invoiceId,
     token,
-    expires_at: expiresAt,
-    created_at: now,
+    // ISO, not a bare Date: node-sqlite3 stores a Date from another realm as
+    // "[object Object]", which no reader can parse back into a time.
+    expires_at: expiresAt.toISOString(),
+    created_at: nowIso,
   });
-  await db('invoices').where({ id: invoiceId }).update({
-    last_payment_check_at: now,
-    updated_at: now,
-  });
+  // ISO here too: the throttle above reads last_payment_check_at back, and a
+  // bare Date is the one shape that can't be read (see the note there).
+  await auditedUpdate(db, 'invoices', { id: invoiceId }, {
+    last_payment_check_at: nowIso,
+    updated_at: nowIso,
+  }, { actor, source: 'invoice.paymentCheck.queue' });
 
   const customer = await db('customer_accounts').where({ id: invoice.customer_account_id }).first();
   const profile = await db('business_profile').where({ id: 1 }).first();
@@ -346,9 +399,7 @@ async function getPaymentCheckByToken(token) {
     err.usedAction = row.used_action;
     throw err;
   }
-  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
-    throw new AppError('This link has expired', 410, 'TOKEN_EXPIRED');
-  }
+  assertNotExpired(row);
   const invoice = await db('invoices').where({ id: row.invoice_id }).first();
   if (!invoice) throw new AppError('Invoice not found', 404);
   const customer = await db('customer_accounts').where({ id: invoice.customer_account_id }).first();
@@ -459,9 +510,7 @@ async function recordPaymentCheckAction({ token, action, amountMinor, ip, adminI
   if (row.used_at) {
     throw new AppError('This link has already been used', 410, 'TOKEN_ALREADY_USED');
   }
-  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
-    throw new AppError('This link has expired', 410, 'TOKEN_EXPIRED');
-  }
+  assertNotExpired(row);
   const invoice = await db('invoices').where({ id: row.invoice_id }).first();
   if (!invoice) throw new AppError('Invoice not found', 404);
 
@@ -513,13 +562,14 @@ async function recordPaymentCheckAction({ token, action, amountMinor, ip, adminI
   }
 
   // --- Apply the action -----------------------------------------
+  const actor = adminId || 'public:payment-check';
   if (action === 'paid_full') {
-    await markPaid(invoice.id, {
+    await recordPayment(invoice.id, {
       amountMinor: outstandingMinor,
       paymentMethod: invoice.payment_method || 'bank_transfer',
       reference: invoice.payment_reference || null,
       notes: 'Confirmed via admin payment-check link',
-    }, adminId || invoice.created_by_admin_id);
+    }, adminId || invoice.created_by_admin_id, actor);
     return { applied: 'paid_full' };
   }
 
@@ -543,24 +593,24 @@ async function recordPaymentCheckAction({ token, action, amountMinor, ip, adminI
     if (remainingMinor <= 0) {
       throw new AppError('Invoice already paid past the Skonto threshold', 409);
     }
-    await markPaid(invoice.id, {
+    await recordPayment(invoice.id, {
       amountMinor: remainingMinor,
       paymentMethod: invoice.payment_method || 'bank_transfer',
       reference: invoice.payment_reference || null,
       notes: `Confirmed via admin payment-check link (Skonto ${skontoPercent}% applied)`,
       skontoApplied: true,
-    }, adminId || invoice.created_by_admin_id);
+    }, adminId || invoice.created_by_admin_id, actor);
     return { applied: 'paid_with_skonto', skontoPercent };
   }
 
   if (action === 'partial') {
     const amt = ensureInt(amountMinor);
-    await markPaid(invoice.id, {
+    await recordPayment(invoice.id, {
       amountMinor: amt,
       paymentMethod: invoice.payment_method || 'bank_transfer',
       reference: invoice.payment_reference || null,
       notes: 'Partial payment confirmed via admin payment-check link',
-    }, adminId || invoice.created_by_admin_id);
+    }, adminId || invoice.created_by_admin_id, actor);
     // Then fire the customer reminder for the remainder, unless
     // markPaid flipped the invoice to paid (i.e. the partial
     // amount equalled the outstanding).
@@ -570,7 +620,7 @@ async function recordPaymentCheckAction({ token, action, amountMinor, ip, adminI
       if (nextLevel <= 3) {
         const lineItems = await db('invoice_line_items')
           .where({ invoice_id: invoice.id }).orderBy('position', 'asc');
-        await applyReminder(refreshed, lineItems, nextLevel, adminId);
+        await applyReminder(refreshed, lineItems, nextLevel, adminId, actor);
       }
     }
     return { applied: 'partial' };
@@ -584,7 +634,7 @@ async function recordPaymentCheckAction({ token, action, amountMinor, ip, adminI
   }
   const lineItems = await db('invoice_line_items')
     .where({ invoice_id: invoice.id }).orderBy('position', 'asc');
-  await applyReminder(invoice, lineItems, nextLevel, adminId);
+  await applyReminder(invoice, lineItems, nextLevel, adminId, actor);
   return { applied: 'unpaid', reminderLevel: nextLevel };
 }
 module.exports = {
