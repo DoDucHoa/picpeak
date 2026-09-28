@@ -101,6 +101,26 @@ Decided 2026-09-28.
 | O2 | Turn on recoverable gallery passwords (`security_gallery_password_recoverable`), so a generated password can be shown again and prefilled when publishing | Yes | 5.4 |
 | O3 | Expiry quick buttons count from today, not from the event date | From today | 5.8 |
 | O4 | The `{{admin_email}}` contact address in customer mails follows the global notification email, so it also changes for existing galleries | Yes | 5.11 |
+| U1 | Upstream's own per-event download limit (#1568), which overlaps the fork's allowance | Removed from the fork (reverted) | 6 |
+| U2 | Vietnamese strings missing after the sync | Translated in full during P-1 | 7 |
+| U3 | Deploy P-1 on its own | No: the project deploys once at the end | 8 |
+
+### 3.2 P-1 outcome (2026-09-28)
+
+- Merged upstream `55deab96` (commit `44a408c6`), reverted #1568 (`0100fa8c`), and
+  translated 1449 `vi` strings (`9fa290dc`). Upstream moved on to `866e168f` while the
+  sync ran: five more commits, none of them security fixes, which need a small second
+  sync before the deploy.
+- The secure-image token routes are gone (#1669), so the secure-download allowance gap
+  (finding 4) is closed and P0 covers five download paths.
+- Fixed on the way because the merged tree did not build or test clean: `Button` gains a
+  `danger` variant, the public quote line item type declares `id`, and two file handles
+  that leaked on Node 25 are closed (`validateFileContent`, and the EXIF credit reader
+  skips files too small to hold metadata). The public quote view does not send line
+  item ids, so the package-sum check matches children by position only: an upstream bug,
+  left as is.
+- Test baseline on this machine: 27 upstream backend suites and one frontend suite fail
+  identically on pristine upstream (environment), on top of the fork's 7 known failures.
 
 ## 4. Findings that shape the design
 
@@ -111,7 +131,8 @@ These come from reading the code, not from reproducing on the box.
    is on: `resolveWatermarkSettings` in `services/downloadRendition.js` (single download,
    custom-resolution jobs), the same rule inlined in `routes/gallery/downloads.js`
    (download all, download selected) and in `services/downloadZipService.js` (pre-built
-   zip). The secure-download route in `routes/secureImages.js` uses a third rule.
+   zip). Before P-1 the secure-download route in `routes/secureImages.js` used a third
+   rule; the sync removed that route.
 2. **`watermark_text` does nothing.** `applyWatermark` renders `settings.companyName`
    and never reads `settings.text`. The text is still part of the job dedup hash, so
    dropping it makes every ready custom-resolution job undeliverable once; they rebuild
@@ -434,10 +455,8 @@ flowchart LR
 
 - One resolver decides the watermark for every download path: single download (GET and
   HEAD), download all (streamed and pre-built), download selected, pre-built zip build,
-  custom-resolution jobs, and secure-download if P-1 did not remove it.
+  and custom-resolution jobs. Secure-download no longer exists after P-1 (#1669).
 - Downloads are watermarked only when `branding_watermark_downloads_enabled` is on.
-- Secure-download, if still present, goes through the quota gate and resolution policy
-  like every other path, or is removed.
 - Remove the per-event "Add watermark to downloads" checkbox in the same phase.
 - Zips are invalidated on a Branding save that changes the watermark or the download
   switch, on a watermark logo upload, and on a company name change while the text
@@ -578,6 +597,16 @@ not exist yet are compared against their planned seed values.
 7. Events with client access on and no client password.
 8. Events whose feedback toggles will show as Custom.
 9. Pre-built zips to be cleared: each rebuilds on demand, two at a time, on the N100.
+
+Also before deploying, from the upstream sync:
+
+- Sync the upstream commits that landed after `55deab96` (five at the time of P-1).
+- The first deploy applies about 43 upstream migrations; the `deploy-nas` backup comes
+  first as always.
+- Run `docker compose -f docker-compose.production.yml config` on the NAS (Compose
+  2.26.1): the Redis command changed from `$$(cat ...)` to `$(cat ...)`.
+- `/backup` is now chowned to UID 1001 on every boot; on the NAS that folder also holds
+  the `predeploy_*` snapshots.
 
 After deploying: the health endpoint; an old event's Settings tab opens with zero
 unsaved changes; a guest gallery opens; with the view watermark on, one single download
