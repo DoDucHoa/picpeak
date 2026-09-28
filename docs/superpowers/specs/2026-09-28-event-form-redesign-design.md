@@ -91,12 +91,11 @@ Non-goals:
 | Delivery | Phases on one branch, deployed to the NAS once at the end |
 | Mockup | None. The spec is the design artifact |
 
-### 3.1 Pending operator decisions
+### 3.1 Operator decisions after verification
 
-The text below assumes the recommended answer; a different answer changes the sections
-named.
+Decided 2026-09-28.
 
-| # | Question | Recommended | Affects |
+| # | Question | Decision | Affects |
 |---|---|---|---|
 | O1 | Sync upstream (144 commits, about ten security fixes) before P0 | Yes, as phase P-1 | 6, 8 |
 | O2 | Turn on recoverable gallery passwords (`security_gallery_password_recoverable`), so a generated password can be shown again and prefilled when publishing | Yes | 5.4 |
