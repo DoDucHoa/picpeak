@@ -67,8 +67,6 @@ interface FormData {
   show_credits_to_guests: boolean;
   css_template_id: number | null;
   photo_cap: number;
-  // Download limit (issue 1560). 0 = unlimited.
-  download_limit: number;
   feedback_settings: {
     feedback_enabled: boolean;
     allow_ratings: boolean;
@@ -145,7 +143,6 @@ export const CreateEventPage: React.FC = () => {
     show_credits_to_guests: false,
     css_template_id: null,
     photo_cap: 0,
-    download_limit: 0,
     feedback_settings: {
       feedback_enabled: false,
       allow_ratings: true,
@@ -288,17 +285,6 @@ export const CreateEventPage: React.FC = () => {
       ...prev,
       require_password: publicSettings.event_default_require_password !== false
     }));
-  }, [publicSettings]);
-
-  // Download limit default from Settings > Events (issue 1560). Same one-shot
-  // apply; the form sends the field explicitly, so the server's own fallback
-  // only covers callers that omit it (the v1 API).
-  const downloadLimitDefaultApplied = useRef(false);
-  useEffect(() => {
-    if (downloadLimitDefaultApplied.current) return;
-    if (publicSettings?.event_default_download_limit === undefined) return;
-    downloadLimitDefaultApplied.current = true;
-    setFormData(prev => ({ ...prev, download_limit: publicSettings.event_default_download_limit || 0 }));
   }, [publicSettings]);
 
   // Honour the global guest-feedback defaults (#520 for the master toggle,
@@ -563,7 +549,6 @@ export const CreateEventPage: React.FC = () => {
       show_credits_to_guests: formData.show_credits_to_guests,
       css_template_id: formData.css_template_id,
       photo_cap: formData.photo_cap > 0 ? formData.photo_cap : null,
-      download_limit: formData.download_limit > 0 ? formData.download_limit : null,
       feedback_enabled: feedbackSettings.feedback_enabled,
       allow_ratings: feedbackSettings.allow_ratings,
       allow_likes: feedbackSettings.allow_likes,
@@ -1235,30 +1220,6 @@ export const CreateEventPage: React.FC = () => {
                 </div>
                 <span className="text-sm text-soft">
                   {t('events.photoCapHelp', 'Maximum number of photos allowed. 0 = unlimited')}
-                </span>
-              </div>
-            </div>
-
-            {/* Download limit (issue 1560) */}
-            <div className="pt-4 border-t border-line">
-              <label htmlFor="create-download-limit" className="block text-sm font-medium text-body mb-2">
-                {t('events.downloadLimit', 'Download Limit')}
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="w-32">
-                  {/* Same 32-bit ceiling as photo_cap (migration 231). */}
-                  <Input
-                    id="create-download-limit"
-                    type="number"
-                    value={formData.download_limit}
-                    onChange={(e) => setFormData({ ...formData, download_limit: parseInt(e.target.value) || 0 })}
-                    min={0}
-                    max={2147483647}
-                    leftIcon={<Download className="w-5 h-5" />}
-                  />
-                </div>
-                <span className="text-sm text-soft">
-                  {t('events.downloadLimitHelp', 'Maximum number of photos the client can download. 0 = unlimited')}
                 </span>
               </div>
             </div>

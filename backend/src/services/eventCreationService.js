@@ -22,7 +22,6 @@ const { getStoragePath, getEventFieldRequirements, readBooleanSetting, getDownlo
   getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, hasCustomerContactColumns,
   SLIDESHOW_TRANSITIONS, SLIDESHOW_COLORFILTERS } = require('./eventSettings');
 const { validateCreationInput } = require('./eventCreationValidation');
-const { normaliseDownloadLimit } = require('./downloadQuota');
 const { guestNameModeOf } = require('./photoCredit');
 function creationError(body) {
   const error = new AppError(body.error || 'Invalid event', 400, 'EVENT_INVALID');
@@ -101,8 +100,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     hero_image_anchor = 'center',
     // Photo cap
     photo_cap = null,
-    // Download limit (issue 1560). undefined = take the Event Defaults value.
-    download_limit: downloadLimitInput,
     // Client access settings (#172)
     client_access_enabled = false,
     client_password = null,
@@ -165,12 +162,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     if (setting !== undefined) feedbackEnabledFallback = setting;
   }
   const feedback_enabled = parseBooleanInput(feedbackEnabledInput, feedbackEnabledFallback);
-
-  // Default download limit from Settings > Event Defaults when the body omits
-  // it (issue 1560). An explicit null still means unlimited.
-  const download_limit = downloadLimitInput === undefined
-    ? normaliseDownloadLimit(await getAppSetting('event_default_download_limit', null))
-    : normaliseDownloadLimit(downloadLimitInput);
 
   // Uploader-name defaults from Settings > Event Defaults (#1561); an
   // explicitly-sent body value still wins.
@@ -422,7 +413,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     hero_divider_style: effectiveDividerStyle || 'wave',
     hero_image_anchor: hero_image_anchor || 'center',
     photo_cap: photo_cap || null,
-    download_limit,
     is_draft: formatBoolean(parseBooleanInput(is_draft, true)),
     default_photo_sort: default_photo_sort || 'upload_date_desc',
     // Client access (#172)
@@ -636,7 +626,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     customer_email: customerEmail,
     require_password: requirePassword,
     photo_cap: photo_cap || null,
-    download_limit,
     is_draft: isDraft,
     share_link: shareUrl,
     share_token: shareToken,

@@ -117,8 +117,6 @@ function mockMakeDb() {
   // #1132 guards the merge-dismissals delete behind a hasTable check.
   table.schema = { hasTable: async (t) => t === 'download_jobs' };
   table.transaction = async (cb) => cb(table);
-  // The cascade reads the engine to decide whether to take the event row lock.
-  table.client = { config: { client: 'sqlite3' } };
   return table;
 }
 

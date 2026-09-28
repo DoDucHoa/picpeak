@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDevToolsProtection } from '../../hooks/useDevToolsProtection';
-import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, Minimize2, MessageSquare, Heart, Star, Lock } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, Minimize2, MessageSquare, Heart, Star } from 'lucide-react';
 import type { Photo, GalleryPerson } from '../../types';
 import { useSavePhotoToDevice } from '../../hooks/useGallery';
 import { AuthenticatedImage } from '../common';
@@ -14,8 +14,6 @@ import { galleryService } from '../../services/gallery.service';
 import { FeedbackIdentityModal } from './FeedbackIdentityModal';
 import { VideoPlayer } from './VideoPlayer';
 import { useGuestIdentityOptional } from '../../contexts/GuestIdentityContext';
-import { useDownloadQuota } from '../../contexts/DownloadQuotaContext';
-import { notifyDownloadQuotaChanged, showDownloadLimitReached, videoUnavailableMessage } from '../../utils/downloadLimit';
 import { useFeedbackLimitModal } from '../../hooks/useFeedbackLimitModal';
 import { useDownloadGate } from '../../contexts/DownloadGateContext';
 import { canDownloadPhotoNow } from './downloadQuotaOffer';
@@ -206,24 +204,6 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   // Defaults true for uncategorised photos and pre-migration-135 categories.
   const photoAllowsDownload =
     allowDownloads && currentPhoto?.category_allow_downloads !== false;
-  // Download limit (issue 1560): the button stays, disabled with the reason,
-  // once nothing is left — except for photos already downloaded, which are free.
-  const downloadQuota = useDownloadQuota();
-  const withinDownloadLimit = !currentPhoto || downloadQuota.canDownload(currentPhoto);
-  // Playing a video streams its original, which on a limited gallery takes a
-  // slot like a download; replays of it are free. A video not yet granted
-  // cannot play once no slot is left, nor for a share-link guest, who never
-  // draws on the quota: say why instead of showing a broken player.
-  const videoNotGranted = currentPhoto?.media_type === 'video' && !currentPhoto.download_granted;
-  const videoLocked = videoNotGranted
-    && (downloadQuota.previewOnly || (downloadQuota.limited && (downloadQuota.remaining ?? 0) <= 0));
-  // Only a press on Play may take the slot, not the metadata preload of
-  // opening the lightbox. The quota is re-read once it did (or was refused).
-  const videoTakesSlot = videoNotGranted && downloadQuota.limited;
-  const refreshQuotaAfterVideo = videoTakesSlot ? () => notifyDownloadQuotaChanged(slug) : undefined;
-  // The keyboard shortcut's listener is only rebuilt on navigation; it reads
-  // the download handler through this, so a refreshed quota applies to D too.
-  const downloadRef = useRef<() => void>(() => {});
   
   // DevTools protection - enabled by individual setting OR legacy protection level
   const devToolsEnabled = enableDevtoolsProtection || (useEnhancedProtection && (protectionLevel === 'enhanced' || protectionLevel === 'maximum'));
@@ -305,7 +285,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
         case 'd':
         case 'D':
           if (photoAllowsDownload) {
-            downloadRef.current();
+            handleDownload();
           }
           break;
         default: {
@@ -616,12 +596,6 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       return;
     }
 
-    // Download limit (issue 1560).
-    if (!withinDownloadLimit) {
-      showDownloadLimitReached({ remaining: 0 });
-      return;
-    }
-
     downloadPhotoMutation.mutate(
       {
         slug,
@@ -632,7 +606,6 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       { onError: (error) => { void downloadGate.reportDownloadFailure(error); } },
     );
   };
-  downloadRef.current = handleDownload;
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom > 1) {
@@ -1092,15 +1065,8 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             {photoAllowsDownload && (
               <button
                 onClick={handleDownload}
-                // aria-disabled, not disabled: the click still reaches the
-                // handler, which explains the refusal and re-reads the quota
-                // an admin may have reset since.
-                aria-disabled={!withinDownloadLimit || undefined}
-                className={`p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors${withinDownloadLimit ? '' : ' opacity-50 cursor-not-allowed'}`}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                 aria-label="Download photo"
-                title={withinDownloadLimit
-                  ? undefined
-                  : t('gallery.downloadLimit.reached', 'Download limit reached. Please contact your photographer for more downloads.')}
               >
                 <Download className="w-5 h-5 text-white" />
               </button>
@@ -1352,21 +1318,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
               touchAction: isVideoCurrent ? 'auto' : 'none',
             }}
           >
-            {isVideoCurrent && videoLocked ? (
-              <div className="w-full h-full flex items-center justify-center p-6">
-                {/* Theme-token panel, like the feedback panel: the lightbox
-                    ground is black, so a black panel would leave bare text. */}
-                <div
-                  className="max-w-sm flex flex-col items-center gap-3 rounded-lg border bg-surface px-6 py-5 text-center text-sm shadow-xl"
-                  style={{ color: 'var(--color-text)', borderColor: 'var(--color-surface-border)' }}
-                  role="status"
-                  data-testid="lightbox-video-locked"
-                >
-                  <Lock size={24} style={{ color: 'var(--color-muted-text)' }} aria-hidden="true" />
-                  {videoUnavailableMessage(downloadQuota.previewOnly)}
-                </div>
-              </div>
-            ) : isVideoCurrent ? (
+            {isVideoCurrent ? (
               <div className="w-full h-full flex items-center justify-center">
                 <VideoPlayer
                   src={currentPhoto.url}
@@ -1374,9 +1326,6 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
                   className="max-w-full max-h-full"
                   controls={true}
                   autoPlay={false}
-                  preload={videoTakesSlot ? 'none' : undefined}
-                  onPlaybackStart={refreshQuotaAfterVideo}
-                  onLoadError={refreshQuotaAfterVideo}
                 />
               </div>
             ) : (

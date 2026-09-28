@@ -1336,16 +1336,6 @@
     "preparingProgress_other": "Zapakiranih fotografij: {{count}}",
     "videoFormatUnsupported": "Tega videoformata v tem brskalniku ni mogoče predvajati. Prenesite ga, da si ga ogledate.",
     "videoLoadFailed": "Tega videa ni bilo mogoče naložiti.",
-    "downloadLimit": {
-      "reached": "Omejitev prenosov je dosežena. Za več prenosov se obrnite na fotografa.",
-      "notEnough": "Preostalih prenosov: {{remaining}}. Izberite manj fotografij ali se obrnite na fotografa.",
-      "counter": "Porabljenih prenosov: {{used}} od {{limit}}",
-      "selectionCost": "Porabi {{cost}} od preostalih prenosov ({{remaining}})",
-      "selectionTooLarge": "Omejitev prenosov: ta izbor potrebuje {{cost}} prenosov, preostalo jih je le {{remaining}}",
-      "downloadAllBlocked": "Ta galerija vsebuje več fotografij, kot vam je ostalo prenosov",
-      "previewOnly": "Prenosi v tej galeriji so v velikosti predogleda. Izvirne datoteke so na voljo stranki.",
-      "videoClientOnly": "Ta video je na voljo samo stranki."
-    },
     "credits": {
       "filterLabel": "Avtor",
       "everyone": "Vsi",
@@ -1828,13 +1818,6 @@
       "noResultsCanCreate": "Ni zadetkov. Uporabite »Ustvari novo stranko«, da jo dodate.",
       "noResultsNoPermission": "Ni zadetkov in vaša vloga ne more ustvarjati strank. Prosite skrbnika, naj doda to stranko."
     },
-    "downloadLimit": "Omejitev prenosov",
-    "downloadLimitHelp": "Največje število fotografij, ki jih stranka lahko prenese. 0 = neomejeno",
-    "downloadLimitUsage": "Preneseno: {{used}} / {{limit}}",
-    "downloadLimitReset": "Ponastavi",
-    "downloadLimitResetConfirm": "Ponastavim prenose za to galerijo? Stranka znova dobi celotno omejitev, že prenesene fotografije pa se štejejo znova.",
-    "downloadLimitResetDone": "Prenosi ponastavljeni",
-    "downloadLimitResetFailed": "Prenosov ni bilo mogoče ponastaviti",
     "uploaderNames": {
       "label": "Imena pri nalaganju",
       "help": "Gostje lahko ob nalaganju vpišejo svoje ime, da veste, kdo je naložil katero fotografijo.",
@@ -2111,9 +2094,7 @@
       "defaultAllowColorLabels": "Barvne oznake",
       "defaultKeybindMode": "Privzete bližnjice v pregledovalniku",
       "keybindColors": "Samo barve – 1 zelena, 2 rumena, 3 rdeča",
-      "keybindLightroom": "Lightroom – 1–5 zvezdice, 6–9 barve",
-      "defaultDownloadLimit": "Privzeta omejitev prenosov",
-      "defaultDownloadLimitHelp": "Predizpolnjeno pri novih dogodkih: koliko fotografij lahko stranka prenese. 0 = neomejeno."
+      "keybindLightroom": "Lightroom – 1–5 zvezdice, 6–9 barve"
     },
     "imageSecurity": {
       "title": "Zaščita slik",

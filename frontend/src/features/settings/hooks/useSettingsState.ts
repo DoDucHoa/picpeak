@@ -130,8 +130,6 @@ export interface EventSettings {
   event_default_allow_reactions: boolean;
   event_default_allow_color_labels: boolean;
   event_default_keybind_mode: 'colors' | 'lightroom';
-  // Download limit for new events (issue 1560). 0 = unlimited.
-  event_default_download_limit: number;
   // Uploader names for new galleries (#1561).
   event_default_guest_name_mode: GuestNameMode;
   event_default_show_credits_to_guests: boolean;
@@ -243,7 +241,6 @@ export function useSettingsState() {
     event_default_allow_reactions: true,
     event_default_allow_color_labels: false,
     event_default_keybind_mode: 'colors',
-    event_default_download_limit: 0,
     event_default_guest_name_mode: 'off',
     event_default_show_credits_to_guests: false,
     gallery_show_filter_bar: true,
@@ -402,9 +399,6 @@ export function useSettingsState() {
         event_default_allow_reactions: toBoolean(settings.event_default_allow_reactions, true),
         event_default_allow_color_labels: toBoolean(settings.event_default_allow_color_labels, false),
         event_default_keybind_mode: settings.event_default_keybind_mode === 'lightroom' ? 'lightroom' : 'colors',
-        event_default_download_limit: Number(settings.event_default_download_limit) > 0
-          ? Number(settings.event_default_download_limit)
-          : 0,
         event_default_guest_name_mode: ['optional', 'required'].includes(settings.event_default_guest_name_mode)
           ? settings.event_default_guest_name_mode
           : 'off',

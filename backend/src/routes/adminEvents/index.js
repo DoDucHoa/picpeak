@@ -11,7 +11,6 @@ const router = express.Router();
 require('./crud')(router);
 require('./slideshow')(router);
 require('./downloadResolutions')(router);
-require('./downloadLimit')(router);
 require('./resets')(router);
 require('./passwordRecovery')(router);
 require('./archiveBulk')(router);

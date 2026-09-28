@@ -11,9 +11,8 @@ const { getUseOriginalFilenames } = require('./downloadFilenameService');
 const { resolveEventDownloadPolicy } = require('../utils/downloadResolutions');
 const { resolveHeroLogoVisible, originalNeedsPreview } = require('./galleryModel');
 const { applyFeedbackFilter } = require('./galleryPhotoQuery');
-const { getQuota, grantedPhotoIds, drawsOnQuota } = require('./downloadQuota');
 const { guestNameModeOf, creditVisibleToGuest } = require('./photoCredit');
-async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaCustomer = false, adminPreview, hiddenForGuest, slug }) {
+async function getGalleryPhotos({ event, query = {}, identity, accessLevel, adminPreview, hiddenForGuest, slug }) {
   // Get filter and sort parameters from query
   // `guest_id` is deliberately NOT read from the query string: the viewer's
   // own feedback is resolved from the request identity instead (see the
@@ -393,33 +392,11 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
   const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
   const downloadPolicy = await resolveEventDownloadPolicy(event);
 
-  // Download limit (issue 1560). Here rather than in the public /info payload:
-  // usage is gallery data and only goes to an authenticated viewer. The
-  // granted set lets the UI price a selection (already-downloaded photos are
-  // free again) and decides which photos may still load their original.
-  // An admin preview is exempt from the limit, so it gets the payload of an
-  // unlimited gallery: otherwise the UI would refuse downloads the server
-  // lets through.
-  const eventQuota = await getQuota(event);
-  const downloadQuota = adminPreview ? null : eventQuota;
-  const grantedIds = downloadQuota ? await grantedPhotoIds(event.id) : new Set();
-  // A zip still streaming holds reserved grants it may give back; its photos
-  // keep the preview until it has shipped them.
-  const deliveredIds = downloadQuota
-    ? await grantedPhotoIds(event.id, null, undefined, { deliveredOnly: true })
-    : new Set();
-  const withholdOriginals = !!downloadQuota;
-  // Only the client (PIN or portal) draws on the quota. A share-link guest
-  // downloads preview-size copies instead, so they get no counter they could
-  // not use, and no resolution picker: a job would build originals.
-  const downloadPreviewOnly = !!downloadQuota && !drawsOnQuota({ accessLevel, viaCustomer });
-  const quotaForViewer = downloadPreviewOnly ? null : downloadQuota;
-
   // Uploader names / photo credits (#1561). Recorded for the admin; a guest
   // sees them only when the per-event switch is on, and a guest-given name
-  // only when the switch was also on as it was uploaded (creditVisibleToGuest)
-  // — turning it off hides every name again. The PIN client is the host, who
-  // sees them regardless — the same exemption the face strip makes.
+  // only when the switch was also on as it was uploaded (creditVisibleToGuest):
+  // turning it off hides every name again. The PIN client is the host, who
+  // sees them regardless, the same exemption the face strip makes.
   // Never for the slideshow: a projector link is display-only and easy to
   // leak, and a name on a wall screen is not what "show to guests" agreed to.
   const creditsVisible = accessLevel !== 'slideshow'
@@ -448,14 +425,10 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
       // Download resolutions (#858). `choices` drives the picker modal and is
       // empty when the picker is off, so the UI can never offer a size the
       // server would reject.
-      download_limit: quotaForViewer ? quotaForViewer.limit : null,
-      downloads_used: quotaForViewer ? quotaForViewer.used : 0,
-      downloads_remaining: quotaForViewer ? quotaForViewer.remaining : null,
-      download_preview_only: downloadPreviewOnly,
       download_resolution: {
         standard: downloadPolicy.standard,
-        picker_enabled: downloadPolicy.pickerEnabled && !downloadPreviewOnly,
-        choices: downloadPolicy.pickerEnabled && !downloadPreviewOnly ? downloadPolicy.choices : [],
+        picker_enabled: downloadPolicy.pickerEnabled,
+        choices: downloadPolicy.pickerEnabled ? downloadPolicy.choices : [],
       },
       // Reveal mode (#838): armed flag lets an open VISIBLE gallery keep
       // polling so a re-hide propagates without a manual reload.
@@ -485,10 +458,7 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
       // authenticated.
       info_mode: event.info_mode || 'inherit',
       info_markdown: event.info_markdown || null,
-      // A limited gallery always streams its zip (routes/gallery/downloads.js),
-      // and the client must fetch it rather than navigate to it so a refusal
-      // can be shown instead of landing as a broken download.
-      download_zip_ready: !eventQuota && !!(event.download_zip_path && event.download_zip_generated_at),
+      download_zip_ready: !!(event.download_zip_path && event.download_zip_generated_at),
       // Mirror of the admin-side toggle so the lightbox can decide
       // whether to surface original camera filenames (#508).
       use_original_filenames: useOriginalFilenames,
@@ -522,14 +492,7 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
       // same-origin).
       const imgQuery = [wmVersion, adminPreview ? 'admin_preview=1' : ''].filter(Boolean).join('&');
       const wmQuery = imgQuery ? `?${imgQuery}` : '';
-      const previewUrl = `/api/gallery/${slug}/preview/${photo.id}${wmQuery}`;
-      // A limited gallery withholds the original of every image it has not
-      // granted yet (routes/gallery/media.js), so point straight at the
-      // preview instead of at a redirect.
-      const originalWithheld = withholdOriginals && !isVideo && !deliveredIds.has(Number(photo.id));
-      const photoUrl = originalWithheld
-        ? previewUrl
-        : `/api/gallery/${slug}/photo/${photo.id}${wmQuery}`;
+      const photoUrl = `/api/gallery/${slug}/photo/${photo.id}${wmQuery}`;
 
       return {
         id: photo.id,
@@ -556,10 +519,10 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
         // installs that haven't opted in keep loading the original
         // (current behaviour). Skipped for videos since they don't
         // get a preview tier; lightbox will use the original .url.
-        preview_url: (lightboxPreviewEnabled || originalNeedsPreview(photo) || originalWithheld)
+        preview_url: (lightboxPreviewEnabled || originalNeedsPreview(photo))
             && photo.media_type !== 'video'
             && (!photo.mime_type || !photo.mime_type.startsWith('video/'))
-          ? previewUrl
+          ? `/api/gallery/${slug}/preview/${photo.id}${wmQuery}`
           : null,
         // Slideshow source (#1015). Same preview tier, but emitted
         // unconditionally: the slideshow has no `url` fallback worth
@@ -581,9 +544,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, viaC
           ? parseBooleanInput(categoryMap[photo.category_id].allow_downloads, true)
           : true,
         category_slug: photo.category_id && categoryMap[photo.category_id] ? categoryMap[photo.category_id].slug : null,
-        // Download limit (issue 1560): already granted, so downloading it
-        // again costs nothing.
-        download_granted: grantedIds.has(Number(photo.id)),
         size: photo.size_bytes,
         // toIso: on SQLite installs rows written with a raw Date (e.g.
         // the pre-fix archive-restore path) hold epoch numbers — the

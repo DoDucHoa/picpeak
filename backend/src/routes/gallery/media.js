@@ -19,43 +19,6 @@ const { getStorage } = require('../../services/storage');
 const fs = require('fs');
 const { getStoragePath } = require('../../config/storage');
 const { safePathJoin } = require('../../utils/fileSecurityUtils');
-const {
-  isOriginalWithheld, currentDownloadLimit, grantedPhotoIds, grantDownloads, checkDownloads,
-  drawsOnQuota, clientOnlyError, refuseDownload, downloadLimitError, settleWhenDone, responseDelivered,
-} = require('../../services/downloadQuota');
-
-/**
- * Download limit (issue 1560): a video has no preview tier, so playing it
- * streams the original, and on a limited gallery that takes a slot like a
- * download. One slot per video: once it is granted, replays and every further
- * Range request are free. Only the client may draw on the quota; a guest
- * plays a video someone already granted and is refused any other. Returns
- * false once it has answered the request itself.
- */
-async function admitVideoStream(req, res, photo) {
-  if (req.isAdminPreview || !(await currentDownloadLimit(req.event))) return true;
-  const photoId = Number(photo.id);
-  const delivered = await grantedPhotoIds(req.event.id, [photoId], db, { deliveredOnly: true });
-  if (delivered.has(photoId)) return true;
-  if (!drawsOnQuota(req)) {
-    res.status(403).json(clientOnlyError());
-    return false;
-  }
-  // A HEAD probe answers without taking any of the quota.
-  if (req.method === 'HEAD') {
-    const check = await checkDownloads(req.event, [photoId]);
-    if (check.ok) return true;
-    res.status(403).json(downloadLimitError(check));
-    return false;
-  }
-  const quota = await grantDownloads(req.event, [photoId], { reserve: true });
-  if (!quota.ok) {
-    refuseDownload(res, quota);
-    return false;
-  }
-  settleWhenDone(res, req.event.id, quota, responseDelivered(res, [photoId]));
-  return true;
-}
 
 router.post('/:slug/photo/:photoId/view',
   verifyGalleryAccess,
@@ -112,19 +75,6 @@ router.get('/:slug/photo/:photoId',
       // broken tile (#1370 exempted videos from the same bounce). The levels
       // are client-side rendering modes; the guest still needs a valid gallery
       // token to get here at all.
-
-      // Download limit (issue 1560). While one applies, guests get the preview
-      // tier rather than the original, which would otherwise be a full-size
-      // copy one long-press away from every counted download. Videos have no
-      // preview tier: playing one is counted instead (admitVideoStream, below
-      // once the file is known to exist).
-      if (!isVideo && await isOriginalWithheld(req.event, photo, { isAdminPreview: req.isAdminPreview })) {
-        // Keep the query (the ?v= cache-buster) so the preview is not served
-        // from a stale cache entry.
-        const queryAt = req.originalUrl.indexOf('?');
-        const query = queryAt === -1 ? '' : req.originalUrl.slice(queryAt);
-        return res.redirect(`/api/gallery/${req.params.slug}/preview/${photoId}${query}`);
-      }
 
       // Resolve where to read the photo bytes from. For external/reference
       // photos the source is always a local mount path. For managed photos
@@ -196,7 +146,6 @@ router.get('/:slug/photo/:photoId',
 
       // Handle video streaming with range requests
       if (isVideo) {
-        if (!(await admitVideoStream(req, res, photo))) return;
         const range = req.headers.range;
 
         if (range) {
@@ -485,14 +434,11 @@ router.get('/:slug/hero/:photoId',
         return res.status(403).json({ error: 'Photo not available' });
       }
 
-      // Videos don't get hero images. Their hero is the poster frame the
-      // thumbnail route serves — never the original: a hero is an image
-      // background, and on a limited gallery /photo streams a video by
-      // taking a download slot (issue 1560), so merely loading the page
-      // would have spent one.
+      // Check if this is a video - videos don't get hero images
       const isVideo = photo.media_type === 'video' || (photo.mime_type && photo.mime_type.startsWith('video/'));
       if (isVideo) {
-        return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/thumbnail/${photoId}`));
+        // For videos, redirect to the regular photo endpoint
+        return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${photoId}`));
       }
 
       // Ensure hero image exists and is valid, regenerate if needed
@@ -567,16 +513,6 @@ router.get('/:slug/hero/:photoId',
 // broken image. The watermark application path is preserved so a
 // preview surfaced in the lightbox carries the same protection a
 // guest would see on the full original.
-// A preview that cannot be served falls back to the original, so the lightbox
-// always renders. Not while a download limit withholds that original (issue
-// 1560): /photo would send the request straight back here.
-async function fallBackToOriginal(req, res, photo) {
-  if (req.event && await isOriginalWithheld(req.event, photo, { isAdminPreview: req.isAdminPreview })) {
-    return res.status(404).json({ error: 'Preview not available' });
-  }
-  return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${req.params.photoId}`));
-}
-
 router.get('/:slug/preview/:photoId',
   verifyGalleryAccess,
   blockHiddenGallery,
@@ -621,7 +557,7 @@ router.get('/:slug/preview/:photoId',
         : await ensurePreviewImage(photo);
       if (!previewPath) {
         logger.warn(`Failed to generate preview for photo ${photoId}, falling back to original`);
-        return fallBackToOriginal(req, res, photo);
+        return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${photoId}`));
       }
 
       const storage = getStorage();
@@ -630,7 +566,7 @@ router.get('/:slug/preview/:photoId',
         logger.error('Preview file does not exist in storage backend', {
           slug: req.params.slug, photoId, eventId: req.event.id, previewPath,
         });
-        return fallBackToOriginal(req, res, photo);
+        return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${photoId}`));
       }
 
       const mtimeMs = stat.mtime ? stat.mtime.getTime() : 0;
@@ -689,12 +625,7 @@ router.get('/:slug/preview/:photoId',
         photoId: req.params.photoId,
         eventId: req.event?.id,
       });
-      if (res.headersSent) return;
-      try {
-        await fallBackToOriginal(req, res, { id: req.params.photoId });
-      } catch (fallbackError) {
-        if (!res.headersSent) res.status(500).json({ error: 'Failed to serve preview' });
-      }
+      res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${req.params.photoId}`));
     }
   }
 );

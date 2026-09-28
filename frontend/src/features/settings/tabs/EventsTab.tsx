@@ -287,31 +287,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </div>
           </div>
 
-          {/* Download limit default (issue 1560) */}
-          <div>
-            <label
-              className="block text-sm font-medium text-body mb-1"
-              htmlFor="event_default_download_limit"
-            >
-              {t('settings.events.defaultDownloadLimit', 'Default download limit')}
-            </label>
-            <input
-              id="event_default_download_limit"
-              type="number"
-              min={0}
-              max={2147483647}
-              value={eventSettings.event_default_download_limit}
-              onChange={(e) => setEventSettings(prev => ({
-                ...prev,
-                event_default_download_limit: Math.max(0, parseInt(e.target.value, 10) || 0),
-              }))}
-              className="w-32 px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading text-sm"
-            />
-            <p className="text-xs text-muted mt-1">
-              {t('settings.events.defaultDownloadLimitHelp', 'Pre-filled on new events: how many photos a client can download. 0 = unlimited.')}
-            </p>
-          </div>
-
           {/* Uploader names (#1561): defaults for new galleries only. */}
           <UploaderNameSettings
             className="max-w-sm"

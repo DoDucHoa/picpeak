@@ -8,7 +8,6 @@ function isHandledElsewhere(error: unknown): boolean {
   const status = (error as { response?: { status?: number } })?.response?.status;
   return status === 402 || status === 403;
 }
-import { isDownloadLimitError } from '../utils/downloadLimit';
 
 export const useGalleryInfo = (slug?: string, token?: string, enabled: boolean = true) => {
   return useQuery({
@@ -75,8 +74,6 @@ export const useDownloadPhoto = () => {
       // on top of it would tell the guest something went wrong when in fact
       // the server explained itself.
       if (isHandledElsewhere(error)) return;
-      // The limit refusal already said why (issue 1560).
-      if (isDownloadLimitError(error)) return;
       toast.error('Failed to download photo');
     },
   });
@@ -116,7 +113,7 @@ export const useSavePhotoToDevice = () => {
       queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
     },
     onError: (error) => {
-      if (isDownloadLimitError(error) || isHandledElsewhere(error)) return;
+      if (isHandledElsewhere(error)) return;
       toast.error('Failed to save photo');
     },
   });
@@ -134,7 +131,6 @@ export const useDownloadAllPhotos = () => {
       // package dialog. A generic failure toast on top of it tells the guest
       // something went wrong when in fact the server explained itself.
       if ((error as { response?: { status?: number } })?.response?.status === 402) return;
-      if (isDownloadLimitError(error)) return;
       toast.error('Failed to download photos');
     },
   });

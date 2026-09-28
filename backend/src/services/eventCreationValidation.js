@@ -19,7 +19,6 @@ const schema = Joi.object({
   color_theme: optionalText,
   welcome_message: optionalText,
   photo_cap: Joi.number().integer().min(1).allow(null),
-  download_limit: Joi.number().integer().min(1).max(2147483647).allow(null),
   guest_name_mode: Joi.string().valid('off', 'optional', 'required'),
   image_quality: Joi.number().integer().min(1).max(100),
   protection_level: Joi.string().valid('basic', 'standard', 'enhanced', 'maximum'),

@@ -9,8 +9,6 @@ import { FeedbackIdentityModal } from './FeedbackIdentityModal';
 import { feedbackService } from '../../services/feedback.service';
 import { ColorLabelBadge } from './ColorLabelBadge';
 import { useGuestIdentityOptional } from '../../contexts/GuestIdentityContext';
-import { useDownloadQuota } from '../../contexts/DownloadQuotaContext';
-import { downloadLimitReachedMessage } from '../../utils/downloadLimit';
 import { useInputMode } from '../../hooks/useInputMode';
 import type { Photo } from '../../types';
 
@@ -124,11 +122,6 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
   const guestIdentity = useGuestIdentityOptional();
   // Already spent a slot, so re-downloading it costs nothing (#download-quota).
   const delivered = useIsPhotoDelivered(photo.id);
-  // Download limit (issue 1560): shown as unavailable once nothing is left.
-  // aria-disabled rather than disabled, so the click still reaches the
-  // handler (which explains the refusal) instead of falling through to the
-  // tile and opening the lightbox.
-  const withinDownloadLimit = useDownloadQuota().canDownload(photo);
   const [overlayVisible, setOverlayVisible] = useState(false);
   // #1275 — the input in use right now, not what the device is capable of.
   // On a hybrid the two disagree, and acting on the device's primary pointer
@@ -455,9 +448,6 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                       hideOverlay();
                     }}
                     aria-label={t('gallery.downloadPhoto', 'Download photo')}
-                    aria-disabled={!withinDownloadLimit || undefined}
-                    title={withinDownloadLimit ? undefined : downloadLimitReachedMessage()}
-                    style={withinDownloadLimit ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
                   >
                     <Download className={actionIconClass} />
                   </button>

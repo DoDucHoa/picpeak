@@ -36,7 +36,7 @@ const { bootCrmDb, seedMinimal, assignAdminRole, mintAdminToken } = require('../
 const ROUTES = path.join(__dirname, '../../src/routes');
 const INSPECTED = [
   'adminEvents/crud.js', 'adminEvents/resets.js', 'adminEvents/logo.js', 'adminEvents/passwordRecovery.js',
-  'adminEvents/downloadResolutions.js', 'adminEvents/downloadLimit.js', 'adminEvents/faces.js',
+  'adminEvents/downloadResolutions.js', 'adminEvents/faces.js',
   'adminEvents/slideshow.js', 'adminPhotos.js', 'adminCategories.js', 'adminFeedback.js',
 ];
 

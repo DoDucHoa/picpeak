@@ -42,8 +42,6 @@ export type EditFormState = {
   hero_image_anchor: string;
   // Photo cap
   photo_cap: number;
-  // Download limit (issue 1560). 0 = unlimited.
-  download_limit: number;
   // Default photo sort
   default_photo_sort: string;
   // Per-event promotional override (#440). Three-way mode:
@@ -100,7 +98,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   hero_image_anchor: 'center',
   // Photo cap
   photo_cap: 0,
-  download_limit: 0,
   // Default photo sort
   default_photo_sort: 'upload_date_desc',
   // Per-event promotional override (#440)
