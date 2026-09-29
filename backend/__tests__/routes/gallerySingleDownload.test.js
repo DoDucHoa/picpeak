@@ -181,4 +181,14 @@ describe('download watermark', () => {
       await db('events').where({ id: eventId }).update({ watermark_downloads: false });
     }
   });
+
+  it('serves a watermarked file when the Branding download switch is on', async () => {
+    const jpeg = await addRealJpeg('marked.jpg');
+    await setSetting('branding_watermark_downloads_enabled', true);
+    require('../../src/services/watermarkService').clearCache();
+    const res = await download(jpeg.id);
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    expect(Buffer.compare(res.body, jpeg.bytes)).not.toBe(0);
+  });
 });
