@@ -3,7 +3,6 @@ import { useExpiryRefresh } from '../../hooks/useExpiryRefresh';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 
 import { Button, Card, Loading } from '../../components/common';
 import { PasswordResetModal, PublishGalleryDialog, SendGalleryEmailDialog, DuplicateEventDialog, EventRenameDialog, AdminGuestsList } from '../../components/admin';
@@ -17,7 +16,7 @@ import { cssTemplatesService, type EnabledTemplate } from '../../services/cssTem
 import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
 import { safeParseDate, eventHasGuests } from './event-details/utils';
 import { INITIAL_EDIT_FORM, type EditFormState, type EventDetailsTab } from './event-details/types';
-import type { CustomerGroup } from '../../services/customerAdmin.service';
+import { eventFormValues } from './event-details/draft/serverValues';
 import { EventDetailsHeader } from './event-details/EventDetailsHeader';
 import { EventTabs } from './event-details/EventTabs';
 import { OverviewTab } from './event-details/OverviewTab';
@@ -37,7 +36,6 @@ export const EventDetailsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { format } = useLocalizedDate();
 
   // Validate ID parameter
   React.useEffect(() => {
@@ -409,65 +407,7 @@ export const EventDetailsPage: React.FC = () => {
   const isExpiring = !isExpired && daysUntilExpiration !== null && daysUntilExpiration > 0 && daysUntilExpiration <= 7;
 
   const handleStartEdit = () => {
-    setEditForm({
-      welcome_message: event.welcome_message || '',
-      color_theme: event.color_theme || '',
-      css_template_id: event.css_template_id || null,
-      expires_at: expiresAtDate ? format(expiresAtDate, 'yyyy-MM-dd') : '',
-      allow_user_uploads: event.allow_user_uploads || false,
-      reveal_mode: event.reveal_mode || false,
-      // datetime-local wants local "YYYY-MM-DDTHH:mm"
-      reveal_at: event.reveal_at
-        ? (() => { const d = new Date(event.reveal_at); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })()
-        : '',
-      upload_category_id: event.upload_category_id || null,
-      guest_name_mode: event.guest_name_mode || 'off',
-      show_credits_to_guests: Boolean(event.show_credits_to_guests),
-      hero_photo_id: event.hero_photo_id || null,
-      customer_name: event.customer_name || '',
-      customer_email: event.customer_email || '',
-      customer_phone: event.customer_phone || '',
-      source_mode: event.source_mode === 'reference' ? 'reference' : 'managed',
-      external_path: event.external_path || '',
-      external_watch: Boolean(event.external_watch),
-      require_password: normalizeRequirePassword(event.require_password),
-      new_password: '',
-      confirm_new_password: '',
-      // Load protection settings from event
-      protection_level: event.protection_level || 'standard',
-      allow_downloads: event.allow_downloads ?? true,
-      // Load hero logo settings from event. Preserve null = "inherit global"
-      // (#756) — don't collapse it to true, or saving would snapshot an override.
-      hero_logo_visible: event.hero_logo_visible ?? null,
-      // Preserve null = "inherit global size" (#756) — don't collapse to medium.
-      hero_logo_size: event.hero_logo_size ?? null,
-      hero_logo_position: event.hero_logo_position || 'top',
-      // #894: null = default (show); only false hides the password-page logo.
-      // Boolean() folds SQLite's 0/1 into real booleans so the edit form's
-      // strict `=== false` check reads a persisted hide correctly.
-      login_logo_visible: event.login_logo_visible == null ? null : Boolean(event.login_logo_visible),
-      // Hero image anchor position (#162)
-      hero_image_anchor: event.hero_image_anchor || 'center',
-      // Photo cap
-      photo_cap: event.photo_cap || 0,
-      // Default photo sort
-      default_photo_sort: event.default_photo_sort || 'upload_date_desc',
-      // Per-event promotional override (#440)
-      promo_mode: ((event as { promo_mode?: 'inherit' | 'custom' | 'off' }).promo_mode) || 'inherit',
-      info_mode: ((event as { info_mode?: 'inherit' | 'custom' | 'off' }).info_mode) || 'inherit',
-      promo_markdown: (event as { promo_markdown?: string }).promo_markdown || '',
-      info_markdown: (event as { info_markdown?: string }).info_markdown || '',
-      // Customer accounts (#354). The backend returns
-      // `customer_accounts: [{ id, email, display_name, ... }]`; map to
-      // the picker's shape.
-      // `groups` only comes with customers.view (#1443).
-      customer_accounts: ((event as { customer_accounts?: Array<{ id: number; email: string; display_name?: string | null; groups?: CustomerGroup[] }> }).customer_accounts || [])
-        .map((c) => ({ id: c.id, email: c.email, displayName: c.display_name ?? null, groups: c.groups })),
-      // Per-event social-share opt-in (#474). Coerce explicitly so
-      // SQLite's 0/1 and Postgres's true/false both render the switch
-      // in the right state on first paint.
-      og_image_share_enabled: event.og_image_share_enabled === true,
-    });
+    setEditForm(eventFormValues(event));
 
     setShowNewPassword(false);
 

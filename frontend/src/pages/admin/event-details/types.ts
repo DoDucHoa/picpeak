@@ -1,4 +1,5 @@
 import type { GuestNameMode } from '../../../types';
+import type { ThemeConfig } from '../../../types/theme.types';
 
 export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads';
 
@@ -55,7 +56,13 @@ export type EditFormState = {
   customer_accounts: Array<{ id: number; email: string; displayName: string | null }>;
   // Per-event opt-in for hero photo as social-share preview (#474).
   og_image_share_enabled: boolean;
+  // Client access (#1271), edited in Settings > Access and saved by the bar.
+  client_access_enabled: boolean;
+  client_password: string;
 };
+
+/** The theme picker's state in the draft: the look and the preset it came from. */
+export interface ThemeDraft { config: ThemeConfig; preset: string }
 
 export const INITIAL_EDIT_FORM: EditFormState = {
   welcome_message: '',
@@ -103,4 +110,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   // so a freshly opened editor never displays "on" against the saved
   // (off) state.
   og_image_share_enabled: false,
+  client_access_enabled: false,
+  client_password: '',
 };
