@@ -616,6 +616,12 @@ the checklist.
 
 ## 9. Out of scope, recorded
 
+- After the deploy, as its own task (operator decision 2026-09-29): the fork's admin
+  download-order routes (`routes/adminDownloadQuota.js`: approve, reject, package
+  prices) check only `events.edit` and ignore the event-ownership rule upstream #1680
+  unified, so on a multi-photographer install an editor can act on another
+  photographer's orders. Fix with `canAccessEvent` / `scopeEventsQuery`, gate package
+  prices behind `settings.edit`, and add the file to `eventOwnershipPredicate.test.js`.
 - Protection levels `enhanced` and `maximum` (finding 7). Re-check after P-1, since
   upstream #1669 removed the secure-image token routes.
 - The hero image ETag ignores the watermark, so a toggle can serve a cached image for up
