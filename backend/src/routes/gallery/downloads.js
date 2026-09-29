@@ -391,13 +391,21 @@ router.get('/:slug/download/:photoId', verifyGalleryAccess, denySlideshowToken, 
       'Content-Disposition': contentDisposition,
     });
     res.sendFile(filePath, (downloadError) => {
-      if (downloadError) {
-        logger.error('Error streaming gallery download', {
-          slug: req.params.slug,
-          photoId,
-          eventId: req.event.id,
-          error: downloadError.message,
-        });
+      if (!downloadError) return;
+      logger.error('Error streaming gallery download', {
+        slug: req.params.slug,
+        photoId,
+        eventId: req.event.id,
+        error: downloadError.message,
+      });
+      // With a callback, sendFile leaves the response to us. Unanswered, a
+      // missing file kept the request open forever and the allowance slot
+      // claimed above was never given back.
+      if (!res.headersSent) {
+        const missing = downloadError.code === 'ENOENT' || downloadError.status === 404;
+        res.status(missing ? 404 : 500).json({ error: missing ? 'Photo file not found' : 'Failed to download photo' });
+      } else {
+        res.destroy(downloadError);
       }
     });
   } catch (error) {
