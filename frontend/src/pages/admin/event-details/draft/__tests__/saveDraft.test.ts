@@ -72,6 +72,10 @@ describe('validateDraft', () => {
     const form = { ...server, source_mode: 'reference' as const, external_path: '' };
     expect(validateDraft(new Set(['source_mode']), form, server)?.key).toBe('events.externalFolderRequired');
   });
+  it('ignores a client password of only spaces, as the old card did', () => {
+    expect(validateDraft(new Set(['client_password']), { ...server, client_password: '   ' }, server)).toBeNull();
+  });
+
   it('rejects a short or digits-only client password', () => {
     expect(validateDraft(new Set(['client_password']), { ...server, client_password: 'abc' }, server)).not.toBeNull();
     expect(validateDraft(new Set(['client_password']), { ...server, client_password: '12345678' }, server)).not.toBeNull();

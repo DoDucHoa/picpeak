@@ -42,7 +42,9 @@ export const ClientAccessCard: React.FC<ClientAccessCardProps> = ({
               checked={editForm.client_access_enabled}
               onChange={(e) => {
                 const on = e.target.checked;
-                setEditForm((prev) => ({ ...prev, client_access_enabled: on }));
+                // Switching off forgets a typed password, as the gallery password
+                // does: a hidden field must not block or ride along with a save.
+                setEditForm((prev) => ({ ...prev, client_access_enabled: on, client_password: on ? prev.client_password : '' }));
               }}
             />
             <div>

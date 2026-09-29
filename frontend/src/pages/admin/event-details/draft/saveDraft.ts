@@ -90,8 +90,8 @@ export function validateDraft(
   }
   // Client access is a second way into the gallery: the gallery password's
   // floor applies (moved from ClientAccessCard, which used to save at once).
-  if (changed.has('client_password') && form.client_password) {
-    const candidate = form.client_password.trim();
+  const candidate = form.client_password?.trim() ?? '';
+  if (changed.has('client_password') && candidate) {
     if (candidate.length < 6) {
       return { key: 'validation.passwordMinLength', fallback: 'Password must be at least 6 characters' };
     }

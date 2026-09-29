@@ -75,6 +75,16 @@ describe('ClientAccessCard in Settings > Access', () => {
     expect(screen.queryByRole('button', { name: /clientAccess.setPassword/ })).toBeNull();
   });
 
+  it('forgets a typed password when client access is switched off', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true, client_password: 'Typed-123' };
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    const arg = setEditForm.mock.calls[0][0];
+    const next = typeof arg === 'function' ? arg(on) : arg;
+    expect(next).toMatchObject({ client_access_enabled: false, client_password: '' });
+  });
+
   it('has no password field while client access is off in the draft', () => {
     render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={vi.fn()} />);
     expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
