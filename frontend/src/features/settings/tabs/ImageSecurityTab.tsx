@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Monitor, Image, AlertCircle } from 'lucide-react';
+import { Shield, Monitor, Image, AlertCircle, MousePointer } from 'lucide-react';
 import { Card, Loading } from '../../../components/common';
 import { SettingsSaveBar } from '../../../components/admin/SettingsSaveBar';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { api } from '../../../config/api';
 interface ImageSecuritySettings {
   default_protection_level: 'basic' | 'standard' | 'enhanced' | 'maximum';
   default_image_quality: number;
+  disable_right_click: boolean;
   enable_devtools_protection: boolean;
   max_image_requests_per_minute: number;
   max_image_requests_per_5_minutes: number;
@@ -25,6 +26,7 @@ interface ImageSecuritySettings {
 const defaultSettings: ImageSecuritySettings = {
   default_protection_level: 'standard',
   default_image_quality: 85,
+  disable_right_click: true,
   enable_devtools_protection: true,
   max_image_requests_per_minute: 30,
   max_image_requests_per_5_minutes: 100,
@@ -138,7 +140,7 @@ export const ImageSecurityTab: React.FC = () => {
               <option value="basic">{t('events.protectionLevelBasic', 'Basic - Right-click blocking only')}</option>
               <option value="standard">{t('events.protectionLevelStandard', 'Standard - Keyboard shortcuts blocked')}</option>
               <option value="enhanced">{t('events.protectionLevelEnhanced', 'Enhanced - Print screen detection')}</option>
-              <option value="maximum">{t('events.protectionLevelMaximum', 'Maximum - DevTools detection & canvas rendering')}</option>
+              <option value="maximum">{t('events.protectionLevelMaximum', 'Maximum: leaves the gallery when developer tools are detected')}</option>
             </select>
           </div>
 
@@ -163,13 +165,26 @@ export const ImageSecurityTab: React.FC = () => {
             <label className="flex items-center">
               <input
                 type="checkbox"
+                checked={settings.disable_right_click}
+                onChange={(e) => handleChange('disable_right_click', e.target.checked)}
+                className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
+              />
+              <MousePointer className="w-4 h-4 ml-2 mr-1 text-neutral-500" />
+              <span className="text-sm text-body">
+                {t('settings.imageSecurity.disableRightClick', 'Block right-click in every gallery')}
+              </span>
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
                 checked={settings.enable_devtools_protection}
                 onChange={(e) => handleChange('enable_devtools_protection', e.target.checked)}
                 className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
               />
               <Monitor className="w-4 h-4 ml-2 mr-1 text-neutral-500" />
               <span className="text-sm text-body">
-                {t('settings.imageSecurity.enableDevtools', 'Enable DevTools detection by default')}
+                {t('settings.imageSecurity.enableDevtools', 'Detect developer tools in every gallery')}
               </span>
             </label>
 
@@ -182,7 +197,7 @@ export const ImageSecurityTab: React.FC = () => {
               />
               <Image className="w-4 h-4 ml-2 mr-1 text-neutral-500" />
               <span className="text-sm text-body">
-                {t('settings.imageSecurity.enableCanvas', 'Enable canvas rendering in the lightbox by default (advanced protection)')}
+                {t('settings.imageSecurity.enableCanvas', 'Canvas rendering in the lightbox of every gallery (advanced protection)')}
               </span>
             </label>
           </div>
