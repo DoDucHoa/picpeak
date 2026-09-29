@@ -6,6 +6,7 @@ const { getAppSetting } = require('../../utils/appSettings');
 const { timingSafeEqualStr } = require('../../utils/timingSafe');
 const router = express.Router();
 const { resolveHeroLogoVisible } = require('../../services/galleryModel');
+const { getGalleryProtectionSettings } = require('../../services/eventSettings');
 const { verifyAdminPreview } = require('../../middleware/gallery');
 const { noStoreCache } = require('../../middleware/noStoreCache');
 const logger = require('../../utils/logger');
@@ -172,12 +173,9 @@ router.get('/:slug/info', async (req, res) => {
         'reveal_mode',
         'reveal_at',
         'revealed_at',
-        'disable_right_click',
         'watermark_text',
         'require_password',
         'color_theme',
-        'enable_devtools_protection',
-        'use_canvas_rendering',
         'hero_logo_visible',
         'hero_logo_size',
         'hero_logo_position',
@@ -244,6 +242,7 @@ router.get('/:slug/info', async (req, res) => {
       ? false
       : !(event.require_password === false || event.require_password === 0 || event.require_password === '0');
     const globalHeroLogoVisible = await getAppSetting('branding_logo_display_hero', true);
+    const guardProtection = await getGalleryProtectionSettings();
     const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
 
     res.json({
@@ -261,12 +260,12 @@ router.get('/:slug/info', async (req, res) => {
       // the landing page can hint at the reveal before login too.
       hidden_until_reveal: isGalleryHidden(event),
       reveal_at: isGalleryHidden(event) ? (event.reveal_at || null) : null,
-      disable_right_click: event.disable_right_click === true || event.disable_right_click === 1 || event.disable_right_click === '1',
+      disable_right_click: guardProtection.disable_right_click,
       // Branding decides download watermarks; the event's own flag is ignored.
       watermark_downloads: [true, 'true'].includes(await getAppSetting('branding_watermark_downloads_enabled', false)),
       watermark_text: event.watermark_text,
-      enable_devtools_protection: event.enable_devtools_protection === true || event.enable_devtools_protection === 1 || event.enable_devtools_protection === '1',
-      use_canvas_rendering: event.use_canvas_rendering === true || event.use_canvas_rendering === 1 || event.use_canvas_rendering === '1',
+      enable_devtools_protection: guardProtection.enable_devtools_protection,
+      use_canvas_rendering: guardProtection.use_canvas_rendering,
       hero_logo_visible: resolveHeroLogoVisible(event.hero_logo_visible, globalHeroLogoVisible),
       // #894: only an explicit false hides the logo on the password page;
       // NULL keeps the default (show).

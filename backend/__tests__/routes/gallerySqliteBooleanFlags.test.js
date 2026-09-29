@@ -147,19 +147,46 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
     });
   });
 
+  // Right-click, devtools and canvas are one switch each in Image security,
+  // live for every gallery; the event columns no longer decide them.
   describe('protection flags', () => {
-    test('0/1 protection toggles are reported the way they are stored', async () => {
-      await setEventFlags({
-        disable_right_click: 1,
-        enable_devtools_protection: 1,
-        use_canvas_rendering: 1,
-        overlay_protection: 0,
-      });
-      const event = await getPayload();
-      expect(event.disable_right_click).toBe(true);
-      expect(event.enable_devtools_protection).toBe(true);
-      expect(event.use_canvas_rendering).toBe(true);
-      expect(event.overlay_protection).toBe(false);
+    const setGlobal = (key, value) => db('app_settings')
+      .insert({ setting_key: key, setting_value: JSON.stringify(value), setting_type: 'security' })
+      .onConflict('setting_key').merge();
+    const setGlobals = async (value) => {
+      await setGlobal('disable_right_click', value);
+      await setGlobal('enable_devtools_protection', value);
+      await setGlobal('enable_canvas_rendering', value);
+    };
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+    const flags = (e) => [e.disable_right_click, e.enable_devtools_protection, e.use_canvas_rendering];
+
+    afterAll(async () => {
+      await setGlobals(false);
+      await setEventFlags({ disable_right_click: 0, enable_devtools_protection: 0, use_canvas_rendering: 0 });
+    });
+
+    test('the event columns are ignored when the switches are off', async () => {
+      await setGlobals(false);
+      await setEventFlags({ disable_right_click: 1, enable_devtools_protection: 1, use_canvas_rendering: 1 });
+      expect(flags(await getPayload())).toEqual([false, false, false]);
+      expect(flags(await getInfo())).toEqual([false, false, false]);
+    });
+
+    test('the switches apply to an event whose columns are off', async () => {
+      await setGlobals(true);
+      await setEventFlags({ disable_right_click: 0, enable_devtools_protection: 0, use_canvas_rendering: 0 });
+      expect(flags(await getPayload())).toEqual([true, true, true]);
+      expect(flags(await getInfo())).toEqual([true, true, true]);
+    });
+
+    test('overlay protection is still reported the way it is stored', async () => {
+      await setEventFlags({ overlay_protection: 0 });
+      expect((await getPayload()).overlay_protection).toBe(false);
     });
   });
 

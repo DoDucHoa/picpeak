@@ -5,6 +5,7 @@ const { getAppSetting } = require('../utils/appSettings');
 const { formatBoolean } = require('../utils/dbCompat');
 const { SHARED_COLOR_LABEL_IDENTITY } = require('../constants/colorLabels');
 const watermarkService = require('./watermarkService');
+const { getGalleryProtectionSettings } = require('./eventSettings');
 const logger = require('../utils/logger');
 const { getEventCategoriesOrdered } = require('../utils/categoryOrder');
 const { getUseOriginalFilenames } = require('./downloadFilenameService');
@@ -353,7 +354,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
   const protectionSettings = {
     protection_level: event.protection_level || 'standard',
     image_quality: event.image_quality || 85,
-    use_canvas_rendering: parseBooleanInput(event.use_canvas_rendering, false),
     overlay_protection: parseBooleanInput(event.overlay_protection, true)
   };
 
@@ -391,6 +391,7 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
   const globalHeroLogoVisible = await getAppSetting('branding_logo_display_hero', true);
   const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
   const downloadPolicy = await resolveEventDownloadPolicy(event);
+  const guardProtection = await getGalleryProtectionSettings();
 
   // Uploader names / photo credits (#1561). Recorded for the admin; a guest
   // sees them only when the per-event switch is on, and a guest-given name
@@ -433,12 +434,12 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       // Reveal mode (#838): armed flag lets an open VISIBLE gallery keep
       // polling so a re-hide propagates without a manual reload.
       reveal_armed: parseBooleanInput(event.reveal_mode, false),
-      disable_right_click: parseBooleanInput(event.disable_right_click, false),
+      disable_right_click: guardProtection.disable_right_click,
       // Branding decides download watermarks; the event's own flag is ignored.
       watermark_downloads: parseBooleanInput(await getAppSetting('branding_watermark_downloads_enabled', false), false),
       watermark_text: event.watermark_text,
-      enable_devtools_protection: parseBooleanInput(event.enable_devtools_protection, false),
-      use_canvas_rendering: parseBooleanInput(event.use_canvas_rendering, false),
+      enable_devtools_protection: guardProtection.enable_devtools_protection,
+      use_canvas_rendering: guardProtection.use_canvas_rendering,
       hero_logo_visible: resolveHeroLogoVisible(event.hero_logo_visible, globalHeroLogoVisible),
       hero_logo_size: event.hero_logo_size || globalLogoSize || 'medium',
       hero_logo_position: event.hero_logo_position || 'top',

@@ -113,6 +113,24 @@ const getDownloadProtectionDefaults = async () => {
 };
 
 /**
+ * The three guest protections, one switch each in Image security and live
+ * for every gallery (P1 of the event form redesign). The event columns of
+ * the same names are still written on create but decide nothing.
+ */
+const getGalleryProtectionSettings = async () => {
+  const [rightClick, devtools, canvas] = await Promise.all([
+    readBooleanSetting('disable_right_click'),
+    readBooleanSetting('enable_devtools_protection'),
+    readBooleanSetting('enable_canvas_rendering'),
+  ]);
+  return {
+    disable_right_click: rightClick ?? true,
+    enable_devtools_protection: devtools ?? true,
+    use_canvas_rendering: canvas ?? false,
+  };
+};
+
+/**
  * The rest of Settings → Image security, as creation defaults (#1296).
  *
  * Four settings in that panel were written, reloaded and rendered as
@@ -388,6 +406,7 @@ module.exports = {
   readBooleanSetting,
   decodeSettingValue,
   getDownloadProtectionDefaults,
+  getGalleryProtectionSettings,
   getImageSecurityDefaults,
   resolveImageSecurityColumns,
   getBrandingDefaults,
