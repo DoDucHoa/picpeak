@@ -101,7 +101,6 @@ async function readyCanvas(dialog: HTMLElement, id = 1) {
 describe('Premium lightbox canvas rendering (#1325)', () => {
   it.each([
     { useCanvasRendering: true, protectionLevel: 'standard' as const },
-    { useCanvasRendering: false, protectionLevel: 'maximum' as const },
   ])('uses canvas only for the active photo: %j', async (options) => {
     mount(options);
     expect(document.querySelector('canvas')).toBeNull();
@@ -117,7 +116,7 @@ describe('Premium lightbox canvas rendering (#1325)', () => {
     expect(galleryService.trackPhotoView).toHaveBeenCalledWith('demo', 1);
   });
 
-  it.each(['basic', 'standard', 'enhanced'] as const)('uses an image with %s protection and canvas off', async (protectionLevel) => {
+  it.each(['basic', 'standard', 'enhanced', 'maximum'] as const)('uses an image with %s protection and canvas off', async (protectionLevel) => {
     mount({ protectionLevel, useCanvasRendering: false });
     const dialog = await openPhoto();
     expect(dialog.querySelector('canvas')).toBeNull();

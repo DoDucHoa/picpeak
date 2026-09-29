@@ -266,8 +266,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   // admin has flipped the same toggle that drives original-name downloads.
   const showOriginalFilename = data?.event?.use_original_filenames === true;
 
-  // DevTools protection - enabled by individual setting OR legacy protection level
-  const devToolsEnabled = enableDevtoolsProtection || protectionLevel === 'enhanced' || protectionLevel === 'maximum';
+  // DevTools detection follows the Image security switch only.
+  const devToolsEnabled = enableDevtoolsProtection;
 
   useDevToolsProtection({
     enabled: devToolsEnabled,

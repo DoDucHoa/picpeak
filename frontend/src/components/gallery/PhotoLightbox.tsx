@@ -205,8 +205,8 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   const photoAllowsDownload =
     allowDownloads && currentPhoto?.category_allow_downloads !== false;
   
-  // DevTools protection - enabled by individual setting OR legacy protection level
-  const devToolsEnabled = enableDevtoolsProtection || (useEnhancedProtection && (protectionLevel === 'enhanced' || protectionLevel === 'maximum'));
+  // DevTools detection follows the Image security switch only.
+  const devToolsEnabled = enableDevtoolsProtection;
 
   useDevToolsProtection({
     enabled: devToolsEnabled,
@@ -1270,7 +1270,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
                 draggable={false}
                 isGallery={true}
                 slug={slug}
-                useCanvasRendering={useCanvasRendering || protectionLevel === 'maximum'}
+                useCanvasRendering={useCanvasRendering}
                 onProtectionViolation={(violationType) => {
                   console.warn(`Protection violation in lightbox for photo ${photo.id}: ${violationType}`);
 
