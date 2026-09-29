@@ -5249,7 +5249,8 @@
     "removeColorLabel": "Remove {{color}} label",
     "setColorLabel": "Mark as {{color}}",
     "markedAs": "Marked as {{color}}",
-    "alsoMarkedBy": "Also marked by others: {{colors}}"
+    "alsoMarkedBy": "Also marked by others: {{colors}}",
+    "editSettingsLink": "Feedback settings"
   },
   "filter": {
     "feedbackFilters": "Feedback Filters",

@@ -5248,7 +5248,8 @@
     "removeColorLabel": "Xóa nhãn {{color}}",
     "setColorLabel": "Đánh dấu là {{color}}",
     "markedAs": "Đã đánh dấu là {{color}}",
-    "alsoMarkedBy": "Cũng được đánh dấu bởi người khác: {{colors}}"
+    "alsoMarkedBy": "Cũng được đánh dấu bởi người khác: {{colors}}",
+    "editSettingsLink": "Cài đặt phản hồi"
   },
   "filter": {
     "feedbackFilters": "Bộ lọc phản hồi",
