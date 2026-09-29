@@ -1904,7 +1904,8 @@
       "sectionExtra": "Tính năng bổ sung",
       "lockedPermission": "Đã khóa: cần quyền {{permission}}",
       "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
-    }
+    },
+    "changePasswordLink": "Đổi mật khẩu"
   },
   "settings": {
     "title": "Cài đặt hệ thống",

@@ -1905,7 +1905,8 @@
       "sectionExtra": "Extra features",
       "lockedPermission": "Locked: needs the {{permission}} permission",
       "lockedArchived": "This event is archived. Its settings are read-only."
-    }
+    },
+    "changePasswordLink": "Change password"
   },
   "settings": {
     "title": "System Settings",

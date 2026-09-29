@@ -31,6 +31,10 @@ describe('buildEventPayload', () => {
     const form = { ...server, new_password: 'secret1', confirm_new_password: 'secret1' };
     expect(buildEventPayload(new Set(['new_password', 'confirm_new_password']), form, theme, theme)).toEqual({ password: 'secret1' });
   });
+  it('sends a trimmed client password', () => {
+    const form = { ...server, client_password: '  Wedding-2026 ' };
+    expect(buildEventPayload(new Set(['client_password']), form, theme, theme)).toEqual({ client_password: 'Wedding-2026' });
+  });
   it('sends only the header style when only the header style changed', () => {
     const next = { ...theme, config: { ...theme.config, headerStyle: 'hero' } as never };
     expect(buildEventPayload(new Set(['__theme']), server, next, theme)).toEqual({ header_style: 'hero' });
@@ -68,6 +72,12 @@ describe('validateDraft', () => {
     const form = { ...server, source_mode: 'reference' as const, external_path: '' };
     expect(validateDraft(new Set(['source_mode']), form, server)?.key).toBe('events.externalFolderRequired');
   });
+  it('rejects a short or digits-only client password', () => {
+    expect(validateDraft(new Set(['client_password']), { ...server, client_password: 'abc' }, server)).not.toBeNull();
+    expect(validateDraft(new Set(['client_password']), { ...server, client_password: '12345678' }, server)).not.toBeNull();
+    expect(validateDraft(new Set(['client_password']), { ...server, client_password: 'Wedding-2026' }, server)).toBeNull();
+  });
+
   it('lets an unrelated change through on a protected event', () => {
     expect(validateDraft(new Set(['welcome_message']), { ...server, welcome_message: 'x' }, server)).toBeNull();
   });

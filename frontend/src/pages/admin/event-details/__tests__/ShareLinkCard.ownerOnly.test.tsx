@@ -38,7 +38,7 @@ function renderCard(event: Partial<Event>) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ShareLinkCard event={{ ...baseEvent, ...event } as Event} setShowPasswordReset={() => {}} passwordVersion={0} />
+      <ShareLinkCard event={{ ...baseEvent, ...event } as Event} onChangePassword={() => {}} passwordVersion={0} />
     </QueryClientProvider>,
   );
 }

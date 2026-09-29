@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { Card, Input } from '../../../../components/common';
+import { ClientAccessCard } from '../ClientAccessCard';
 import { useEventSettings } from './EventSettingsContext';
 
 /** Settings > Access (spec 5.1). The password controls moved from the old edit form unchanged. */
 export const AccessSection: React.FC = () => {
   const { t } = useTranslation();
-  const { editForm, setEditForm } = useEventSettings();
+  const { event, editForm, setEditForm, refetchEvent } = useEventSettings();
   const [showNewPassword, setShowNewPassword] = useState(false);
   return (
     <Card padding="md">
@@ -90,6 +91,9 @@ export const AccessSection: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+      <div className="mt-6">
+        <ClientAccessCard event={event} refetchEvent={refetchEvent} mode="settings" editForm={editForm} setEditForm={setEditForm} />
       </div>
     </Card>
   );

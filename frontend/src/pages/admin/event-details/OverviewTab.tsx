@@ -35,7 +35,8 @@ interface OverviewTabProps {
   onRevealNow?: () => void;
   refetchEvent: () => void;
   setActiveTab: (tab: EventDetailsTab) => void;
-  setShowPasswordReset: (show: boolean) => void;
+  /** Opens the Settings tab at a section (the Overview holds no settings). */
+  openSettings: (section: string) => void;
   setShowPublishDialog: (show: boolean) => void;
   onSendGalleryEmail: () => void;
   isSendingGalleryEmail: boolean;
@@ -62,7 +63,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onRevealNow,
   refetchEvent,
   setActiveTab,
-  setShowPasswordReset,
+  openSettings,
   setShowPublishDialog,
   onSendGalleryEmail,
   isSendingGalleryEmail,
@@ -95,7 +96,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
 
         {/* Share Link */}
-        <ShareLinkCard event={event} setShowPasswordReset={setShowPasswordReset} passwordVersion={passwordVersion} />
+        <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
 
         {/* Branded short URLs (#699). Sits between the canonical share-link
             card and the Client Access card — same "things you share with

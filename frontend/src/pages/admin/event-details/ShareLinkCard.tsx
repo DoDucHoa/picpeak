@@ -44,12 +44,13 @@ const saveBlob = (blob: Blob, filename: string) => {
 
 interface ShareLinkCardProps {
   event: Event;
-  setShowPasswordReset: (show: boolean) => void;
+  /** Opens Settings > Access, the password's one home (spec 5.4). */
+  onChangePassword: () => void;
   /** Bumped by the page after a password/PIN change (#1271). */
   passwordVersion?: number;
 }
 
-export const ShareLinkCard: React.FC<ShareLinkCardProps> = ({ event, setShowPasswordReset, passwordVersion = 0 }) => {
+export const ShareLinkCard: React.FC<ShareLinkCardProps> = ({ event, onChangePassword, passwordVersion = 0 }) => {
   const { t, i18n } = useTranslation();
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
@@ -280,10 +281,10 @@ export const ShareLinkCard: React.FC<ShareLinkCardProps> = ({ event, setShowPass
             variant="outline"
             size="sm"
             leftIcon={<Key className="w-4 h-4" />}
-            onClick={() => setShowPasswordReset(true)}
+            onClick={onChangePassword}
             className="w-full justify-center"
           >
-            {t('events.resetGalleryPassword')}
+            {t('events.changePasswordLink', 'Change password')}
           </Button>
           <Button
             variant="outline"

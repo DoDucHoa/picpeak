@@ -1,19 +1,20 @@
 /**
  * Client access has always stored a real bcrypt password; only the UI called
- * it a PIN, and nothing checked what was typed. A one-character secret went
- * straight through, on the credential that opens the same gallery the guest
- * password guards with a six-character floor.
+ * it a PIN, and nothing checked what was typed. The floor (six characters,
+ * not digits only) is now checked when the Settings save bar saves the draft
+ * (saveDraft.validateDraft, pinned in saveDraft.test.ts).
  *
- * This pins the two halves of the fix on the event page: the same floor as
- * the gallery password, checked before the PATCH goes out, and the generator
- * the gallery password has had all along.
+ * This pins the card itself: in Settings > Access the switch and the password
+ * go into the page's draft and nothing is sent from here; on the Overview the
+ * card shows the link and no password field.
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import type { Event } from '../../../../types';
+import type { EditFormState } from '../types';
 
 vi.mock('react-i18next', async () => {
   const actual = await vi.importActual<typeof import('react-i18next')>('react-i18next');
@@ -42,63 +43,56 @@ const event = {
   event_type: 'wedding',
   event_date: '2026-09-19',
   client_access_enabled: true,
-  client_share_token: null,
+  client_share_token: 'tok',
   is_archived: false,
 } as unknown as Event;
 
-const field = () => screen.getByPlaceholderText('clientAccess.passwordPlaceholder');
-const setButton = () => screen.getByRole('button', { name: /clientAccess.setPassword/ });
+const form = { client_access_enabled: false, client_password: '' } as EditFormState;
+const apply = (setEditForm: ReturnType<typeof vi.fn>, call = 0) => {
+  const arg = setEditForm.mock.calls[call][0];
+  return typeof arg === 'function' ? arg(form) : arg;
+};
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
-describe('ClientAccessCard: the client password', () => {
-  it('refuses a password shorter than six characters without calling the API', async () => {
-    const user = userEvent.setup();
-    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
-
-    await user.type(field(), 'abc');
-    await user.click(setButton());
-
-    expect(await screen.findByText('validation.passwordMinLength')).toBeInTheDocument();
+describe('ClientAccessCard in Settings > Access', () => {
+  it('puts the enable switch in the draft and saves nothing', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    expect(apply(setEditForm).client_access_enabled).toBe(true);
     expect(updateEvent).not.toHaveBeenCalled();
   });
 
-  it('refuses a digits-only password, which is exactly what a PIN habit produces', async () => {
-    const user = userEvent.setup();
-    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
-
-    await user.type(field(), '482100');
-    await user.click(setButton());
-
-    expect(await screen.findByText(/Password cannot be just numbers/)).toBeInTheDocument();
+  it('puts a typed password in the draft', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    await userEvent.type(screen.getByPlaceholderText('clientAccess.passwordPlaceholder'), 'W');
+    expect(apply(setEditForm).client_password).toBe('W');
     expect(updateEvent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /clientAccess.setPassword/ })).toBeNull();
   });
 
-  it('saves a password that clears the floor', async () => {
-    const user = userEvent.setup();
-    const refetchEvent = vi.fn();
-    render(<ClientAccessCard event={event} refetchEvent={refetchEvent} />);
-
-    await user.type(field(), 'Wedding-2026');
-    await user.click(setButton());
-
-    await waitFor(() => expect(updateEvent).toHaveBeenCalledWith(7, { client_password: 'Wedding-2026' }));
-    expect(refetchEvent).toHaveBeenCalled();
+  it('has no password field while client access is off in the draft', () => {
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={vi.fn()} />);
+    expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
   });
+});
 
-  it('offers the generator and drops what it produces straight into the field', async () => {
-    const user = userEvent.setup();
+describe('ClientAccessCard on the Overview', () => {
+  it('shows the link and no settings', () => {
     render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
+    expect(screen.getByDisplayValue(/client-access\?token=tok/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
 
-    const generate = screen.getByRole('button', { name: 'passwordGenerator.generatePassword' });
-    await user.click(generate);
-
-    // The generator resolves on a short timer of its own.
-    await waitFor(() => expect((field() as HTMLInputElement).value.length).toBeGreaterThanOrEqual(6), {
-      timeout: 3000,
-    });
-    // Whatever it produced must itself clear the floor this card enforces.
-    expect((field() as HTMLInputElement).value).not.toMatch(/^\d+$/);
+  it('keeps Regenerate as an immediate action', async () => {
+    const refetch = vi.fn();
+    render(<ClientAccessCard event={event} refetchEvent={refetch} />);
+    await userEvent.click(screen.getByRole('button', { name: /clientAccess.regenerateToken/ }));
+    expect(updateEvent).toHaveBeenCalledWith(7, { regenerate_client_token: true });
   });
 });

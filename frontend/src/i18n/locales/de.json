@@ -2432,7 +2432,8 @@
       "sectionExtra": "Zusatzfunktionen",
       "lockedPermission": "Gesperrt: benötigt die Berechtigung {{permission}}",
       "lockedArchived": "Diese Veranstaltung ist archiviert. Ihre Einstellungen sind schreibgeschützt."
-    }
+    },
+    "changePasswordLink": "Passwort ändern"
   },
   "settings": {
     "title": "Systemeinstellungen",

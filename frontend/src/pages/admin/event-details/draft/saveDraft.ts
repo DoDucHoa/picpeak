@@ -38,7 +38,7 @@ export function buildEventPayload(
     switch (key) {
       case 'new_password': if (form.new_password) out.password = form.new_password; break;
       case 'confirm_new_password': break;
-      case 'client_password': if (form.client_password) out.client_password = form.client_password; break;
+      case 'client_password': if (form.client_password.trim()) out.client_password = form.client_password.trim(); break;
       case 'customer_accounts': out.customer_account_ids = form.customer_accounts.map((c) => c.id); break;
       case 'customer_name': out.customer_name = form.customer_name.trim() || null; break;
       case 'customer_email': out.customer_email = form.customer_email.trim() || null; break;
@@ -86,6 +86,17 @@ export function validateDraft(
     }
     if (form.new_password && form.new_password !== form.confirm_new_password) {
       return { key: 'validation.passwordsDoNotMatch', fallback: 'Passwords do not match' };
+    }
+  }
+  // Client access is a second way into the gallery: the gallery password's
+  // floor applies (moved from ClientAccessCard, which used to save at once).
+  if (changed.has('client_password') && form.client_password) {
+    const candidate = form.client_password.trim();
+    if (candidate.length < 6) {
+      return { key: 'validation.passwordMinLength', fallback: 'Password must be at least 6 characters' };
+    }
+    if (/^\d+$/.test(candidate)) {
+      return { key: 'validation.passwordTooSimple', fallback: 'Password cannot be just numbers. Consider using a date format like "04.07.2025"' };
     }
   }
   if (SOURCE.some((k) => changed.has(k)) && form.source_mode === 'reference' && !form.external_path?.trim()) {

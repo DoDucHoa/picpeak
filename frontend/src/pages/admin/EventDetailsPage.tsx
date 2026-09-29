@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
 import { Button, Card, Loading } from '../../components/common';
-import { PasswordResetModal, PublishGalleryDialog, SendGalleryEmailDialog, DuplicateEventDialog, EventRenameDialog, AdminGuestsList } from '../../components/admin';
+import { PublishGalleryDialog, SendGalleryEmailDialog, DuplicateEventDialog, EventRenameDialog, AdminGuestsList } from '../../components/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
@@ -80,7 +80,6 @@ export const EventDetailsPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
@@ -506,7 +505,13 @@ export const EventDetailsPage: React.FC = () => {
           onRevealNow={() => revealMutation.mutate()}
           refetchEvent={refetchEvent}
           setActiveTab={setActiveTab}
-          setShowPasswordReset={setShowPasswordReset}
+          openSettings={(sectionId) => {
+            const next = new URLSearchParams(searchParams);
+            next.set('tab', 'settings');
+            next.set('section', sectionId);
+            setSearchParams(next);
+            setActiveTab('settings');
+          }}
           setShowPublishDialog={setShowPublishDialog}
           setShowDuplicateDialog={setShowDuplicateDialog}
           onSendGalleryEmail={() => setShowSendEmailDialog(true)}
@@ -571,22 +576,6 @@ export const EventDetailsPage: React.FC = () => {
           changedElsewhere={changedElsewhereSections}
           onSave={handleSave}
           onDiscard={() => { draft.discard(); setSaveError(null); }}
-        />
-      )}
-
-      {/* Password Reset Modal */}
-      {showPasswordReset && (
-        <PasswordResetModal
-          eventName={event.event_name}
-          eventDate={event.event_date ?? undefined}
-          eventType={event.event_type}
-          onConfirm={async (sendEmail, password) => {
-            const result = await eventsService.resetPassword(event.id, sendEmail, password);
-            // refetch so the share card drops a revealed password (#1271)
-            queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
-            return result;
-          }}
-          onClose={() => setShowPasswordReset(false)}
         />
       )}
 
