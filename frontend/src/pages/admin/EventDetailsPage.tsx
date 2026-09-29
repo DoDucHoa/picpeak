@@ -41,7 +41,7 @@ function isValidTab(value: string | null): value is EventDetailsTab {
   return value !== null && (ALL_TAB_KEYS as string[]).includes(value);
 }
 
-export const EventDetailsPage: React.FC = () => {
+const EventDetailsPageContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -649,6 +649,20 @@ export const EventDetailsPage: React.FC = () => {
 
     </div>
   );
+};
+
+EventDetailsPageContent.displayName = 'EventDetailsPageContent';
+
+/**
+ * One page instance per event. React Router keeps the element mounted from
+ * /admin/events/7 to /admin/events/8, and the Settings draft lives in page
+ * state, so without the key a draft made on one event would carry over to
+ * the next, including through the post-duplicate redirect the guard lets
+ * through.
+ */
+export const EventDetailsPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <EventDetailsPageContent key={id} />;
 };
 
 EventDetailsPage.displayName = 'EventDetailsPage';

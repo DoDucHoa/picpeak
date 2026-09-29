@@ -239,6 +239,23 @@ describe('event Settings save model', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
+  // The draft belongs to one event. React Router keeps the page mounted from
+  // /admin/events/7 to /admin/events/8, and the page's own redirect after a
+  // duplicate passes the guard on purpose, so the draft must not follow.
+  it('starts clean on another event, whichever way the user got there', async () => {
+    getEvent.mockImplementation(async (eventId: number) => (eventId === 8
+      ? { ...legacyEvent, id: 8, customer_name: 'Bert' }
+      : legacyEvent));
+    const router = await open();
+    await userEvent.type(await nameField(), 'x');
+    expect(bar()).not.toBeNull();
+    await act(async () => { await router.navigate('/admin/events/8?tab=settings'); });
+    await userEvent.click(await screen.findByRole('button', { name: 'Discard and leave' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/events/8'));
+    expect(await screen.findByDisplayValue('Bert')).toBeInTheDocument();
+    expect(bar()).toBeNull();
+  });
+
   it.each([
     ['a user without events.edit', false, 0],
     ['an archived event', true, 1],
