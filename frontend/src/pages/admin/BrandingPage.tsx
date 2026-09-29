@@ -25,6 +25,7 @@ const INITIAL_BRANDING: BrandingSettings = {
   footer_text: '',
   support_email: '',
   watermark_enabled: false,
+  watermark_downloads_enabled: false,
   watermark_position: 'bottom-right',
   watermark_opacity: 50,
   watermark_size: 15,
@@ -1038,8 +1039,24 @@ export const BrandingPage: React.FC = () => {
             </label>
           </div>
 
-          {/* Watermark Settings */}
-          {brandingSettings.watermark_enabled && (
+          <div className="mt-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!brandingSettings.watermark_downloads_enabled}
+                onChange={(e) => handleBrandingChange('watermark_downloads_enabled', e.target.checked)}
+                className="rounded border-line-strong text-accent focus:ring-primary-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-heading">{t('branding.watermarkDownloads', 'Watermark downloaded files')}</span>
+                <p className="text-xs text-soft">{t('branding.watermarkDownloadsHelp', 'Off: guests and clients download clean files, even when the gallery shows a watermark.')}</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Watermark Settings: the look applies to the gallery view and to
+              downloaded files alike, so it shows while either one is on. */}
+          {(brandingSettings.watermark_enabled || brandingSettings.watermark_downloads_enabled) && (
             <div className="mt-6 space-y-6 border-t border-line pt-6">
               <h3 className="text-md font-semibold text-heading">{t('branding.watermarkSettings')}</h3>
 

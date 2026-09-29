@@ -7,6 +7,7 @@ export interface BrandingSettings {
   support_email: string;
   footer_text: string;
   watermark_enabled: boolean;
+  watermark_downloads_enabled?: boolean;
   watermark_position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
   watermark_opacity?: number;
   watermark_size?: number;
@@ -372,6 +373,7 @@ export const settingsService = {
       support_email: rawSettings.branding_support_email || '',
       footer_text: rawSettings.branding_footer_text || '',
       watermark_enabled: this._parseBoolean(rawSettings.branding_watermark_enabled, false),
+      watermark_downloads_enabled: this._parseBoolean(rawSettings.branding_watermark_downloads_enabled, false),
       watermark_position: rawSettings.branding_watermark_position || 'bottom-right',
       watermark_opacity: rawSettings.branding_watermark_opacity || 50,
       watermark_size: rawSettings.branding_watermark_size || 15,
