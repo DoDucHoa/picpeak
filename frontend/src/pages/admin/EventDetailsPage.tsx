@@ -437,7 +437,6 @@ export const EventDetailsPage: React.FC = () => {
       protection_level: event.protection_level || 'standard',
       disable_right_click: event.disable_right_click ?? true,
       allow_downloads: event.allow_downloads ?? true,
-      watermark_downloads: event.watermark_downloads ?? false,
       enable_devtools_protection: event.enable_devtools_protection ?? true,
       use_canvas_rendering: event.use_canvas_rendering ?? false,
       // Load hero logo settings from event. Preserve null = "inherit global"
@@ -580,7 +579,6 @@ export const EventDetailsPage: React.FC = () => {
       protection_level: editForm.protection_level,
       disable_right_click: editForm.disable_right_click,
       allow_downloads: editForm.allow_downloads,
-      watermark_downloads: editForm.watermark_downloads,
       enable_devtools_protection: editForm.enable_devtools_protection,
       use_canvas_rendering: editForm.use_canvas_rendering,
       // Hero logo settings

@@ -11,7 +11,6 @@ import {
   EyeOff,
   Shield,
   Monitor,
-  Droplets,
   MousePointer,
   Layout,
   Trash2
@@ -655,22 +654,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={editForm.watermark_downloads}
-                  onChange={(e) => setEditForm(prev => ({
-                    ...prev,
-                    watermark_downloads: e.target.checked,
-                  }))}
-                  className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                />
-                <Droplets className="w-4 h-4 ml-2 mr-1 text-muted" />
-                <span className="text-sm text-body">{t('events.watermarkDownloads', 'Add watermark to downloads')}</span>
-              </label>
-
-
-
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
                   checked={editForm.enable_devtools_protection}
                   onChange={(e) => setEditForm(prev => ({ ...prev, enable_devtools_protection: e.target.checked }))}
                   className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
@@ -1054,12 +1037,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
                   <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded">
                     <Download className="w-3 h-3 mr-1" />
                     {t('events.downloadsDisabled', 'Downloads disabled')}
-                  </span>
-                )}
-                {!!event.watermark_downloads && (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">
-                    <Droplets className="w-3 h-3 mr-1" />
-                    {t('events.watermarked', 'Watermarked')}
                   </span>
                 )}
               </div>
