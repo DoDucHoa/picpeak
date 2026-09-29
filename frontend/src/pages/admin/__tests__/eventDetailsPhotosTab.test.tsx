@@ -10,7 +10,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -96,14 +96,17 @@ const EVENT = {
 
 function renderPage(entry: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // A data router, as in the app: the page blocks navigation with useBlocker.
+  const router = createMemoryRouter(
+    [
+      { path: '/admin/events/:id', element: <EventDetailsPage /> },
+      { path: '/admin/events', element: <div>events list</div> },
+    ],
+    { initialEntries: [entry] },
+  );
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="/admin/events/:id" element={<EventDetailsPage />} />
-          <Route path="/admin/events" element={<div>events list</div>} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 }

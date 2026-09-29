@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { analyticsService, AnalyticsRouteTracker } from './services/analytics.service';
+import { analyticsService } from './services/analytics.service';
 
 import { GalleryAuthProvider, MaintenanceProvider } from './contexts';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -96,8 +96,8 @@ import { AccountingLayout, AccountingIndex } from './components/admin/Accounting
 import { AccountingInboxPage } from './pages/admin/accounting/AccountingInboxPage';
 import { ExpensesLedgerPage } from './pages/admin/accounting/ExpensesLedgerPage';
 import { RequireFeature } from './components/admin/RequireFeature';
-import { PageErrorBoundary, OfflineIndicator, SkipLink, DynamicFavicon, RobotsMetaTags, CMSContentBlock, Loading } from './components/common';
-import { MaintenanceWrapper } from './components/MaintenanceWrapper';
+import { PageErrorBoundary, OfflineIndicator, DynamicFavicon, RobotsMetaTags, CMSContentBlock, Loading } from './components/common';
+import { RootLayout } from './components/RootLayout';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
 import { ConfirmDialogProvider } from './components/common';
 import { usePublicSettings } from './hooks/usePublicSettings';
@@ -196,33 +196,12 @@ function RedirectCustomerDetail() {
   return <Navigate to={`/admin/clients/accounts/${id}`} replace />;
 }
 
-function App() {
-  // Track dark mode for toast theming
-  const [toastTheme, setToastTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setToastTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <PageErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AnalyticsBootstrap />
-        <MaintenanceProvider>
-          <ThemeProvider>
-            <GlobalThemeProvider>
-              <ConfirmDialogProvider>
-              <DynamicFavicon />
-              <RobotsMetaTags />
-              <Router>
-                <AnalyticsRouteTracker />
-                <MaintenanceWrapper>
-                  <SkipLink />
-                  <Routes>
+// A data router, created once, so pages can block navigation with
+// useBlocker (spec finding 16). The route list is the one that sat inside
+// <Routes>, moved verbatim under the root layout.
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
                   {/* Public gallery routes */}
                   <Route path="/gallery/preview" element={<PreviewPage />} />
                   {/* Live Slideshow ("Diashow") — token-only fullscreen kiosk.
@@ -534,9 +513,33 @@ function App() {
                       didn't match. Top-level `/:slug` is consumed above by
                       LegalPage; this picks up deeper unknown paths. */}
                   <Route path="*" element={<CMSContentBlock slug="not-found" />} />
-                </Routes>
-              </MaintenanceWrapper>
-            </Router>
+    </Route>,
+  ),
+);
+
+function App() {
+  // Track dark mode for toast theming
+  const [toastTheme, setToastTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setToastTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <PageErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AnalyticsBootstrap />
+        <MaintenanceProvider>
+          <ThemeProvider>
+            <GlobalThemeProvider>
+              <ConfirmDialogProvider>
+              <DynamicFavicon />
+              <RobotsMetaTags />
+              <RouterProvider router={router} />
 
             {/* Offline indicator */}
             <OfflineIndicator />
