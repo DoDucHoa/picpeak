@@ -1,6 +1,8 @@
 import { createContext, useContext, type SetStateAction } from 'react';
 import type { Event } from '../../../../types';
 import type { FeedbackSettings } from '../../../../services/feedback.service';
+import type { AdminPhoto } from '../../../../services/photos.service';
+import type { EnabledTemplate } from '../../../../services/cssTemplates.service';
 import type { EditFormState, ThemeDraft } from '../types';
 import type { EventDraft } from '../draft/useEventDraft';
 
@@ -21,6 +23,9 @@ export interface EventSettingsValue {
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
   /** The global phone field toggle (public settings), shown in Details. */
   phoneFieldEnabled: boolean;
+  /** Every photo of the event, unfiltered, for the hero picker. */
+  heroPhotos: AdminPhoto[];
+  cssTemplates: EnabledTemplate[];
 }
 
 export const EventSettingsContext = createContext<EventSettingsValue | null>(null);

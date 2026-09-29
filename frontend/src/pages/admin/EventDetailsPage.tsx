@@ -12,7 +12,7 @@ import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { isGalleryPublic } from '../../utils/accessControl';
 import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters } from '../../services/photos.service';
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
-import { type EnabledTemplate } from '../../services/cssTemplates.service';
+import { cssTemplatesService } from '../../services/cssTemplates.service';
 import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
 import { safeParseDate, eventHasGuests } from './event-details/utils';
 import { INITIAL_EDIT_FORM, type EventDetailsTab, type ThemeDraft } from './event-details/types';
@@ -85,9 +85,6 @@ export const EventDetailsPage: React.FC = () => {
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  // Task 10 loads these for the Settings tab.
-  const cssTemplates: EnabledTemplate[] = [];
-
   // Photo filters state
   const [photoFilters, setPhotoFilters] = useState<PhotoFilterParams>({
     category_id: undefined as number | null | undefined,
@@ -177,6 +174,20 @@ export const EventDetailsPage: React.FC = () => {
       );
       return inFlight ? 2000 : false;
     },
+  });
+
+  // The hero picker offers every photo, not the Photos tab's filtered view (spec P2).
+  const { data: heroPhotos = [] } = useQuery({
+    queryKey: ['admin-event-photos', id, 'hero-picker'],
+    queryFn: () => photosService.getEventPhotos(parseInt(id!), {}),
+    enabled: !!id && activeTab === 'settings',
+  });
+
+  // CSS templates for the Appearance section, loaded with the Settings tab.
+  const { data: cssTemplates = [] } = useQuery({
+    queryKey: ['css-templates-enabled'],
+    queryFn: () => cssTemplatesService.getEnabledTemplates(),
+    enabled: activeTab === 'settings',
   });
 
   // Fetch filter summary for feedback filters
@@ -504,12 +515,6 @@ export const EventDetailsPage: React.FC = () => {
           isArchiving={archiveMutation.isPending}
           isPublishing={publishMutation.isPending}
           isDuplicating={duplicateMutation.isPending}
-          currentTheme={theme.config}
-          setCurrentTheme={() => undefined}
-          currentPresetName={theme.preset}
-          setCurrentPresetName={() => undefined}
-          setThemeChanged={() => undefined}
-          cssTemplates={cssTemplates}
         />
       )}
 
@@ -552,7 +557,7 @@ export const EventDetailsPage: React.FC = () => {
         <EventSettingsContext.Provider value={{
           event, editForm, setEditForm, feedbackSettings, setFeedbackSettings, theme, setTheme, draft,
           readOnly: settingsLock !== null, lockReason: settingsLock, expert, setExpert, refetchEvent,
-          categories, phoneFieldEnabled,
+          categories, phoneFieldEnabled, heroPhotos, cssTemplates,
         }}>
           <EventSettingsTab section={section} onSection={setSection} />
         </EventSettingsContext.Provider>

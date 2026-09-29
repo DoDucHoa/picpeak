@@ -6,6 +6,7 @@ import { SECTION_FIELDS, SECTION_ORDER, type SectionId } from './sectionFields';
 import { DetailsSection } from './DetailsSection';
 import { AccessSection } from './AccessSection';
 import { AdvancedSection } from './AdvancedSection';
+import { AppearanceSection } from './AppearanceSection';
 
 const LABELS: Record<SectionId, [string, string]> = {
   details: ['events.settings.sectionDetails', 'Details'],
@@ -21,6 +22,7 @@ const LABELS: Record<SectionId, [string, string]> = {
 const SECTIONS: Partial<Record<SectionId, React.FC>> = {
   details: DetailsSection,
   access: AccessSection,
+  appearance: AppearanceSection,
   advanced: AdvancedSection,
 };
 

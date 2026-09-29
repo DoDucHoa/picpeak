@@ -11,15 +11,12 @@ import { ShortUrlsCard } from '../../../components/admin/ShortUrlsCard';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import type { AdminPhoto } from '../../../services/photos.service';
 import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
-import type { EnabledTemplate } from '../../../services/cssTemplates.service';
-import { ThemeConfig } from '../../../types/theme.types';
 import type { EditFormState, EventDetailsTab } from './types';
 import { EventInformationCard } from './EventInformationCard';
 import { ShareLinkCard } from './ShareLinkCard';
 import { ClientAccessCard } from './ClientAccessCard';
 import { EventActionsCard } from './EventActionsCard';
 import { PhotoStatisticsCard } from './PhotoStatisticsCard';
-import { EventThemeSection } from './EventThemeSection';
 import { ArchiveStatusCard } from './ArchiveStatusCard';
 import { toBoolean } from '../../../utils/parsers';
 
@@ -48,12 +45,6 @@ interface OverviewTabProps {
   isArchiving: boolean;
   isPublishing: boolean;
   isDuplicating: boolean;
-  currentTheme: ThemeConfig | null;
-  setCurrentTheme: (theme: ThemeConfig | null) => void;
-  currentPresetName: string;
-  setCurrentPresetName: (name: string) => void;
-  setThemeChanged: (changed: boolean) => void;
-  cssTemplates: EnabledTemplate[];
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -81,12 +72,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   isArchiving,
   isPublishing,
   isDuplicating,
-  currentTheme,
-  setCurrentTheme,
-  currentPresetName,
-  setCurrentPresetName,
-  setThemeChanged,
-  cssTemplates
 }) => {
   const { flags } = useFeatureFlags();
 
@@ -218,20 +203,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       <div className="space-y-6">
         {/* Photo Statistics */}
         <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
-
-        {/* Theme & Style / Theme Display */}
-        <EventThemeSection
-          event={event}
-          isEditing={isEditing}
-          editForm={editForm}
-          setEditForm={setEditForm}
-          currentTheme={currentTheme}
-          setCurrentTheme={setCurrentTheme}
-          currentPresetName={currentPresetName}
-          setCurrentPresetName={setCurrentPresetName}
-          setThemeChanged={setThemeChanged}
-          cssTemplates={cssTemplates}
-        />
 
         {/* Feedback Moderation Panel */}
         {!event.is_archived && feedbackSettings?.feedback_enabled && (

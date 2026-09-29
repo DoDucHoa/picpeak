@@ -18,7 +18,7 @@ const base = (over: Partial<EventSettingsValue> = {}): EventSettingsValue => ({
   feedbackSettings: {} as never, setFeedbackSettings: vi.fn(),
   theme: { config: {} as never, preset: 'default' }, setTheme: vi.fn(),
   draft: { state: {}, count: 0, isDirty: false } as never,
-  readOnly: false, lockReason: null, expert: false, setExpert: vi.fn(), refetchEvent: vi.fn(), categories: [], phoneFieldEnabled: false,
+  readOnly: false, lockReason: null, expert: false, setExpert: vi.fn(), refetchEvent: vi.fn(), categories: [], phoneFieldEnabled: false, heroPhotos: [], cssTemplates: [],
   ...over,
 });
 
