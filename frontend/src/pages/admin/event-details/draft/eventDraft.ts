@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/eventDraft.ts
 /**
  * The event page's draft (spec 5.2): only the fields the user changed, each
  * with the server value it was based on. Pure functions, so the rules can be

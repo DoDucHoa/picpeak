@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/__tests__/useEventDraft.test.tsx
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useDraftObject, useEventDraft } from '../useEventDraft';

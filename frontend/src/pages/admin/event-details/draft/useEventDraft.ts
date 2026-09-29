@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/useEventDraft.ts
 import { useCallback, useMemo, useState, type SetStateAction } from 'react';
 import {
   currentValue, draftCount, dropParts as dropDraftParts, fieldKey, nameOf, partOf, sameValue, setField,

@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/__tests__/saveDraft.test.ts
 import { describe, expect, it, vi } from 'vitest';
 import { buildEventPayload, runSave, validateDraft } from '../saveDraft';
 import { eventFormValues } from '../serverValues';

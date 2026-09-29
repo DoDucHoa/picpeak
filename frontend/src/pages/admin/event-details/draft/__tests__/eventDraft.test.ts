@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/__tests__/eventDraft.test.ts
 import { describe, expect, it } from 'vitest';
 import {
   changesFor, currentValue, draftCount, dropParts, fieldKey, isChangedElsewhere, sameValue, setField,

@@ -1,6 +1,5 @@
-// frontend/src/hooks/useNavigationGuard.ts
 import { useCallback, useEffect, useRef } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useBlocker, type BlockerFunction } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useConfirm } from '../components/common';
 
@@ -16,7 +15,7 @@ export function useNavigationGuard(isDirty: boolean): { allowNextNavigation: () 
   const bypass = useRef(false);
   const asking = useRef(false);
 
-  const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
+  const blocker = useBlocker(useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => {
     if (bypass.current) {
       bypass.current = false;
       return false;

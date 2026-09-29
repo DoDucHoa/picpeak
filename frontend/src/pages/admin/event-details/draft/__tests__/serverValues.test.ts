@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/__tests__/serverValues.test.ts
 import { describe, expect, it } from 'vitest';
 import { eventFormValues, themeValue } from '../serverValues';
 import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';

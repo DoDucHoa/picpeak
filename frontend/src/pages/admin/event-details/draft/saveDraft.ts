@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/event-details/draft/saveDraft.ts
 import { changesFor, sameValue, type DraftPart, type DraftState } from './eventDraft';
 import type { EditFormState, ThemeDraft } from '../types';
 
