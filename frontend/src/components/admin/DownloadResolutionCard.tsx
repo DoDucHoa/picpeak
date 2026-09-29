@@ -52,6 +52,13 @@ export interface DownloadResolutionCardProps {
   onChanged?: () => void;
   /** The gallery's master "Allow photo downloads" switch is off (#downloads-off). */
   downloadsDisabled?: boolean;
+  /** Drafted overrides shown over the saved ones (event Settings). */
+  draftValues?: Record<string, unknown>;
+  /**
+   * With this, the three selects edit the page's draft instead of saving; the
+   * save bar sends them (spec 5.2), so the card has no Save of its own.
+   */
+  onDraftChange?: (name: string, value: unknown, serverValue: unknown) => void;
 }
 
 /** null → "Inherit"; true/false → explicit. */
@@ -59,7 +66,9 @@ const triToSelect = (v: boolean | null | undefined) =>
   (v === null || v === undefined ? INHERIT : String(v));
 const selectToTri = (v: string) => (v === INHERIT ? null : v === 'true');
 
-export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ eventId, onChanged, downloadsDisabled = false }) => {
+export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({
+  eventId, onChanged, downloadsDisabled = false, draftValues, onDraftChange,
+}) => {
   const { t } = useTranslation();
   const [standard, setStandard] = useState<string>(INHERIT);
   const [picker, setPicker] = useState<string>(INHERIT);
@@ -71,12 +80,22 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
     queryFn: async () => (await api.get(`/admin/events/${eventId}/download-resolutions`)).data,
   });
 
+  const draftMode = typeof onDraftChange === 'function';
+  const pick = <T,>(name: string, saved: T): T =>
+    (draftValues && name in draftValues ? draftValues[name] as T : saved);
   useEffect(() => {
     if (!data) return;
-    setStandard(data.overrides.download_standard_resolution ?? INHERIT);
-    setPicker(triToSelect(data.overrides.download_resolution_picker_enabled));
-    setAllowOriginal(triToSelect(data.overrides.download_allow_original));
-  }, [data]);
+    setStandard(pick('download_standard_resolution', data.overrides.download_standard_resolution) ?? INHERIT);
+    setPicker(triToSelect(pick('download_resolution_picker_enabled', data.overrides.download_resolution_picker_enabled)));
+    setAllowOriginal(triToSelect(pick('download_allow_original', data.overrides.download_allow_original)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, draftValues]);
+
+  /** Outside the page draft a select only changes local state until Save. */
+  const change = (name: string, select: string, local: (v: string) => void, value: unknown, saved: unknown) => {
+    local(select);
+    if (draftMode) onDraftChange(name, value, saved);
+  };
 
   if (isLoading || !data) {
     return <Card><Loading /></Card>;
@@ -131,7 +150,7 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
           <label className="block text-sm font-medium mb-1 text-body">
             {t('settings.downloads.standard', 'Standard resolution')}
           </label>
-          <select className={selectClass} value={standard} onChange={(e) => setStandard(e.target.value)}>
+          <select className={selectClass} value={standard} onChange={(e) => change('download_standard_resolution', e.target.value, setStandard, e.target.value === INHERIT ? null : e.target.value, data.overrides.download_standard_resolution ?? null)}>
             <option value={INHERIT}>
               {t('settings.downloads.inheritWith', 'Inherit ({{value}})', { value: globalStandardLabel })}
             </option>
@@ -146,7 +165,7 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
           <label className="block text-sm font-medium mb-1 text-body">
             {t('settings.downloads.picker', 'Let guests choose a download size')}
           </label>
-          <select className={selectClass} value={picker} onChange={(e) => setPicker(e.target.value)}>
+          <select className={selectClass} value={picker} onChange={(e) => change('download_resolution_picker_enabled', e.target.value, setPicker, selectToTri(e.target.value), data.overrides.download_resolution_picker_enabled ?? null)}>
             <option value={INHERIT}>
               {t('settings.downloads.inheritWith', 'Inherit ({{value}})', {
                 value: data.globals.picker_enabled ? t('common.on', 'on') : t('common.off', 'off'),
@@ -164,7 +183,7 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
           <select
             className={selectClass}
             value={allowOriginal}
-            onChange={(e) => setAllowOriginal(e.target.value)}
+            onChange={(e) => change('download_allow_original', e.target.value, setAllowOriginal, selectToTri(e.target.value), data.overrides.download_allow_original ?? null)}
           >
             <option value={INHERIT}>
               {t('settings.downloads.inheritWith', 'Inherit ({{value}})', {
@@ -189,11 +208,13 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({ 
           : ''}
       </p>
 
-      <div className="flex justify-end mt-4">
-        <Button variant="primary" onClick={save} disabled={saving || downloadsDisabled} leftIcon={<Save className="w-4 h-4" />}>
-          {t('common.save', 'Save')}
-        </Button>
-      </div>
+      {!draftMode && (
+        <div className="flex justify-end mt-4">
+          <Button variant="primary" onClick={save} disabled={saving || downloadsDisabled} leftIcon={<Save className="w-4 h-4" />}>
+            {t('common.save', 'Save')}
+          </Button>
+        </div>
+      )}
       </fieldset>
     </Card>
   );

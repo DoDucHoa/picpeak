@@ -83,11 +83,11 @@ function quotaPayload(over: Record<string, unknown> = {}) {
   };
 }
 
-function renderCard() {
+function renderCard(props: Partial<React.ComponentProps<typeof DownloadQuotaCard>> = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <DownloadQuotaCard eventId={7} />
+      <DownloadQuotaCard eventId={7} {...props} />
     </QueryClientProvider>
   );
 }
@@ -266,5 +266,59 @@ describe('DownloadQuotaCard', () => {
       }));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
+  });
+});
+
+// On the event page the card edits the Settings draft (spec 5.2): the
+// switches and amounts feed the save bar, nothing is sent from here.
+describe('DownloadQuotaCard in the event Settings draft', () => {
+  const onDraftChange = vi.fn();
+  beforeEach(() => {
+    get.mockReset();
+    put.mockReset();
+    onDraftChange.mockReset();
+    get.mockResolvedValue({ data: quotaPayload() });
+  });
+
+  it('puts the enable switch in the draft instead of saving', async () => {
+    renderCard({ part: 'switches', onDraftChange, draftValues: {} });
+    await userEvent.click(await screen.findByRole('switch', { name: /Limit downloads for this gallery/ }));
+    expect(onDraftChange).toHaveBeenCalledWith('quota_enabled', false, true);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('puts auto-approve in the draft', async () => {
+    renderCard({ part: 'switches', onDraftChange, draftValues: {} });
+    await userEvent.click(await screen.findByRole('switch', { name: /Auto-approve download orders/ }));
+    expect(onDraftChange).toHaveBeenCalledWith('auto_approve', true, false);
+  });
+
+  it('shows a drafted value over the saved one', async () => {
+    renderCard({ part: 'amounts', onDraftChange, draftValues: { free_limit: 12 } });
+    const field = await screen.findByLabelText(/Free downloads for this gallery/);
+    await waitFor(() => expect(field).toHaveValue(12));
+  });
+
+  it('keeps an empty free limit as null, a typed 0 as 0', async () => {
+    renderCard({ part: 'amounts', onDraftChange, draftValues: {} });
+    const field = await screen.findByLabelText(/Free downloads for this gallery/);
+    await userEvent.type(field, '5');
+    await userEvent.clear(field);
+    expect(onDraftChange).toHaveBeenLastCalledWith('free_limit', null, null);
+    await userEvent.type(field, '0');
+    expect(onDraftChange).toHaveBeenLastCalledWith('free_limit', 0, null);
+  });
+
+  it('has no save button of its own', async () => {
+    renderCard({ part: 'amounts', onDraftChange, draftValues: {} });
+    await screen.findByLabelText(/Free downloads for this gallery/);
+    expect(screen.queryByRole('button', { name: /Save allowance/ })).toBeNull();
+  });
+
+  it('shows only the summary on the Overview', async () => {
+    renderCard({ part: 'status' });
+    await waitFor(() => expect(screen.getByText(/7 of 20 photos delivered/)).toBeInTheDocument());
+    expect(screen.queryByRole('switch')).toBeNull();
+    expect(screen.queryByLabelText(/Free downloads for this gallery/)).toBeNull();
   });
 });

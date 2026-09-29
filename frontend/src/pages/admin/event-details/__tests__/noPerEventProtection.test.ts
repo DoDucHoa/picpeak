@@ -20,6 +20,6 @@ describe.each([
 });
 
 it('keeps Allow downloads on the event page until P2 moves it', () => {
-  const src = fs.readFileSync(path.join(FRONTEND, 'src/pages/admin/event-details/EventInformationCard.tsx'), 'utf8');
+  const src = fs.readFileSync(path.join(FRONTEND, 'src/pages/admin/event-details/settings/DownloadsSection.tsx'), 'utf8');
   expect(src).toMatch(/allow_downloads/);
 });

@@ -20,6 +20,19 @@ export interface DownloadQuotaCardProps {
   eventId: number;
   /** The gallery's master "Allow photo downloads" switch is off (#downloads-off). */
   downloadsDisabled?: boolean;
+  /**
+   * Which part to render: the delivered summary (event Overview), the two
+   * switches or the amounts and create-order (event Settings). Absent renders
+   * the whole card.
+   */
+  part?: 'status' | 'switches' | 'amounts';
+  /** Drafted values that are shown over the saved ones (event Settings). */
+  draftValues?: Record<string, unknown>;
+  /**
+   * With this, the switches and amounts edit the page's draft instead of
+   * saving; the save bar sends them (spec 5.2). Create order stays an action.
+   */
+  onDraftChange?: (name: string, value: unknown, serverValue: unknown) => void;
 }
 
 /** Empty string for a NULL column, so "inherit" never renders as a typed number. */
@@ -52,7 +65,9 @@ function packageOptionLabel(
   return `${label} · ${priceText}`;
 }
 
-export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, downloadsDisabled = false }) => {
+export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
+  eventId, downloadsDisabled = false, part, draftValues, onDraftChange,
+}) => {
   const { t, i18n } = useTranslation();
 
   const { data, isLoading } = useQuery<AdminQuotaResponse>({
@@ -73,10 +88,26 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
     enabled: showCreateOrder,
   });
 
+  const draftMode = typeof onDraftChange === 'function';
+  const drafted = (name: string) => !!draftValues && name in draftValues;
+  const hasFreeDraft = drafted('free_limit');
+  const hasPriceDraft = drafted('price_per_photo');
+  // Seed the text fields from the draft when it holds them, else from the
+  // server; re-seed only when that source changes (a Discard, a refetch), so
+  // typing is never overwritten mid-number.
   useEffect(() => {
-    setFreeLimit(fieldValue(data?.settings?.free_limit));
-    setPricePerPhoto(fieldValue(data?.settings?.price_per_photo));
-  }, [data?.settings?.free_limit, data?.settings?.price_per_photo]);
+    setFreeLimit(fieldValue((hasFreeDraft ? draftValues?.free_limit : data?.settings?.free_limit) as number | null | undefined));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.settings?.free_limit, hasFreeDraft]);
+  useEffect(() => {
+    setPricePerPhoto(fieldValue((hasPriceDraft ? draftValues?.price_per_photo : data?.settings?.price_per_photo) as number | null | undefined));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.settings?.price_per_photo, hasPriceDraft]);
+
+  /** A typed amount as the draft stores it: empty is null (inherit), a number stays a number. */
+  const draftNumber = (text: string): unknown => {
+    try { return toNullableQuotaNumber(text); } catch { return text; }
+  };
 
   const save = useMutationWithToast({
     mutationFn: (patch: QuotaPatch) => adminDownloadQuotaService.saveQuota(eventId, patch),
@@ -155,8 +186,11 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
   }
 
   const { quota, settings, pending_order: pendingOrder, currency } = data;
-  const enabled = !!settings?.quota_enabled;
-  const autoApprove = !!settings?.auto_approve;
+  const serverEnabled = !!settings?.quota_enabled;
+  const serverAutoApprove = !!settings?.auto_approve;
+  const enabled = drafted('quota_enabled') ? !!draftValues?.quota_enabled : serverEnabled;
+  const autoApprove = drafted('auto_approve') ? !!draftValues?.auto_approve : serverAutoApprove;
+  const show = (which: 'status' | 'switches' | 'amounts') => !part || part === which;
   const percent = quota.total ? Math.min(100, Math.round((quota.used / quota.total) * 100)) : 0;
 
   const saveNumbers = () => {
@@ -174,6 +208,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
           configured anyway is how a gallery ends up with priced packages
           nobody can ever use. */}
       <fieldset disabled={downloadsDisabled} className={downloadsDisabled ? 'opacity-60' : undefined}>
+      {show('switches') && (<>
       <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Download className="w-5 h-5" aria-hidden />
@@ -185,7 +220,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
           <Switch
             checked={enabled}
             disabled={save.isPending}
-            onChange={(next) => save.mutate({ quota_enabled: next })}
+            onChange={(next) => (draftMode ? onDraftChange('quota_enabled', next, serverEnabled) : save.mutate({ quota_enabled: next }))}
             ariaLabel={t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery') as string}
           />
           {t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery')}
@@ -203,7 +238,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         <Switch
           checked={autoApprove}
           disabled={save.isPending}
-          onChange={(next) => save.mutate({ auto_approve: next })}
+          onChange={(next) => (draftMode ? onDraftChange('auto_approve', next, serverAutoApprove) : save.mutate({ auto_approve: next }))}
           ariaLabel={t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders') as string}
         />
         {t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders')}
@@ -215,9 +250,20 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         )}
       </p>
 
+      </>)}
+
       {downloadsDisabled && <DownloadsDisabledNotice />}
 
-      {enabled && (
+      {show('status') && part === 'status' && (
+        <div className="flex items-center gap-2 mb-2">
+          <Download className="w-5 h-5" aria-hidden />
+          <h2 className="text-lg font-semibold text-heading">
+            {t('downloadQuotaAdmin.card.title', 'Download allowance')}
+          </h2>
+        </div>
+      )}
+
+      {show('status') && enabled && (
         <div className="mb-4">
           {quota.unlimited ? (
             <p className="flex items-center gap-2 text-sm text-body">
@@ -248,7 +294,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         </div>
       )}
 
-      {pendingOrder && (
+      {show('status') && pendingOrder && (
         <p className="mb-4 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
           <Clock className="w-4 h-4" aria-hidden />
           {t(
@@ -258,6 +304,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         </p>
       )}
 
+      {show('amounts') && (<>
       <div className="mb-4">
         <Button
           variant="outline"
@@ -276,7 +323,10 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
           min={0}
           label={t('downloadQuotaAdmin.card.freeLimitLabel', 'Free downloads for this gallery') as string}
           value={freeLimit}
-          onChange={(e) => setFreeLimit(e.target.value)}
+          onChange={(e) => {
+            setFreeLimit(e.target.value);
+            if (draftMode) onDraftChange('free_limit', draftNumber(e.target.value), settings?.free_limit ?? null);
+          }}
           placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
             value: quota.freeLimit,
           }) as string}
@@ -294,7 +344,10 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
             currency,
           }) as string}
           value={pricePerPhoto}
-          onChange={(e) => setPricePerPhoto(e.target.value)}
+          onChange={(e) => {
+            setPricePerPhoto(e.target.value);
+            if (draftMode) onDraftChange('price_per_photo', draftNumber(e.target.value), settings?.price_per_photo ?? null);
+          }}
           placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
             value: quota.pricePerPhoto,
           }) as string}
@@ -305,6 +358,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
         />
       </div>
 
+      {!draftMode && (
       <div className="mt-4">
         <Button
           variant="outline"
@@ -317,6 +371,8 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({ eventId, d
           {t('downloadQuotaAdmin.card.save', 'Save allowance')}
         </Button>
       </div>
+      )}
+      </>)}
       </fieldset>
       </Card>
 

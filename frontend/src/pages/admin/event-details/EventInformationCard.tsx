@@ -33,8 +33,6 @@ interface EventInformationCardProps {
 export const EventInformationCard: React.FC<EventInformationCardProps> = ({
   event,
   isEditing,
-  editForm,
-  setEditForm,
   categories,
   phoneFieldEnabled,
   daysUntilExpiration,
@@ -50,31 +48,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
 
       {isEditing ? (
         <div className="space-y-4">
-          {/* Download Protection Settings */}
-          <div className="mt-4 pt-4 border-t border-line">
-            <h3 className="text-sm font-semibold text-heading mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-accent" />
-              {t('events.downloadProtection', 'Download Protection')}
-            </h3>
-
-            <div className="space-y-3">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.allow_downloads}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, allow_downloads: e.target.checked }))}
-                  className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                />
-                <Download className="w-4 h-4 ml-2 mr-1 text-muted" />
-                <span className="text-sm text-body">{t('events.allowDownloads', 'Allow photo downloads')}</span>
-              </label>
-
-              <p className="text-xs text-muted mt-2">
-                {t('events.protectionInfo', 'Protection features help prevent unauthorized downloads but cannot block all methods.')}
-              </p>
-            </div>
-          </div>
-
         </div>
       ) : (
         <dl className="space-y-4">

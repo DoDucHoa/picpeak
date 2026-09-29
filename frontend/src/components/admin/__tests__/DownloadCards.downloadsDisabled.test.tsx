@@ -13,6 +13,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -63,6 +64,8 @@ import { DownloadQuotaCard } from '../DownloadQuotaCard';
 
 // The t() mock returns the inline English fallback, which is what these
 // components pass, so the notice is matched on its text rather than its key.
+import { api } from '../../../config/api';
+
 const NOTICE = /Downloads are switched off for this gallery/;
 
 function renderWithClient(ui: React.ReactElement) {
@@ -99,5 +102,38 @@ describe('per-event download cards when the gallery has downloads switched off',
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled());
     expect(screen.queryByText(NOTICE)).toBeNull();
     screen.getAllByRole('combobox').forEach((el) => expect(el).toBeEnabled());
+  });
+});
+
+// On the event page both cards edit the Settings draft; the save bar sends
+// them (spec 5.2), so neither card saves on its own there.
+describe('per-event download cards in the event Settings draft', () => {
+  it('the resolution card puts a change in the draft and has no Save of its own', async () => {
+    const onDraftChange = vi.fn();
+    renderWithClient(<DownloadResolutionCard eventId={1} draftValues={{}} onDraftChange={onDraftChange} />);
+    const [standard] = await screen.findAllByRole('combobox');
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[1], 'true');
+    expect(onDraftChange).toHaveBeenCalledWith('download_resolution_picker_enabled', true, null);
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(api.patch).not.toHaveBeenCalled();
+    void standard;
+  });
+
+  it('the resolution card shows a drafted value over the saved one', async () => {
+    renderWithClient(<DownloadResolutionCard eventId={1} draftValues={{ download_allow_original: false }} onDraftChange={vi.fn()} />);
+    const selects = await screen.findAllByRole('combobox');
+    await waitFor(() => expect((selects[2] as HTMLSelectElement).value).toBe('false'));
+  });
+
+  it('stays inert in draft mode when downloads are off', async () => {
+    renderWithClient(<DownloadResolutionCard eventId={1} downloadsDisabled draftValues={{}} onDraftChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText(NOTICE)).toBeInTheDocument());
+    screen.getAllByRole('combobox').forEach((el) => expect(el).toBeDisabled());
+  });
+
+  it('the allowance switches stay inert in draft mode when downloads are off', async () => {
+    renderWithClient(<DownloadQuotaCard eventId={1} downloadsDisabled part="switches" draftValues={{}} onDraftChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText(NOTICE)).toBeInTheDocument());
+    screen.getAllByRole('switch').forEach((el) => expect(el).toBeDisabled());
   });
 });

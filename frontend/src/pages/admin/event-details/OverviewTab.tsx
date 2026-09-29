@@ -4,7 +4,6 @@ import { FeedbackModerationPanel } from '../../../components/admin';
 import { PermissionGate } from '../../../components/admin/PermissionGate';
 import { EventReminderOverrideCard } from '../../../components/admin/EventReminderOverrideCard';
 import { SlideshowSettingsCard } from '../../../components/admin/SlideshowSettingsCard';
-import { DownloadResolutionCard } from '../../../components/admin/DownloadResolutionCard';
 import { DownloadQuotaCard } from '../../../components/admin/DownloadQuotaCard';
 import { FaceRecognitionCard } from '../../../components/admin/FaceRecognitionCard';
 import { ShortUrlsCard } from '../../../components/admin/ShortUrlsCard';
@@ -106,14 +105,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         {/* Client Access (#172) */}
         <ClientAccessCard event={event} refetchEvent={refetchEvent} />
 
-        {/* Per-gallery download resolution override (#858). Sits with the
-            other "what the customer receives" controls. */}
-        <DownloadResolutionCard
-          eventId={event.id}
-          onChanged={() => refetchEvent()}
-          downloadsDisabled={!event.allow_downloads}
-        />
-
         {/* People in this gallery (#1074). Gated behind the `faces` feature
             flag — which is itself gated on the operator running the optional
             picpeak-ml sidecar, so this card is invisible on the vast majority
@@ -161,7 +152,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             its own on-off switch, and the ledger it reports on survives the
             feature being switched off, so hiding it would hide history. */}
         <PermissionGate permissions={['events.view', 'events.edit']}>
-          <DownloadQuotaCard eventId={event.id} downloadsDisabled={!event.allow_downloads} />
+          <DownloadQuotaCard eventId={event.id} part="status" downloadsDisabled={!event.allow_downloads} />
         </PermissionGate>
 
         {/* Actions */}
