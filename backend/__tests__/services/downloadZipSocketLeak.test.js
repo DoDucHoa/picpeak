@@ -180,6 +180,31 @@ describe('pre-zip build releases its storage reads', () => {
     expect(reads.opened.filter((s) => !s.destroyed).map((s) => s.key)).toEqual([]);
   });
 
+  it('cancels a first build when every zip is invalidated mid-build', async () => {
+    // A Branding change that alters downloaded files lands while the event's
+    // first zip is still building, so the event has no pointer yet. Finishing
+    // that build would cache a zip made under the old setting.
+    await db('events').where({ id: eventId })
+      .update({ download_zip_path: null, download_zip_generated_at: null });
+    // Finite, so a build nobody cancels completes and writes its pointer
+    // instead of hanging; long enough to outlast the invalidation's query.
+    objectChunks.value = 200;
+    let invalidation;
+    onOpen.fn = (count) => {
+      if (count !== 2) return;
+      invalidation = downloadZipService.invalidateAll();
+    };
+
+    const result = await downloadZipService.generateZip(eventId);
+    await invalidation;
+    clearTimeout(downloadZipService.debounceTimers.get(eventId));
+    downloadZipService.debounceTimers.delete(eventId);
+
+    expect(result).toEqual({ success: false, error: 'Build invalidated' });
+    const ev = await db('events').where({ id: eventId }).first('download_zip_path');
+    expect(ev.download_zip_path).toBeNull();
+  });
+
   it('never holds more storage reads open than the build needs', async () => {
     objectChunks.value = 8;
 

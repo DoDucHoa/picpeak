@@ -416,8 +416,12 @@ class DownloadZipService {
       const events = await db('events')
         .whereNotNull('download_zip_path')
         .select('id');
-      for (const event of events) {
-        this.invalidate(event.id);
+      // A build still running has no pointer yet, and it read its settings
+      // when it started: left alone it would publish a zip made under the old
+      // ones.
+      const ids = new Set([...events.map((e) => e.id), ...this.activeBuilds.keys()]);
+      for (const id of ids) {
+        this.invalidate(id);
       }
     } catch (err) {
       logger.error('downloadZipService.invalidateAll error', { error: err.message });
