@@ -42,8 +42,6 @@ async function createGalleryWithModeratedComments(page: Page): Promise<GallerySe
       expiration_days: 30,
       allow_user_uploads: false,
       allow_downloads: true,
-      disable_right_click: false,
-      watermark_downloads: false,
       feedback_enabled: true,
       allow_ratings: true,
       allow_likes: true,

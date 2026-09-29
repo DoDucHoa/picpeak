@@ -27,8 +27,6 @@ test('clearing notifications removes read entries @smoke', async ({ request }) =
       expiration_days: 30,
       allow_user_uploads: false,
       allow_downloads: true,
-      disable_right_click: false,
-      watermark_downloads: false,
     },
   });
   expect(createEventResponse.ok()).toBeTruthy();
