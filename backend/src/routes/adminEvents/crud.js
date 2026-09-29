@@ -32,7 +32,7 @@ const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCr
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
 const { KEYBIND_MODES } = require('../../services/feedbackDefaults');
 const { GUEST_NAME_MODES } = require('../../services/photoCredit');
-const { validateHeroImageAnchor, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
+const { validateHeroImageAnchor, getEventFieldRequirements, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
 
 // Client PIN floor. The PIN guards the client review page and used to accept
 // any string, one character included. Six is the least that the login
@@ -1079,7 +1079,9 @@ module.exports = (router) => {
     body('event_reminder_body_override').optional({ nullable: true, checkFalsy: true })
       .isString().isLength({ max: 10_000 }),
     body('customer_name').optional({ nullable: true, checkFalsy: true }).trim(),
-    body('customer_email').optional().isEmail().normalizeEmail(IDENTITY_PRESERVING_NORMALIZE_EMAIL),
+    // Empty or null skips validation and reaches the handler, which clears
+    // the email unless Settings require one (finding 14).
+    body('customer_email').optional({ values: 'falsy' }).isEmail().normalizeEmail(IDENTITY_PRESERVING_NORMALIZE_EMAIL),
     body('customer_phone').optional({ nullable: true, checkFalsy: true })
       .isString().trim()
       .isLength({ max: 32 }).withMessage('Phone number must be at most 32 characters'),
@@ -1266,7 +1268,14 @@ module.exports = (router) => {
           }
           updates.host_name = nextName;
         } else {
-          delete updates.customer_name;
+          // An empty name clears it, unless Settings require one (finding 14).
+          const requirements = await getEventFieldRequirements();
+          if (requirements.require_customer_name) {
+            return res.status(400).json({ error: 'Customer name is required' });
+          }
+          if (customerColumnsAvailable) updates.customer_name = null;
+          else delete updates.customer_name;
+          updates.host_name = null;
         }
       }
 
@@ -1280,7 +1289,15 @@ module.exports = (router) => {
           }
           updates.host_email = nextEmail;
         } else {
-          delete updates.customer_email;
+          // An empty email clears it, unless Settings require one (finding 14).
+          // host_email is NOT NULL on older schemas; '' is its empty value.
+          const requirements = await getEventFieldRequirements();
+          if (requirements.require_customer_email) {
+            return res.status(400).json({ error: 'Customer email is required' });
+          }
+          if (customerColumnsAvailable) updates.customer_email = null;
+          else delete updates.customer_email;
+          updates.host_email = '';
         }
       }
 

@@ -1595,6 +1595,13 @@ async function getScheduledEmailConfig() {
 // Attachments + cc travel inside `emailData` (keys: attachments, cc)
 // so callers don't need a new signature for every email shape.
 async function queueEmail(eventId, recipientEmail, emailType, emailData, options = {}) {
+  // A cleared or never-given customer email reaches here as '' or null
+  // (callers pass customer_email || host_email). Such a row can never send
+  // and would retry forever, so nothing is queued.
+  if (typeof recipientEmail !== 'string' || !recipientEmail.trim()) {
+    logger.info('Email not queued: no recipient address', { eventId, emailType });
+    return null;
+  }
   try {
     // Add eventId to emailData for language detection
     emailData.eventId = eventId;
