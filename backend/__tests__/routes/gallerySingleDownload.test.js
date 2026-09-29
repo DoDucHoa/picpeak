@@ -141,3 +141,44 @@ describe('with the download allowance on', () => {
     expect(await ledgerRows()).toHaveLength(0);
   });
 });
+
+describe('download watermark', () => {
+  const setSetting = (key, value) => db('app_settings')
+    .insert({ setting_key: key, setting_value: JSON.stringify(value), setting_type: 'branding' })
+    .onConflict('setting_key').merge();
+  afterEach(async () => {
+    await setSetting('branding_watermark_enabled', false);
+    await setSetting('branding_watermark_downloads_enabled', false);
+    require('../../src/services/watermarkService').clearCache();
+  });
+
+  // A real JPEG: on the fake bytes above the watermark step fails and quietly
+  // hands back the original, so a watermarked download would look clean.
+  async function addRealJpeg(name) {
+    const sharp = require('sharp');
+    const bytes = await sharp({ create: { width: 800, height: 600, channels: 3, background: '#808080' } })
+      .jpeg().toBuffer();
+    const rel = `${EVENT_SLUG}/${name}`;
+    const abs = path.join(process.env.STORAGE_PATH, 'events', 'active', rel);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, bytes);
+    const id = idOf(await db('photos').insert({
+      event_id: eventId, filename: name, path: rel, type: 'individual', size_bytes: bytes.length,
+    }).returning('id'));
+    return { id, bytes };
+  }
+
+  it('serves the untouched file when only the view watermark is on', async () => {
+    const jpeg = await addRealJpeg('real.jpg');
+    await setSetting('branding_watermark_enabled', true);
+    await db('events').where({ id: eventId }).update({ watermark_downloads: true });
+    require('../../src/services/watermarkService').clearCache();
+    try {
+      const res = await download(jpeg.id);
+      expect(res.status).toBe(200);
+      expect(Buffer.compare(res.body, jpeg.bytes)).toBe(0);
+    } finally {
+      await db('events').where({ id: eventId }).update({ watermark_downloads: false });
+    }
+  });
+});
