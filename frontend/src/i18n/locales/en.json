@@ -1887,6 +1887,24 @@
       "partFeedback": "guest feedback",
       "partQuota": "download allowance",
       "partResolution": "download resolution"
+    },
+    "settings": {
+      "unsaved": "unsaved changes",
+      "showAdvanced": "Show advanced options",
+      "hideAdvanced": "Hide advanced options",
+      "expertMode": "Expert mode",
+      "expertModeHelp": "Show every section's advanced options",
+      "railLabel": "Event settings",
+      "tab": "Settings",
+      "sectionDetails": "Details",
+      "sectionAccess": "Access",
+      "sectionAppearance": "Appearance",
+      "sectionGuests": "Guest interaction",
+      "sectionDownloads": "Downloads",
+      "sectionAdvanced": "Advanced",
+      "sectionExtra": "Extra features",
+      "lockedPermission": "Locked: needs the {{permission}} permission",
+      "lockedArchived": "This event is archived. Its settings are read-only."
     }
   },
   "settings": {

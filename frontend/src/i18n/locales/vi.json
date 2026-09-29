@@ -1886,6 +1886,24 @@
       "partFeedback": "phản hồi của khách",
       "partQuota": "hạn mức tải",
       "partResolution": "độ phân giải tải về"
+    },
+    "settings": {
+      "unsaved": "thay đổi chưa lưu",
+      "showAdvanced": "Hiện tùy chọn nâng cao",
+      "hideAdvanced": "Ẩn tùy chọn nâng cao",
+      "expertMode": "Chế độ chuyên gia",
+      "expertModeHelp": "Hiện tùy chọn nâng cao của mọi mục",
+      "railLabel": "Cài đặt sự kiện",
+      "tab": "Cài đặt",
+      "sectionDetails": "Thông tin",
+      "sectionAccess": "Truy cập",
+      "sectionAppearance": "Giao diện",
+      "sectionGuests": "Tương tác của khách",
+      "sectionDownloads": "Tải về",
+      "sectionAdvanced": "Nâng cao",
+      "sectionExtra": "Tính năng bổ sung",
+      "lockedPermission": "Đã khóa: cần quyền {{permission}}",
+      "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
     }
   },
   "settings": {

@@ -2414,6 +2414,24 @@
       "partFeedback": "Gäste-Feedback",
       "partQuota": "Download-Kontingent",
       "partResolution": "Download-Auflösung"
+    },
+    "settings": {
+      "unsaved": "ungespeicherte Änderungen",
+      "showAdvanced": "Erweiterte Optionen anzeigen",
+      "hideAdvanced": "Erweiterte Optionen ausblenden",
+      "expertMode": "Expertenmodus",
+      "expertModeHelp": "Die erweiterten Optionen aller Bereiche anzeigen",
+      "railLabel": "Veranstaltungseinstellungen",
+      "tab": "Einstellungen",
+      "sectionDetails": "Details",
+      "sectionAccess": "Zugang",
+      "sectionAppearance": "Erscheinungsbild",
+      "sectionGuests": "Gäste-Interaktion",
+      "sectionDownloads": "Downloads",
+      "sectionAdvanced": "Erweitert",
+      "sectionExtra": "Zusatzfunktionen",
+      "lockedPermission": "Gesperrt: benötigt die Berechtigung {{permission}}",
+      "lockedArchived": "Diese Veranstaltung ist archiviert. Ihre Einstellungen sind schreibgeschützt."
     }
   },
   "settings": {
