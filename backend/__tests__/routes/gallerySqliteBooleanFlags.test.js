@@ -153,15 +153,49 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
         disable_right_click: 1,
         enable_devtools_protection: 1,
         use_canvas_rendering: 1,
-        watermark_downloads: 1,
         overlay_protection: 0,
       });
       const event = await getPayload();
       expect(event.disable_right_click).toBe(true);
       expect(event.enable_devtools_protection).toBe(true);
       expect(event.use_canvas_rendering).toBe(true);
-      expect(event.watermark_downloads).toBe(true);
       expect(event.overlay_protection).toBe(false);
+    });
+  });
+
+  // Downloaded files are watermarked from Branding only, so both gallery
+  // resolvers report the Branding switch; the event's own flag is ignored.
+  describe('download watermark flag', () => {
+    const setSwitch = (value) => db('app_settings')
+      .insert({
+        setting_key: 'branding_watermark_downloads_enabled',
+        setting_value: JSON.stringify(value),
+        setting_type: 'branding',
+      })
+      .onConflict('setting_key').merge();
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+
+    afterAll(async () => {
+      await setSwitch(false);
+      await setEventFlags({ watermark_downloads: 0 });
+    });
+
+    test('reports clean downloads when only the event flag is on', async () => {
+      await setSwitch(false);
+      await setEventFlags({ watermark_downloads: 1 });
+      expect((await getPayload()).watermark_downloads).toBe(false);
+      expect((await getInfo()).watermark_downloads).toBe(false);
+    });
+
+    test('reports watermarked downloads when the Branding switch is on', async () => {
+      await setSwitch(true);
+      await setEventFlags({ watermark_downloads: 0 });
+      expect((await getPayload()).watermark_downloads).toBe(true);
+      expect((await getInfo()).watermark_downloads).toBe(true);
     });
   });
 

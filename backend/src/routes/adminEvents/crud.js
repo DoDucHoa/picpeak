@@ -30,7 +30,6 @@ const { galleryPasswordColumns, dropCopiesIfStorageOff } = require('../../utils/
 const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCredentialCutoff');
 
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
-const downloadZipService = require('../../services/downloadZipService');
 const { KEYBIND_MODES } = require('../../services/feedbackDefaults');
 const { GUEST_NAME_MODES } = require('../../services/photoCredit');
 const { validateHeroImageAnchor, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
@@ -1677,12 +1676,6 @@ module.exports = (router) => {
         id,
         { type: 'admin', id: req.admin.id, name: req.admin.username }
       );
-
-      // Invalidate download zip if watermark settings changed
-      const changeKeys = Object.keys(req.body);
-      if (changeKeys.includes('watermark_downloads') || changeKeys.includes('watermark_text')) {
-        downloadZipService.invalidate(parseInt(id));
-      }
 
       res.json({ message: 'Event updated successfully' });
     } catch (error) {

@@ -173,7 +173,6 @@ router.get('/:slug/info', async (req, res) => {
         'reveal_at',
         'revealed_at',
         'disable_right_click',
-        'watermark_downloads',
         'watermark_text',
         'require_password',
         'color_theme',
@@ -263,7 +262,8 @@ router.get('/:slug/info', async (req, res) => {
       hidden_until_reveal: isGalleryHidden(event),
       reveal_at: isGalleryHidden(event) ? (event.reveal_at || null) : null,
       disable_right_click: event.disable_right_click === true || event.disable_right_click === 1 || event.disable_right_click === '1',
-      watermark_downloads: event.watermark_downloads === true || event.watermark_downloads === 1 || event.watermark_downloads === '1',
+      // Branding decides download watermarks; the event's own flag is ignored.
+      watermark_downloads: [true, 'true'].includes(await getAppSetting('branding_watermark_downloads_enabled', false)),
       watermark_text: event.watermark_text,
       enable_devtools_protection: event.enable_devtools_protection === true || event.enable_devtools_protection === 1 || event.enable_devtools_protection === '1',
       use_canvas_rendering: event.use_canvas_rendering === true || event.use_canvas_rendering === 1 || event.use_canvas_rendering === '1',

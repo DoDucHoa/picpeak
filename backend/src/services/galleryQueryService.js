@@ -434,7 +434,8 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       // polling so a re-hide propagates without a manual reload.
       reveal_armed: parseBooleanInput(event.reveal_mode, false),
       disable_right_click: parseBooleanInput(event.disable_right_click, false),
-      watermark_downloads: parseBooleanInput(event.watermark_downloads, false),
+      // Branding decides download watermarks; the event's own flag is ignored.
+      watermark_downloads: parseBooleanInput(await getAppSetting('branding_watermark_downloads_enabled', false), false),
       watermark_text: event.watermark_text,
       enable_devtools_protection: parseBooleanInput(event.enable_devtools_protection, false),
       use_canvas_rendering: parseBooleanInput(event.use_canvas_rendering, false),
