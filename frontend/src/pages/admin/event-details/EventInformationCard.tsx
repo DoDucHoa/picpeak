@@ -10,8 +10,6 @@ import {
   Eye,
   EyeOff,
   Shield,
-  Monitor,
-  MousePointer,
   Layout,
   Trash2
 } from 'lucide-react';
@@ -640,39 +638,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
                 <span className="text-sm text-body">{t('events.allowDownloads', 'Allow photo downloads')}</span>
               </label>
 
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.disable_right_click}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, disable_right_click: e.target.checked }))}
-                  className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                />
-                <MousePointer className="w-4 h-4 ml-2 mr-1 text-muted" />
-                <span className="text-sm text-body">{t('events.disableRightClick', 'Block right-click menu')}</span>
-              </label>
-
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.enable_devtools_protection}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, enable_devtools_protection: e.target.checked }))}
-                  className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                />
-                <Monitor className="w-4 h-4 ml-2 mr-1 text-muted" />
-                <span className="text-sm text-body">{t('events.enableDevtoolsProtection', 'Detect developer tools')}</span>
-              </label>
-
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editForm.use_canvas_rendering}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, use_canvas_rendering: e.target.checked }))}
-                  className="w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                />
-                <Image className="w-4 h-4 ml-2 mr-1 text-muted" />
-                <span className="text-sm text-body">{t('events.useCanvasRendering', 'Canvas rendering in the lightbox (advanced protection)')}</span>
-              </label>
-
               <p className="text-xs text-muted mt-2">
                 {t('events.protectionInfo', 'Protection features help prevent unauthorized downloads but cannot block all methods.')}
               </p>
@@ -1020,19 +985,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
                 }`}>
                   {event.protection_level || 'standard'}
                 </span>
-                {/* !! on the next three — SQLite integer booleans render literal "0" when falsy */}
-                {!!event.disable_right_click && (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">
-                    <MousePointer className="w-3 h-3 mr-1" />
-                    {t('events.rightClickBlocked', 'Right-click blocked')}
-                  </span>
-                )}
-                {!!event.enable_devtools_protection && (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">
-                    <Monitor className="w-3 h-3 mr-1" />
-                    {t('events.devtoolsDetection', 'DevTools detection')}
-                  </span>
-                )}
                 {!event.allow_downloads && (
                   <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded">
                     <Download className="w-3 h-3 mr-1" />

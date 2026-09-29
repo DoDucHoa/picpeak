@@ -435,10 +435,7 @@ export const EventDetailsPage: React.FC = () => {
       confirm_new_password: '',
       // Load protection settings from event
       protection_level: event.protection_level || 'standard',
-      disable_right_click: event.disable_right_click ?? true,
       allow_downloads: event.allow_downloads ?? true,
-      enable_devtools_protection: event.enable_devtools_protection ?? true,
-      use_canvas_rendering: event.use_canvas_rendering ?? false,
       // Load hero logo settings from event. Preserve null = "inherit global"
       // (#756) — don't collapse it to true, or saving would snapshot an override.
       hero_logo_visible: event.hero_logo_visible ?? null,
@@ -577,10 +574,7 @@ export const EventDetailsPage: React.FC = () => {
       css_template_id: editForm.css_template_id,
       // Download protection settings
       protection_level: editForm.protection_level,
-      disable_right_click: editForm.disable_right_click,
       allow_downloads: editForm.allow_downloads,
-      enable_devtools_protection: editForm.enable_devtools_protection,
-      use_canvas_rendering: editForm.use_canvas_rendering,
       // Hero logo settings
       hero_logo_visible: editForm.hero_logo_visible,
       hero_logo_size: editForm.hero_logo_size,

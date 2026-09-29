@@ -27,10 +27,7 @@ export type EditFormState = {
   confirm_new_password: string;
   // Download protection settings
   protection_level: 'basic' | 'standard' | 'enhanced' | 'maximum';
-  disable_right_click: boolean;
   allow_downloads: boolean;
-  enable_devtools_protection: boolean;
-  use_canvas_rendering: boolean;
   // Hero logo settings. null = inherit the global branding toggle (#756).
   hero_logo_visible: boolean | null;
   hero_logo_size: 'small' | 'medium' | 'large' | 'xlarge' | null;
@@ -83,10 +80,7 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   confirm_new_password: '',
   // Download protection settings
   protection_level: 'standard',
-  disable_right_click: true,
   allow_downloads: true,
-  enable_devtools_protection: true,
-  use_canvas_rendering: false,
   // Hero logo settings — null = inherit global branding toggle (#756)
   hero_logo_visible: null,
   hero_logo_size: null,
