@@ -83,7 +83,8 @@ module.exports = (router) => {
 
       // Log activity
       await logActivity('password_reset',
-        { eventName: event.event_name, emailSent: sendEmail },
+        // Only a real address gets the mail (queueEmail skips an empty one).
+        { eventName: event.event_name, emailSent: !!sendEmail && !!(event.customer_email || event.host_email) },
         id,
         { type: 'admin', id: req.admin.id, name: req.admin.username }
       );
@@ -131,7 +132,13 @@ module.exports = (router) => {
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
-    
+
+      // A cleared customer email (finding 14) leaves nobody to send to; say so
+      // rather than answer "queued" for a mail queueEmail will not write.
+      if (!(event.customer_email || event.host_email)) {
+        return res.status(400).json({ error: 'No customer email' });
+      }
+
       // The email processor will determine the language based on:
       // 1. Event language setting
       // 2. App settings general_default_language  

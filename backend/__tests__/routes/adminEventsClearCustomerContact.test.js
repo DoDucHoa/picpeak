@@ -71,3 +71,17 @@ describe('when Settings require them', () => {
     expect((await row()).customer_email).toBe('anna@example.com');
   });
 });
+
+describe('after the email was cleared', () => {
+  beforeAll(async () => {
+    await setRequirement('event_require_customer_email', false);
+    await put({ customer_email: null });
+  });
+
+  it('refuses to resend the creation email instead of reporting it queued', async () => {
+    await db('email_queue').del();
+    const res = await request(app).post(`/events/${eventId}/resend-email`).set('Authorization', `Bearer ${token}`).send({});
+    expect(res.status).toBe(400);
+    expect(await db('email_queue').count({ n: '*' }).first()).toEqual({ n: 0 });
+  });
+});
