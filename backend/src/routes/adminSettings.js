@@ -1056,6 +1056,7 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
       support_email,
       footer_text,
       watermark_enabled,
+      watermark_downloads_enabled,
       watermark_position,
       watermark_opacity,
       watermark_size,
@@ -1104,6 +1105,7 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
 
     // Get current watermark settings hash for change detection
     const oldSettingsHash = await watermarkService.getSettingsHash();
+    const oldDownloadFingerprint = await watermarkService.getDownloadWatermarkFingerprint();
 
     // Normalize promo_position: only 'above_footer' | 'below_footer' valid.
     const normalizedPromoPosition = promo_position === 'below_footer'
@@ -1150,6 +1152,7 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
       // included the key, so a partial PUT from another tab doesn't
       // accidentally clear them).
       ...(login_logo_frame_enabled !== undefined && { login_logo_frame_enabled }),
+      ...(watermark_downloads_enabled !== undefined && { watermark_downloads_enabled: !!watermark_downloads_enabled }),
       ...(normalizedLoginLogoSize !== undefined && { login_logo_size: normalizedLoginLogoSize }),
       // Footer overhaul (#441 + #440). String fields normalize empty/
       // undefined → '' so the column is always a known type. Only persist
@@ -1288,6 +1291,15 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
         watermarkGeneratorService.clearAllWatermarks()
           .catch(err => logger.error('Failed to clear watermarks:', err));
       }
+    }
+
+    // Cached guest zips hold watermarked or clean copies; drop them only when
+    // a downloaded file would now look different.
+    watermarkService.clearCache();
+    const newDownloadFingerprint = await watermarkService.getDownloadWatermarkFingerprint();
+    if (oldDownloadFingerprint !== newDownloadFingerprint) {
+      require('../services/downloadZipService').invalidateAll()
+        .catch((err) => logger.error('Failed to invalidate cached zips after a watermark change:', err));
     }
 
     res.json({
@@ -1469,6 +1481,11 @@ router.post('/branding/watermark-logo', adminAuth, requirePermission('settings.e
     watermarkService.clearCache();
     const currentSettings = await watermarkService.getWatermarkSettings();
     let watermarkRegenerationStarted = false;
+
+    if (currentSettings && currentSettings.downloadsEnabled) {
+      require('../services/downloadZipService').invalidateAll()
+        .catch((err) => logger.error('Failed to invalidate cached zips after a watermark logo change:', err));
+    }
 
     if (currentSettings && currentSettings.enabled) {
       logger.info('Watermark logo changed, starting background regeneration');
