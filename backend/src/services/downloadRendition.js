@@ -63,20 +63,16 @@ async function renderPhotoForDownload(event, photo, box, watermarkSettings) {
 }
 
 /**
- * Resolve the effective watermark settings for an event, or null when no
- * watermark applies. Same global-OR-event rule the download routes already
- * used, lifted here so the job builder can't drift from it.
+ * The watermark for a downloaded file, or null for a clean file. Only the
+ * Branding switch for downloads decides it: the gallery view watermark and
+ * the old per-event flag used to watermark every download, which a client
+ * who paid for the photos should not get.
  */
+// eslint-disable-next-line no-unused-vars
 async function resolveWatermarkSettings(event) {
   const settings = await watermarkService.getWatermarkSettings();
-  const eventEnabled = event.watermark_downloads === true || event.watermark_downloads === 1;
-  const shouldApply = (settings && settings.enabled) || eventEnabled;
-  if (!shouldApply) return null;
-  return {
-    ...settings,
-    enabled: true,
-    text: event.watermark_text || settings?.text || 'Protected',
-  };
+  if (!settings || !settings.downloadsEnabled) return null;
+  return { ...settings, enabled: true };
 }
 
 module.exports = {

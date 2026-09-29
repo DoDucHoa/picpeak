@@ -20,6 +20,7 @@ class WatermarkService {
       const settings = await db('app_settings')
         .whereIn('setting_key', [
           'branding_watermark_enabled',
+          'branding_watermark_downloads_enabled',
           'branding_watermark_logo_path',
           'branding_watermark_position',
           'branding_watermark_opacity',
@@ -39,6 +40,8 @@ class WatermarkService {
 
       return {
         enabled: settingsObj.branding_watermark_enabled || false,
+        downloadsEnabled: settingsObj.branding_watermark_downloads_enabled === true
+          || settingsObj.branding_watermark_downloads_enabled === 'true',
         logoPath: settingsObj.branding_watermark_logo_path || null,
         position: settingsObj.branding_watermark_position || 'bottom-right',
         opacity: parseInt(settingsObj.branding_watermark_opacity || 50),
@@ -361,6 +364,18 @@ class WatermarkService {
       logger.error('Error deleting watermark file:', error);
       return false;
     }
+  }
+
+  /**
+   * Changes whenever a downloaded file would look different: the download
+   * switch, or anything that shapes the mark. Used to invalidate cached zips
+   * only when it matters; a zip rebuild is expensive.
+   */
+  async getDownloadWatermarkFingerprint() {
+    const s = await this.getWatermarkSettings();
+    // With the switch off every download is clean, so nothing else matters.
+    if (!s || !s.downloadsEnabled) return 'off';
+    return ['on', s.logoPath || '', s.position, s.opacity, s.size, s.companyName].join('|');
   }
 
   /**
