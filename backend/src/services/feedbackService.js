@@ -193,8 +193,14 @@ class FeedbackService {
             updated_at: new Date().toISOString()
           });
       } else {
+        // No row yet: the admin was looking at the defaults this service's
+        // GET answers with, and the event page sends only what changed. Start
+        // the row from those defaults, or every other column falls back to
+        // the database default instead of what the screen showed.
+        const shown = pickSettingsColumns(await this.getEventFeedbackSettings(eventId));
         await db('event_feedback_settings').insert({
           event_id: eventId,
+          ...shown,
           ...writable,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
