@@ -1557,7 +1557,7 @@
     "galleryPassword": "Mật khẩu bộ sưu tập ảnh",
     "requirePasswordToggle": "Yêu cầu mật khẩu cho bộ sưu tập ảnh này",
     "requirePasswordToggleHelp": "Tắt tùy chọn này nếu bạn muốn chia sẻ bộ sưu tập ảnh mà không cần mật khẩu. Bất kỳ ai có liên kết đều có thể xem ảnh.",
-    "publicGalleryWarning": "Bộ sưu tập ảnh công khai có thể được truy cập bởi bất kỳ ai có liên kết. Cân nhắc bật hình mờ khi tải xuống và theo dõi hoạt động.",
+    "publicGalleryWarning": "Bộ sưu tập ảnh công khai có thể được truy cập bởi bất kỳ ai có liên kết. Cân nhắc bật watermark cho file tải về trong mục Thương hiệu và theo dõi hoạt động.",
     "passwordHelperText": "Bạn có thể dùng ngày tháng như \"04.07.2025\" hoặc bất kỳ văn bản nào có từ 6 ký tự trở lên",
     "confirmPassword": "Xác nhận mật khẩu",
     "newPasswordLabel": "Mật khẩu mới của bộ sưu tập ảnh",

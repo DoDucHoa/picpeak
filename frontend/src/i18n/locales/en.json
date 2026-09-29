@@ -1558,7 +1558,7 @@
     "galleryPassword": "Gallery Password",
     "requirePasswordToggle": "Require password for this gallery",
     "requirePasswordToggleHelp": "Disable this if you want to share the gallery without a password. Anyone with the link will be able to view the photos.",
-    "publicGalleryWarning": "Public galleries are accessible to anyone with the link. Consider enabling download watermarks and monitoring activity.",
+    "publicGalleryWarning": "Public galleries are accessible to anyone with the link. Consider watermarking downloaded files in Branding and monitoring activity.",
     "passwordHelperText": "You can use dates like \"04.07.2025\" or any text with 6+ characters",
     "confirmPassword": "Confirm Password",
     "newPasswordLabel": "New Gallery Password",
