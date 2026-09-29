@@ -1874,7 +1874,20 @@
       "shownToGuests": "Shown to guests",
       "hiddenFromGuests": "Visible to you only"
     },
-    "downloadsDisabledNotice": "Downloads are switched off for this gallery, so these settings have no effect. Turn on \"Allow photo downloads\" under Download Protection to use them."
+    "downloadsDisabledNotice": "Downloads are switched off for this gallery, so these settings have no effect. Turn on \"Allow photo downloads\" under Download Protection to use them.",
+    "saveBar": {
+      "label": "Unsaved changes",
+      "count_one": "{{count}} unsaved change",
+      "count_other": "{{count}} unsaved changes",
+      "discard": "Discard",
+      "save": "Save",
+      "changedElsewhere": "Changed elsewhere since you started: {{sections}}",
+      "failed": "Not saved: {{parts}}. Your other changes were saved.",
+      "partEvent": "event details",
+      "partFeedback": "guest feedback",
+      "partQuota": "download allowance",
+      "partResolution": "download resolution"
+    }
   },
   "settings": {
     "title": "System Settings",

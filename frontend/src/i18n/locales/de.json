@@ -2401,7 +2401,20 @@
       "shownToGuests": "Für Gäste sichtbar",
       "hiddenFromGuests": "Nur für dich sichtbar"
     },
-    "downloadsDisabledNotice": "Downloads sind für diese Galerie ausgeschaltet, diese Einstellungen haben daher keine Wirkung. Aktivieren Sie \"Fotodownloads erlauben\" unter Download-Schutz, um sie zu nutzen."
+    "downloadsDisabledNotice": "Downloads sind für diese Galerie ausgeschaltet, diese Einstellungen haben daher keine Wirkung. Aktivieren Sie \"Fotodownloads erlauben\" unter Download-Schutz, um sie zu nutzen.",
+    "saveBar": {
+      "label": "Ungespeicherte Änderungen",
+      "count_one": "{{count}} ungespeicherte Änderung",
+      "count_other": "{{count}} ungespeicherte Änderungen",
+      "discard": "Verwerfen",
+      "save": "Speichern",
+      "changedElsewhere": "Inzwischen anderswo geändert: {{sections}}",
+      "failed": "Nicht gespeichert: {{parts}}. Deine anderen Änderungen wurden gespeichert.",
+      "partEvent": "Veranstaltungsdaten",
+      "partFeedback": "Gäste-Feedback",
+      "partQuota": "Download-Kontingent",
+      "partResolution": "Download-Auflösung"
+    }
   },
   "settings": {
     "title": "Systemeinstellungen",

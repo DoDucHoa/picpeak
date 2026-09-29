@@ -1874,6 +1874,18 @@
       "showToGuestsHelp": "Khách sẽ thấy tên trên các ảnh được tải lên trong lúc tùy chọn này bật; tên được nhập khi tùy chọn đang tắt chỉ bạn và người tổ chức thấy. Tắt tùy chọn sẽ ẩn mọi tên khỏi khách. Tùy chọn này cũng áp dụng cho tên nhiếp ảnh gia đọc từ EXIF.",
       "shownToGuests": "Hiển thị cho khách",
       "hiddenFromGuests": "Chỉ bạn thấy"
+    },
+    "saveBar": {
+      "label": "Thay đổi chưa lưu",
+      "count_other": "{{count}} thay đổi chưa lưu",
+      "discard": "Bỏ thay đổi",
+      "save": "Lưu",
+      "changedElsewhere": "Đã bị thay đổi ở nơi khác từ lúc bạn bắt đầu: {{sections}}",
+      "failed": "Chưa lưu được: {{parts}}. Các thay đổi khác đã được lưu.",
+      "partEvent": "thông tin sự kiện",
+      "partFeedback": "phản hồi của khách",
+      "partQuota": "hạn mức tải",
+      "partResolution": "độ phân giải tải về"
     }
   },
   "settings": {

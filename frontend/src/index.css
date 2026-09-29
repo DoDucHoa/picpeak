@@ -755,3 +755,8 @@
     font-size: max(16px, 1em, 1rem);
   }
 }
+
+/* Keep toasts clear of the event page save bar (EventSaveBar). */
+body[data-save-bar='on'] .Toastify__toast-container--bottom-right {
+  bottom: 5rem;
+}
