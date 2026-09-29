@@ -471,6 +471,8 @@ Done 2026-09-29: a5632761..f540e6a8.
 
 ### P1: Download protection to Settings
 
+Done 2026-09-29: fe9fa4b5..f502b37d.
+
 - Add `disable_right_click` to Image security (seed, GET list, PUT whitelist, tab UI);
   delete the two dormant 037 rows. Relabel devtools and canvas as "applies to every
   gallery".
