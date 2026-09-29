@@ -92,7 +92,7 @@ export const AppearanceSection: React.FC = () => {
           })()}
 
           {/* Per-event social-share opt-in (#474). Toggle is
-              disabled when no hero photo is picked — there's
+              disabled when no hero photo is picked, there's
               nothing to surface as the cover. The help text
               deliberately spells out the public-by-design
               consequence so an admin doesn't flip this on for
@@ -263,7 +263,7 @@ export const AppearanceSection: React.FC = () => {
                   {t('events.loginLogoVisible', 'Display logo on password page')}
                 </label>
                 <select
-                  // #894: two-state — null keeps the default (show), false
+                  // #894: two-state, null keeps the default (show), false
                   // hides the branding logo on this gallery's password page.
                   value={editForm.login_logo_visible === false ? 'hide' : 'show'}
                   onChange={(e) => setEditForm(prev => ({
@@ -283,7 +283,7 @@ export const AppearanceSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Promotional Banner Override (#440) — three-way: inherit / custom / off */}
+          {/* Promotional Banner Override (#440), three-way: inherit / custom / off */}
           <div className="mt-4 pt-4 border-t border-line">
             <h3 className="text-sm font-semibold text-heading mb-3">
               {t('events.promoBanner.title', 'Promotional Banner')}
@@ -329,7 +329,7 @@ export const AppearanceSection: React.FC = () => {
             )}
           </div>
 
-          {/* Info Banner Override (#932) — three-way: inherit / custom / off.
+          {/* Info Banner Override (#932), three-way: inherit / custom / off.
               Mirrors the promotional override above, but this banner renders
               at the TOP of the gallery, above the photos. */}
           <div className="mt-4 pt-4 border-t border-line">

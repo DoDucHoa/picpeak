@@ -96,7 +96,7 @@ export const ClientAccessCard: React.FC<ClientAccessCardProps> = ({
           {t('clientAccess.enableToggle')}: {event?.client_access_enabled ? t('common.yes', 'Yes') : t('common.no', 'No')}
         </p>
 
-        {/* !! — SQLite integer boolean; bare 0 renders as literal "0" */}
+        {/* !!: SQLite integer boolean; bare 0 renders as literal "0" */}
         {!!event?.client_access_enabled && event?.client_share_token && (
           <div>
             <label className="block text-sm font-medium text-body mb-1">

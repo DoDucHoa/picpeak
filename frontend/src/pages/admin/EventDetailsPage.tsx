@@ -493,13 +493,8 @@ export const EventDetailsPage: React.FC = () => {
           event={event}
           id={id}
           passwordVersion={eventUpdatedAt}
-          isEditing={false}
-          editForm={editForm}
-          setEditForm={setEditForm}
-          feedbackSettings={feedbackSettings}
-          setFeedbackSettings={setFeedbackSettings}
+          feedbackSettings={eventFeedbackSettings}
           categories={categories}
-          photos={photos}
           phoneFieldEnabled={phoneFieldEnabled}
           daysUntilExpiration={daysUntilExpiration}
           onRevealNow={() => revealMutation.mutate()}

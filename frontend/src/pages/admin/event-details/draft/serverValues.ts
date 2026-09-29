@@ -42,9 +42,9 @@ export function eventFormValues(event: Event): EditFormState {
     protection_level: event.protection_level || 'standard',
     allow_downloads: event.allow_downloads ?? true,
     // Load hero logo settings from event. Preserve null = "inherit global"
-    // (#756) — don't collapse it to true, or saving would snapshot an override.
+    // (#756), don't collapse it to true, or saving would snapshot an override.
     hero_logo_visible: event.hero_logo_visible ?? null,
-    // Preserve null = "inherit global size" (#756) — don't collapse to medium.
+    // Preserve null = "inherit global size" (#756), don't collapse to medium.
     hero_logo_size: event.hero_logo_size ?? null,
     hero_logo_position: event.hero_logo_position || 'top',
     // #894: null = default (show); only false hides the password-page logo.

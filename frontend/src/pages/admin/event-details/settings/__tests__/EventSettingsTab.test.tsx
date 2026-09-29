@@ -8,6 +8,7 @@ import { SECTION_FIELDS, sectionOf } from '../sectionFields';
 vi.mock('react-i18next', async () => ({ ...(await vi.importActual<typeof import('react-i18next')>('react-i18next')), useTranslation: () => ({ t: (_k: string, fb: string) => fb ?? _k, i18n: { language: 'en' } }) }));
 vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ CustomerAccountPicker: () => null }));
 vi.mock('../../ExternalFolderPicker', () => ({ ExternalFolderPicker: () => null }));
+vi.mock('../../../../../contexts/FeatureFlagsContext', () => ({ useFeatureFlags: () => ({ flags: {} }) }));
 
 import { EventSettingsTab } from '../EventSettingsTab';
 

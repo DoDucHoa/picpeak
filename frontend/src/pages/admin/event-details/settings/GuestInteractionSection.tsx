@@ -80,7 +80,7 @@ export const GuestInteractionSection: React.FC = () => {
             onShowToGuestsChange={(show_credits_to_guests) => setEditForm(prev => ({ ...prev, show_credits_to_guests }))}
           />
   
-          {/* Reveal mode (#838) — only meaningful with guest uploads */}
+          {/* Reveal mode (#838), only meaningful with guest uploads */}
           {editForm.allow_user_uploads && (
             <div>
               <label className="flex items-center">

@@ -9,6 +9,7 @@ import { AdvancedSection } from './AdvancedSection';
 import { AppearanceSection } from './AppearanceSection';
 import { GuestInteractionSection } from './GuestInteractionSection';
 import { DownloadsSection } from './DownloadsSection';
+import { ExtraFeaturesSection, useHasExtraFeatures } from './ExtraFeaturesSection';
 
 const LABELS: Record<SectionId, [string, string]> = {
   details: ['events.settings.sectionDetails', 'Details'],
@@ -27,6 +28,7 @@ const SECTIONS: Partial<Record<SectionId, React.FC>> = {
   appearance: AppearanceSection,
   guests: GuestInteractionSection,
   downloads: DownloadsSection,
+  extra: ExtraFeaturesSection,
   advanced: AdvancedSection,
 };
 
@@ -39,7 +41,9 @@ export const EventSettingsTab: React.FC<{ section: SectionId; onSection: (id: Se
   const { t } = useTranslation();
   const label = useSectionLabel();
   const { draft, readOnly, lockReason, expert, setExpert } = useEventSettings();
-  const available = SECTION_ORDER.filter((id) => SECTIONS[id]);
+  const hasExtra = useHasExtraFeatures();
+  // Extra features shows only when a flag is on (spec 5.1).
+  const available = SECTION_ORDER.filter((id) => SECTIONS[id] && (id !== 'extra' || hasExtra));
   const active = available.includes(section) ? section : available[0];
   const Active = SECTIONS[active] as React.FC;
   return (

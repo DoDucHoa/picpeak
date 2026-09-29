@@ -9,21 +9,15 @@ import {
 import type { Event } from '../../../types';
 import { Card } from '../../../components/common';
 import { useLocalizedDate } from '../../../hooks/useLocalizedDate';
-import type { AdminPhoto } from '../../../services/photos.service';
-import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
 import { safeParseDate } from './utils';
-import type { EditFormState } from './types';
 
+/**
+ * The event summary on the Overview: saved data only (spec 5.1). Every
+ * setting it used to edit lives in the Settings tab.
+ */
 interface EventInformationCardProps {
   event: Event;
-  id: string | undefined;
-  isEditing: boolean;
-  editForm: EditFormState;
-  setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
-  feedbackSettings: FeedbackSettingsType;
-  setFeedbackSettings: React.Dispatch<React.SetStateAction<FeedbackSettingsType>>;
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
-  photos: AdminPhoto[];
   phoneFieldEnabled: boolean;
   daysUntilExpiration: number | null;
   // Reveal mode (#838): stamps revealed_at via POST /events/:id/reveal
@@ -32,7 +26,6 @@ interface EventInformationCardProps {
 
 export const EventInformationCard: React.FC<EventInformationCardProps> = ({
   event,
-  isEditing,
   categories,
   phoneFieldEnabled,
   daysUntilExpiration,
@@ -46,11 +39,7 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
     <Card padding="md">
       <h2 className="text-lg font-semibold text-heading mb-4">{t('events.eventInformation')}</h2>
 
-      {isEditing ? (
-        <div className="space-y-4">
-        </div>
-      ) : (
-        <dl className="space-y-4">
+      <dl className="space-y-4">
           <div>
             <dt className="text-sm font-medium text-muted">{t('events.sourceMode', 'Source Mode')}</dt>
             <dd className="mt-1 text-sm text-heading">
@@ -267,8 +256,7 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
               </div>
             </dd>
           </div>
-        </dl>
-      )}
+      </dl>
     </Card>
   );
 };
