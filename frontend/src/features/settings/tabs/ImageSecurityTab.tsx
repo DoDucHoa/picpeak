@@ -124,7 +124,7 @@ export const ImageSecurityTab: React.FC = () => {
           {t('settings.imageSecurity.defaultProtection', 'Default Protection Settings')}
         </h2>
         <p className="text-sm text-soft mb-4">
-          {t('settings.imageSecurity.defaultProtectionHelp', 'These settings apply to all new events. Individual events can override these defaults.')}
+          {t('settings.imageSecurity.defaultProtectionHelp', 'The protection level and image quality are copied into each new event. The switches below apply to every gallery right away.')}
         </p>
 
         <div className="space-y-4">
@@ -137,10 +137,10 @@ export const ImageSecurityTab: React.FC = () => {
               onChange={(e) => handleChange('default_protection_level', e.target.value as ImageSecuritySettings['default_protection_level'])}
               className="w-full px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="basic">{t('events.protectionLevelBasic', 'Basic - Right-click blocking only')}</option>
+              <option value="basic">{t('events.protectionLevelBasic', 'Basic: no extra protection beyond the switches below')}</option>
               <option value="standard">{t('events.protectionLevelStandard', 'Standard - Keyboard shortcuts blocked')}</option>
               <option value="enhanced">{t('events.protectionLevelEnhanced', 'Enhanced - Print screen detection')}</option>
-              <option value="maximum">{t('events.protectionLevelMaximum', 'Maximum: leaves the gallery when developer tools are detected')}</option>
+              <option value="maximum">{t('events.protectionLevelMaximum', 'Maximum: leaves the gallery when developer tools are detected (when developer tools detection is on)')}</option>
             </select>
           </div>
 

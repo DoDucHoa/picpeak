@@ -50,5 +50,22 @@ describe('Image security: switches for every gallery', () => {
     renderTab();
     const option = (await screen.findByRole('option', { name: /^Maximum/ })) as HTMLOptionElement;
     expect(option.textContent).not.toMatch(/canvas|DevTools detection/i);
+    // Maximum only leaves the gallery through the devtools detector.
+    expect(option.textContent).toMatch(/when developer tools detection is on/);
+  });
+
+  it('does not tie right-click to the basic level', async () => {
+    get.mockResolvedValue({ data: {} });
+    renderTab();
+    const option = (await screen.findByRole('option', { name: /^Basic/ })) as HTMLOptionElement;
+    expect(option.textContent).not.toMatch(/right-click/i);
+  });
+
+  it('says the switches apply to every gallery, not only to new events', async () => {
+    get.mockResolvedValue({ data: {} });
+    renderTab();
+    await screen.findByLabelText(/Block right-click in every gallery/);
+    expect(screen.queryByText(/Individual events can override/)).not.toBeInTheDocument();
+    expect(screen.getByText(/switches below apply to every gallery/)).toBeInTheDocument();
   });
 });
