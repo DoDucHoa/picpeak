@@ -453,6 +453,8 @@ flowchart LR
 
 ### P0: Download watermark
 
+Done 2026-09-29: a5632761..f540e6a8.
+
 - One resolver decides the watermark for every download path: single download (GET and
   HEAD), download all (streamed and pre-built), download selected, pre-built zip build,
   and custom-resolution jobs. Secure-download no longer exists after P-1 (#1669).
