@@ -247,13 +247,15 @@ const EventDetailsPageContent: React.FC = () => {
     (fn: (current: ThemeDraft) => ThemeDraft) => updateDraft('event', '__theme', (cur) => fn(cur as ThemeDraft), serverTheme),
     [updateDraft, serverTheme],
   );
-  const { allowNextNavigation } = useNavigationGuard(draft.isDirty);
   const [expert, setExpert] = useExpertMode();
   const { hasPermission } = usePermissions();
   // Archived, or no events.edit: Settings is read-only (spec 5.2). A draft
   // made before the event got archived (from the Overview) is dropped, or the
   // guard would ask about changes the hidden bar can no longer save.
   const settingsLocked = !!event && (Boolean(event.is_archived) || !hasPermission('events.edit'));
+  // Stops guarding in the same render the page locks, not one render later
+  // when the effect below has discarded the draft.
+  const { allowNextNavigation } = useNavigationGuard(draft.isDirty && !settingsLocked);
   const { discard: discardDraft, isDirty: draftDirty } = draft;
   useEffect(() => {
     if (settingsLocked && draftDirty) discardDraft();
