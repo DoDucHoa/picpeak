@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -254,6 +254,36 @@ describe('event Settings save model', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/events/8'));
     expect(await screen.findByDisplayValue('Bert')).toBeInTheDocument();
     expect(bar()).toBeNull();
+  });
+
+  // Read-only means no draft at all, even from a control a disabled fieldset
+  // does not reach (the focal point picker is a clickable image).
+  it('makes no draft on an archived event, even from the focal point picker', async () => {
+    localStorage.setItem('picpeak.eventSettings.expertMode', '1');
+    const { photosService } = await import('../../../services/photos.service');
+    vi.mocked(photosService.getEventPhotos).mockResolvedValue([{ id: 3, thumbnail_url: '/t.jpg', url: '/u.jpg' }] as never);
+    getEvent.mockResolvedValue({ ...legacyEvent, is_archived: 1, hero_photo_id: 3 });
+    const router = await open('/admin/events/7?tab=settings&section=appearance');
+    await screen.findByText('Hero Image Crop Position');
+    const picker = document.querySelector('.cursor-crosshair') as HTMLElement;
+    expect(picker).not.toBeNull();
+    // A real browser delivers a click on a div inside a disabled fieldset;
+    // user-event does not, so dispatch it directly.
+    fireEvent.click(picker, { clientX: 10, clientY: 10 });
+    await act(async () => { await router.navigate('/admin/events'); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByText('events list')).toBeInTheDocument();
+  });
+
+  it('drops the draft when the event becomes archived while it is open', async () => {
+    const router = await open();
+    await userEvent.type(await nameField(), 'x');
+    expect(bar()).not.toBeNull();
+    getEvent.mockResolvedValue({ ...legacyEvent, is_archived: 1 });
+    await act(async () => { await queryClient.invalidateQueries({ queryKey: ['admin-event', '7'] }); });
+    await waitFor(() => expect(bar()).toBeNull());
+    await act(async () => { await router.navigate('/admin/events'); });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it.each([

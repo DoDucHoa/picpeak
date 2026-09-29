@@ -250,6 +250,18 @@ const EventDetailsPageContent: React.FC = () => {
   const { allowNextNavigation } = useNavigationGuard(draft.isDirty);
   const [expert, setExpert] = useExpertMode();
   const { hasPermission } = usePermissions();
+  // Archived, or no events.edit: Settings is read-only (spec 5.2). A draft
+  // made before the event got archived (from the Overview) is dropped, or the
+  // guard would ask about changes the hidden bar can no longer save.
+  const settingsLocked = !!event && (Boolean(event.is_archived) || !hasPermission('events.edit'));
+  const { discard: discardDraft, isDirty: draftDirty } = draft;
+  useEffect(() => {
+    if (settingsLocked && draftDirty) discardDraft();
+  }, [settingsLocked, draftDirty, discardDraft]);
+  // Read-only setters: a disabled fieldset stops form controls, not a
+  // clickable image like the focal point picker, so nothing may write.
+  const noop = useCallback(() => undefined, []);
+  const lockedDraft = useMemo(() => ({ ...draft, set: noop, update: noop }), [draft, noop]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const section = (searchParams.get('section') as SectionId | null) ?? 'details';
@@ -555,7 +567,14 @@ const EventDetailsPageContent: React.FC = () => {
       {/* Settings tab (spec 5.1): one section at a time, saved by the bar */}
       {activeTab === 'settings' && (
         <EventSettingsContext.Provider value={{
-          event, editForm, setEditForm, feedbackSettings, setFeedbackSettings, theme, setTheme, draft,
+          event,
+          editForm,
+          setEditForm: settingsLock === null ? setEditForm : noop,
+          feedbackSettings,
+          setFeedbackSettings: settingsLock === null ? setFeedbackSettings : noop,
+          theme,
+          setTheme: settingsLock === null ? setTheme : noop,
+          draft: settingsLock === null ? draft : lockedDraft,
           readOnly: settingsLock !== null, lockReason: settingsLock, expert, setExpert, refetchEvent,
           categories, phoneFieldEnabled, heroPhotos, cssTemplates,
         }}>
