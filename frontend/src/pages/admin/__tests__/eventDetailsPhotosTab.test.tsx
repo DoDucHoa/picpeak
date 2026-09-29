@@ -11,6 +11,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { ConfirmDialogProvider } from '../../../components/common/ConfirmDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -106,7 +107,9 @@ function renderPage(entry: string) {
   );
   return render(
     <QueryClientProvider client={qc}>
-      <RouterProvider router={router} />
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>
     </QueryClientProvider>
   );
 }

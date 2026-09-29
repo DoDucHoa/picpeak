@@ -6,26 +6,20 @@ import {
   Download,
   Upload,
   Image,
-  Lock,
-  Eye,
-  EyeOff,
   Shield,
   Layout,
   Trash2
 } from 'lucide-react';
 import type { Event } from '../../../types';
-import { Input, Card, Loading, MarkdownContent, LocalizedDateInput } from '../../../components/common';
+import { Card, Loading, MarkdownContent } from '../../../components/common';
 import { HeroPhotoSelector, FocalPointPicker, FeedbackSettings } from '../../../components/admin';
-import { CustomerAccountPicker } from '../../../components/admin/CustomerAccountPicker';
 import { UploaderNameSettings } from '../../../components/admin/UploaderNameSettings';
 import { api } from '../../../config/api';
 import { buildResourceUrl } from '../../../utils/url';
 import { useLocalizedDate } from '../../../hooks/useLocalizedDate';
 import type { AdminPhoto } from '../../../services/photos.service';
 import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
-import { ExternalFolderPicker } from './ExternalFolderPicker';
 import { safeParseDate } from './utils';
-import { usePermission } from '../../../hooks/usePermission';
 import type { EditFormState } from './types';
 
 interface EventInformationCardProps {
@@ -34,8 +28,6 @@ interface EventInformationCardProps {
   isEditing: boolean;
   editForm: EditFormState;
   setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
-  showNewPassword: boolean;
-  setShowNewPassword: (show: boolean) => void;
   feedbackSettings: FeedbackSettingsType;
   setFeedbackSettings: React.Dispatch<React.SetStateAction<FeedbackSettingsType>>;
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
@@ -52,8 +44,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
   isEditing,
   editForm,
   setEditForm,
-  showNewPassword,
-  setShowNewPassword,
   feedbackSettings,
   setFeedbackSettings,
   categories,
@@ -63,10 +53,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
   onRevealNow
 }) => {
   const { t } = useTranslation();
-  // Enabling the watcher makes the server import on the admin's behalf, which
-  // the backend gates on photos.upload like the Import button. Mirror that
-  // here rather than letting the save bounce with a 403.
-  const canEnableWatch = usePermission('photos.upload');
   
   const { format } = useLocalizedDate();
   const queryClient = useQueryClient();
@@ -110,75 +96,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
 
       {isEditing ? (
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.welcomeMessageLabel')}
-            </label>
-            <textarea
-              value={editForm.welcome_message}
-              onChange={(e) => setEditForm(prev => ({ ...prev, welcome_message: e.target.value }))}
-              className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark"
-              rows={3}
-              placeholder={t('events.welcomeMessage')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.hostName')}
-            </label>
-            <Input
-              type="text"
-              value={editForm.customer_name}
-              onChange={(e) => setEditForm(prev => ({ ...prev, customer_name: e.target.value }))}
-              placeholder={t('events.hostNamePlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.hostEmail')}
-            </label>
-            <Input
-              type="email"
-              value={editForm.customer_email}
-              onChange={(e) => setEditForm(prev => ({ ...prev, customer_email: e.target.value }))}
-              placeholder={t('events.hostEmailPlaceholder')}
-            />
-          </div>
-
-          {phoneFieldEnabled && (
-            <div>
-              <label className="block text-sm font-medium text-body mb-1">
-                {t('events.customerPhone', 'Customer Phone')} ({t('common.optional')})
-              </label>
-              <Input
-                type="tel"
-                value={editForm.customer_phone}
-                onChange={(e) => setEditForm(prev => ({ ...prev, customer_phone: e.target.value }))}
-                placeholder={t('events.customerPhonePlaceholder', '+1 555 555 1234')}
-              />
-            </div>
-          )}
-
-          {/* Customer accounts (#354). Picker self-hides when the
-              customerPortal feature flag is off. */}
-          <CustomerAccountPicker
-            value={editForm.customer_accounts}
-            onChange={(next) => setEditForm((prev) => ({ ...prev, customer_accounts: next }))}
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.expirationDate')}
-            </label>
-            <LocalizedDateInput
-              value={editForm.expires_at}
-              onChange={(iso) => setEditForm(prev => ({ ...prev, expires_at: iso }))}
-              min={format(new Date(), 'yyyy-MM-dd')}
-            />
-          </div>
-
           {/* Hero Photo Selection */}
           <HeroPhotoSelector
             photos={photos || []}
@@ -238,195 +155,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
               </div>
             );
           })()}
-
-          <div>
-            <label className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                className="mt-1 w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500"
-                checked={editForm.require_password}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setEditForm(prev => ({
-                    ...prev,
-                    require_password: checked,
-                    new_password: checked ? prev.new_password : '',
-                    confirm_new_password: checked ? prev.confirm_new_password : '',
-                  }));
-                  if (!checked) {
-                    setShowNewPassword(false);
-                  }
-                }}
-              />
-              <div>
-                <span className="text-sm font-medium text-body">{t('events.requirePasswordToggle')}</span>
-                <p className="text-xs text-muted mt-1">
-                  {t('events.requirePasswordToggleHelp', 'Disable this if you want to share the gallery without a password. Anyone with the link will be able to view the photos.')}
-                </p>
-              </div>
-            </label>
-
-            {!editForm.require_password && (
-              <div className="mt-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/30 p-3 text-xs text-orange-800 dark:text-orange-300">
-                {t('events.publicGalleryWarning', 'Public galleries are accessible to anyone with the link. Consider watermarking downloaded files in Branding and monitoring activity.')}
-              </div>
-            )}
-          </div>
-
-          {editForm.require_password && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-body mb-1">
-                  {t('events.newPasswordLabel', 'New gallery password')}
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={editForm.new_password}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, new_password: e.target.value }))}
-                    placeholder={t('events.enterPassword')}
-                    leftIcon={<Lock className="w-5 h-5 text-neutral-400" />}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="w-5 h-5 text-neutral-400 hover:text-body" />
-                    ) : (
-                      <Eye className="w-5 h-5 text-neutral-400 hover:text-body" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-body mb-1">
-                  {t('events.confirmPassword')}
-                </label>
-                <Input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={editForm.confirm_new_password}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, confirm_new_password: e.target.value }))}
-                  placeholder={t('events.confirmPasswordPlaceholder')}
-                  leftIcon={<Lock className="w-5 h-5 text-neutral-400" />}
-                />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.sourceMode', 'Source Mode')}
-            </label>
-            <select
-              value={editForm.source_mode}
-              onChange={(e) => {
-                // Named `sourceMode`, not `mode`: the i18n extractor's TS
-                // resolver matches locals by name across the whole file, so a
-                // local called `mode` here leaked 'managed' | 'reference' into
-                // the promo/info banner mode_ templates further down and had it
-                // emit four phantom keys that the code can never request.
-                const sourceMode = e.target.value as 'managed' | 'reference';
-                setEditForm(prev => ({
-                  ...prev,
-                  source_mode: sourceMode,
-                  external_path: sourceMode === 'reference'
-                    ? (prev.external_path || event.external_path || '')
-                    : ''
-                }));
-              }}
-              className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark"
-            >
-              <option value="managed">{t('events.sourceModeManaged', 'Managed (upload to PicPeak)')}</option>
-              <option value="reference">{t('events.sourceModeReference', 'Reference external folder')}</option>
-            </select>
-            <p className="text-xs text-muted mt-1">
-              {t('events.sourceModeHelp', 'Use managed mode for direct uploads or reference an external folder that is mounted at /external-media in Docker.')}
-            </p>
-          </div>
-
-          {editForm.source_mode === 'reference' && (
-            <div className="mt-3">
-              <label className="block text-sm font-medium text-body mb-2">
-                {t('events.externalFolder', 'External Folder')}
-              </label>
-              <ExternalFolderPicker
-                value={editForm.external_path || ''}
-                onChange={(folder) => setEditForm(prev => ({ ...prev, external_path: folder }))}
-              />
-              <p className="text-xs text-muted mt-1">
-                {t('events.externalFolderHint', 'These folders come from the /external-media mount inside the container. Ensure it is accessible to the backend process.')}
-              </p>
-              <label className={`flex items-start gap-2 mt-3 ${canEnableWatch || editForm.external_watch ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
-                <input
-                  type="checkbox"
-                  className="mt-0.5 rounded border-line-strong text-accent focus:ring-primary-500"
-                  checked={editForm.external_watch === true}
-                  disabled={!canEnableWatch && !editForm.external_watch}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, external_watch: e.target.checked }))}
-                />
-                <span className="text-sm">
-                  <span className="font-medium text-heading">
-                    {t('events.externalWatch', 'Watch folder for new files')}
-                  </span>
-                  <span className="block text-xs text-muted mt-0.5">
-                    {t('events.externalWatchHint', 'New images copied into this folder are imported automatically, the same way the Import button does it. Files removed from the folder are never deleted from the gallery.')}
-                  </span>
-                  {!canEnableWatch && !editForm.external_watch && (
-                    <span className="block text-xs text-muted mt-0.5">
-                      {t('events.externalWatchNoPermission', 'Requires the permission to upload photos.')}
-                    </span>
-                  )}
-                </span>
-              </label>
-            </div>
-          )}
-
-          {/* Photo Cap */}
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.photoCap', 'Photo Limit')}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={editForm.photo_cap}
-                onChange={(e) => setEditForm(prev => ({ ...prev, photo_cap: parseInt(e.target.value) || 0 }))}
-                min={0}
-                // events.photo_cap is a signed 32-bit int (migration 074).
-                // Without an explicit max, input[type=number] reports
-                // aria-valuemax="0", and an out-of-range value only fails at
-                // INSERT.
-                max={2147483647}
-                className="w-24 px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark"
-              />
-              <span className="text-xs text-muted">
-                {t('events.photoCapHelp', 'Maximum number of photos allowed. 0 = unlimited')}
-              </span>
-            </div>
-          </div>
-
-          {/* Default Photo Sort */}
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('photoSort.defaultSort', 'Default Photo Sort')}
-            </label>
-            <select
-              value={editForm.default_photo_sort}
-              onChange={(e) => setEditForm(prev => ({ ...prev, default_photo_sort: e.target.value }))}
-              className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark"
-            >
-              <option value="upload_date_desc">{t('photoSort.uploadDateNewest', 'Upload Date (Newest First)')}</option>
-              <option value="upload_date_asc">{t('photoSort.uploadDateOldest', 'Upload Date (Oldest First)')}</option>
-              <option value="capture_date_desc">{t('photoSort.captureDateNewest', 'Date Taken (Newest First)')}</option>
-              <option value="capture_date_asc">{t('photoSort.captureDateOldest', 'Date Taken (Oldest First)')}</option>
-              <option value="filename_asc">{t('photoSort.filenameAZ', 'Filename (A-Z)')}</option>
-              <option value="filename_desc">{t('photoSort.filenameZA', 'Filename (Z-A)')}</option>
-            </select>
-          </div>
 
           <div>
             <label className="flex items-center">

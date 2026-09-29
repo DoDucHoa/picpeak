@@ -40,13 +40,13 @@ export function useEventDraft(): EventDraft {
  * value differs from the current view becomes a draft field; a stale view
  * cannot undo a sibling key, because unchanged keys are never written.
  */
-export function useDraftObject<T extends Record<string, unknown>>(
+export function useDraftObject<T extends object>(
   draft: EventDraft,
   part: DraftPart,
   server: T,
 ): [T, (action: SetStateAction<T>) => void] {
   const view = useMemo(() => {
-    const out: Record<string, unknown> = { ...server };
+    const out: Record<string, unknown> = { ...(server as Record<string, unknown>) };
     for (const [key, entry] of Object.entries(draft.state)) {
       if (partOf(key) === part) out[nameOf(key)] = entry.value;
     }
@@ -55,9 +55,11 @@ export function useDraftObject<T extends Record<string, unknown>>(
 
   const { set } = draft;
   const setView = useCallback((action: SetStateAction<T>) => {
-    const next = typeof action === 'function' ? (action as (prev: T) => T)(view) : action;
+    const next = (typeof action === 'function' ? (action as (prev: T) => T)(view) : action) as Record<string, unknown>;
+    const now = view as Record<string, unknown>;
+    const saved = server as Record<string, unknown>;
     for (const name of Object.keys(next)) {
-      if (!sameValue(next[name], view[name])) set(part, name, next[name], server[name]);
+      if (!sameValue(next[name], now[name])) set(part, name, next[name], saved[name]);
     }
   }, [set, part, server, view]);
 

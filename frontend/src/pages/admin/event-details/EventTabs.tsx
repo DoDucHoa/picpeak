@@ -22,8 +22,9 @@ export const EventTabs: React.FC<EventTabsProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="mb-6 border-b border-line">
-      <nav className="-mb-px flex space-x-8">
+    <div className="mb-6 border-b border-line overflow-x-auto">
+      {/* Scrolls sideways below sm rather than wrapping (spec 5.1). */}
+      <nav className="-mb-px flex space-x-8 whitespace-nowrap">
         <button
           onClick={() => setActiveTab('overview')}
           className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -83,6 +84,16 @@ export const EventTabs: React.FC<EventTabsProps> = ({
             {t('admin.events.tabs.guests', 'Guests')}
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            activeTab === 'settings'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
+          }`}
+        >
+          {t('events.settings.tab', 'Settings')}
+        </button>
       </nav>
     </div>
   );

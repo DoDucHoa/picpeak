@@ -30,8 +30,6 @@ interface OverviewTabProps {
   isEditing: boolean;
   editForm: EditFormState;
   setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
-  showNewPassword: boolean;
-  setShowNewPassword: (show: boolean) => void;
   feedbackSettings: FeedbackSettingsType;
   setFeedbackSettings: React.Dispatch<React.SetStateAction<FeedbackSettingsType>>;
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
@@ -65,8 +63,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   isEditing,
   editForm,
   setEditForm,
-  showNewPassword,
-  setShowNewPassword,
   feedbackSettings,
   setFeedbackSettings,
   categories,
@@ -105,8 +101,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           isEditing={isEditing}
           editForm={editForm}
           setEditForm={setEditForm}
-          showNewPassword={showNewPassword}
-          setShowNewPassword={setShowNewPassword}
           feedbackSettings={feedbackSettings}
           setFeedbackSettings={setFeedbackSettings}
           categories={categories}

@@ -23,7 +23,7 @@ describe('public gallery warning', () => {
   });
 
   it.each([
-    'src/pages/admin/event-details/EventInformationCard.tsx',
+    'src/pages/admin/event-details/settings/AccessSection.tsx',
     'src/pages/admin/CreateEventPage.tsx',
   ])('%s falls back to the English copy', (rel) => {
     const src = fs.readFileSync(path.join(FRONTEND, rel), 'utf8');

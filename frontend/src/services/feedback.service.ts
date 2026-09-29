@@ -178,7 +178,9 @@ class FeedbackService {
     return response.data;
   }
 
-  async updateEventFeedbackSettings(eventId: string, settings: FeedbackSettings): Promise<FeedbackSettings> {
+  // Partial: the backend updates only the keys it receives (pickSettingsColumns),
+  // and the event page sends only the ones the user changed.
+  async updateEventFeedbackSettings(eventId: string, settings: Partial<FeedbackSettings>): Promise<FeedbackSettings> {
     const response = await api.put(`/admin/feedback/events/${eventId}/feedback-settings`, settings);
     return response.data;
   }

@@ -1,7 +1,7 @@
 import type { GuestNameMode } from '../../../types';
 import type { ThemeConfig } from '../../../types/theme.types';
 
-export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads';
+export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads' | 'settings';
 
 export type EditFormState = {
   welcome_message: string;

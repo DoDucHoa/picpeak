@@ -9,14 +9,25 @@ import { PasswordResetModal, PublishGalleryDialog, SendGalleryEmailDialog, Dupli
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
-import { isGalleryPublic, normalizeRequirePassword } from '../../utils/accessControl';
+import { isGalleryPublic } from '../../utils/accessControl';
 import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters } from '../../services/photos.service';
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
-import { cssTemplatesService, type EnabledTemplate } from '../../services/cssTemplates.service';
+import { type EnabledTemplate } from '../../services/cssTemplates.service';
 import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
 import { safeParseDate, eventHasGuests } from './event-details/utils';
-import { INITIAL_EDIT_FORM, type EditFormState, type EventDetailsTab } from './event-details/types';
-import { eventFormValues } from './event-details/draft/serverValues';
+import { INITIAL_EDIT_FORM, type EventDetailsTab, type ThemeDraft } from './event-details/types';
+import { eventFormValues, themeValue } from './event-details/draft/serverValues';
+import { useDraftObject, useEventDraft } from './event-details/draft/useEventDraft';
+import { buildEventPayload, runSave, validateDraft } from './event-details/draft/saveDraft';
+import { changesFor, isChangedElsewhere, type DraftPart } from './event-details/draft/eventDraft';
+import { useNavigationGuard } from '../../hooks/useNavigationGuard';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import { api } from '../../config/api';
+import { EventSettingsContext } from './event-details/settings/EventSettingsContext';
+import { EventSettingsTab, useSectionLabel } from './event-details/settings/EventSettingsTab';
+import { sectionOf, type SectionId } from './event-details/settings/sectionFields';
+import { useExpertMode } from './event-details/settings/AdvancedArea';
+import { EventSaveBar } from './event-details/EventSaveBar';
 import { EventDetailsHeader } from './event-details/EventDetailsHeader';
 import { EventTabs } from './event-details/EventTabs';
 import { OverviewTab } from './event-details/OverviewTab';
@@ -24,7 +35,7 @@ import { PhotosTab } from './event-details/PhotosTab';
 import { CategoriesTab } from './event-details/CategoriesTab';
 import { DownloadLedgerTab } from '../../components/admin/DownloadLedgerTab';
 
-const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests', 'downloads'];
+const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests', 'downloads', 'settings'];
 
 function isValidTab(value: string | null): value is EventDetailsTab {
   return value !== null && (ALL_TAB_KEYS as string[]).includes(value);
@@ -44,21 +55,6 @@ export const EventDetailsPage: React.FC = () => {
     }
   }, [id, navigate]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<EditFormState>(INITIAL_EDIT_FORM);
-  const [feedbackSettings, setFeedbackSettings] = useState<FeedbackSettingsType>({
-    feedback_enabled: false,
-    allow_ratings: true,
-    allow_likes: true,
-    allow_comments: true,
-    allow_favorites: true,
-    allow_reactions: true,
-    allow_color_labels: false,
-    keybind_mode: 'colors',
-    require_name_email: false,
-    moderate_comments: true,
-    show_feedback_to_guests: true,
-  });
   // Read ?tab=… on mount, same shape as SettingsPage so both surfaces answer
   // deep links identically; an unknown value falls back to the default tab and
   // the sync effect below rewrites the URL to match (QA follow-up).
@@ -85,29 +81,12 @@ export const EventDetailsPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeConfig | null>(null);
-  const [currentPresetName, setCurrentPresetName] = useState<string>('default');
-  // Tracks whether the admin actually interacted with the theme picker
-  // during this edit session. Prevents the save handler from writing the
-  // initial display state back to `events.color_theme`, which silently
-  // overwrote branding inheritance on events with a NULL color_theme
-  // (API-created events — #550 follow-up).
-  const [themeChanged, setThemeChanged] = useState(false);
-  const [cssTemplates, setCssTemplates] = useState<EnabledTemplate[]>([]);
-
-  // Fetch CSS templates when component mounts or editing starts
-  useEffect(() => {
-    if (isEditing) {
-      cssTemplatesService.getEnabledTemplates()
-        .then(setCssTemplates)
-        .catch(err => console.error('Failed to load CSS templates:', err));
-    }
-  }, [isEditing]);
+  // Task 10 loads these for the Settings tab.
+  const cssTemplates: EnabledTemplate[] = [];
 
   // Photo filters state
   const [photoFilters, setPhotoFilters] = useState<PhotoFilterParams>({
@@ -167,13 +146,6 @@ export const EventDetailsPage: React.FC = () => {
     }
   }, [feedbackSettingsLoading, eventLoading, showGuestsTab, activeTab]);
 
-  // Update local feedback settings when fetched from server
-  useEffect(() => {
-    if (eventFeedbackSettings) {
-      setFeedbackSettings(eventFeedbackSettings);
-    }
-  }, [eventFeedbackSettings]);
-
   // Statistics are now fetched with the event details from the admin API
 
   // Merge feedback filters into photo query params so the grid reflects
@@ -196,7 +168,7 @@ export const EventDetailsPage: React.FC = () => {
   const { data: photos = [], isLoading: photosLoading, isError: photosError, refetch: refetchPhotos } = useQuery({
     queryKey: ['admin-event-photos', id, combinedPhotoFilters],
     queryFn: () => photosService.getEventPhotos(parseInt(id!), combinedPhotoFilters),
-    enabled: !!id && (activeTab === 'photos' || isEditing),
+    enabled: !!id && activeTab === 'photos',
     refetchInterval: (query) => {
       const data = query.state.data as AdminPhoto[] | undefined;
       if (!Array.isArray(data)) return false;
@@ -247,23 +219,90 @@ export const EventDetailsPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => eventsService.updateEvent(parseInt(id!), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
-      toast.success(t('toast.eventUpdated'));
-      setIsEditing(false);
-    },
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errorMessage = error.response.data.errors[0].msg + ' (field: ' + error.response.data.errors[0].path + ')';
-        toast.error(errorMessage);
-      } else {
-        toast.error(error.response?.data?.error || t('toast.saveError'));
+  // The Settings tab's draft (spec 5.2): only what the user changed.
+  const draft = useEventDraft();
+  const serverForm = useMemo(() => (event ? eventFormValues(event) : INITIAL_EDIT_FORM), [event]);
+  const [editForm, setEditForm] = useDraftObject(draft, 'event', serverForm);
+  const serverFeedback = useMemo(() => (eventFeedbackSettings ?? {}) as FeedbackSettingsType, [eventFeedbackSettings]);
+  const [feedbackSettings, setFeedbackSettings] = useDraftObject(draft, 'feedback', serverFeedback);
+  const serverTheme = useMemo<ThemeDraft>(
+    () => (event
+      ? themeValue(event, publicSettings?.theme_config as ThemeConfig | undefined)
+      : { config: GALLERY_THEME_PRESETS.default.config, preset: 'default' }),
+    [event, publicSettings?.theme_config],
+  );
+  const theme = (draft.state['event.__theme']?.value as ThemeDraft | undefined) ?? serverTheme;
+  const { update: updateDraft } = draft;
+  const setTheme = useCallback(
+    (fn: (current: ThemeDraft) => ThemeDraft) => updateDraft('event', '__theme', (cur) => fn(cur as ThemeDraft), serverTheme),
+    [updateDraft, serverTheme],
+  );
+  const { allowNextNavigation } = useNavigationGuard(draft.isDirty);
+  const [expert, setExpert] = useExpertMode();
+  const { hasPermission } = usePermissions();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const section = (searchParams.get('section') as SectionId | null) ?? 'details';
+  const setSection = (sectionId: SectionId) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('section', sectionId);
+    setSearchParams(next, { replace: true });
+  };
+  const sectionLabel = useSectionLabel();
+  const changedElsewhereSections = useMemo(() => {
+    const server: Record<string, unknown> = { 'event.__theme': serverTheme };
+    for (const [k, v] of Object.entries(serverForm)) server[`event.${k}`] = v;
+    for (const [k, v] of Object.entries(serverFeedback)) server[`feedback.${k}`] = v;
+    const ids = new Set<SectionId>();
+    for (const key of Object.keys(draft.state)) {
+      if (key in server && isChangedElsewhere(draft.state, key, server[key])) {
+        const sectionId = sectionOf(key);
+        if (sectionId) ids.add(sectionId);
       }
-    },
-  });
+    }
+    return [...ids].map(sectionLabel);
+  }, [draft.state, serverForm, serverFeedback, serverTheme, sectionLabel]);
+
+  const PART_LABEL: Record<DraftPart, [string, string]> = {
+    event: ['events.saveBar.partEvent', 'event details'],
+    feedback: ['events.saveBar.partFeedback', 'guest feedback'],
+    quota: ['events.saveBar.partQuota', 'download allowance'],
+    resolution: ['events.saveBar.partResolution', 'download resolution'],
+  };
+
+  // Event PUT, then feedback, allowance and resolution, each only when changed.
+  const handleSave = async () => {
+    if (!event) return;
+    const changed = new Set(Object.keys(changesFor(draft.state, 'event')));
+    const invalid = validateDraft(changed, editForm, serverForm);
+    if (invalid) {
+      toast.error(t(invalid.key, invalid.fallback));
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    const result = await runSave(draft.state, () => buildEventPayload(changed, editForm, theme, serverTheme), {
+      updateEvent: (payload) => eventsService.updateEvent(event.id, payload),
+      updateFeedback: (payload) => feedbackService.updateEventFeedbackSettings(String(event.id), payload),
+      updateQuota: (payload) => api.put(`/admin/events/${event.id}/download-quota`, payload),
+      updateResolution: (payload) => api.patch(`/admin/events/${event.id}/download-resolutions`, payload),
+    });
+    setIsSaving(false);
+    draft.dropParts(result.saved);
+    if (result.saved.includes('event')) queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+    if (result.saved.includes('feedback')) queryClient.invalidateQueries({ queryKey: ['admin-event-feedback-settings', id] });
+    if (result.saved.includes('quota')) queryClient.invalidateQueries({ queryKey: ['admin-download-quota', event.id] });
+    if (result.saved.includes('resolution')) {
+      queryClient.invalidateQueries({ queryKey: ['event-download-resolutions', event.id] });
+      refetchEvent();
+    }
+    if (result.failed) {
+      const [key, fallback] = PART_LABEL[result.failed.part];
+      setSaveError(t('events.saveBar.failed', 'Not saved: {{parts}}. Your other changes were saved.', { parts: t(key, fallback) }));
+    } else {
+      toast.success(t('toast.eventUpdated'));
+    }
+  };
 
   // Archive mutation
   // Reveal now (#838)
@@ -353,6 +392,7 @@ export const EventDetailsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       toast.success(t('events.duplicateDialog.successToast', 'Gallery duplicated.'));
       setShowDuplicateDialog(false);
+      allowNextNavigation();
       navigate(`/admin/events/${result.id}`);
     },
     onError: (err: any) => {
@@ -406,210 +446,12 @@ export const EventDetailsPage: React.FC = () => {
     : null;
   const isExpiring = !isExpired && daysUntilExpiration !== null && daysUntilExpiration > 0 && daysUntilExpiration <= 7;
 
-  const handleStartEdit = () => {
-    setEditForm(eventFormValues(event));
-
-    setShowNewPassword(false);
-
-    // Set feedback settings if available
-    if (eventFeedbackSettings) {
-      setFeedbackSettings(eventFeedbackSettings);
-    }
-
-    // Parse theme configuration
-    if (event.color_theme) {
-      try {
-        if (event.color_theme.startsWith('{')) {
-          const parsedTheme = JSON.parse(event.color_theme);
-          setCurrentTheme(parsedTheme);
-          // Try to find matching preset
-          const matchingPreset = Object.entries(GALLERY_THEME_PRESETS).find(
-            ([_, preset]) => JSON.stringify(preset.config) === JSON.stringify(parsedTheme)
-          );
-          setCurrentPresetName(matchingPreset ? matchingPreset[0] : 'custom');
-        } else {
-          // Legacy theme name
-          const preset = GALLERY_THEME_PRESETS[event.color_theme];
-          if (preset) {
-            setCurrentTheme(preset.config);
-            setCurrentPresetName(event.color_theme);
-          }
-        }
-      } catch {
-        setCurrentTheme(GALLERY_THEME_PRESETS.default.config);
-        setCurrentPresetName('default');
-      }
-    } else {
-      // No color_theme stored — the gallery renders with the site
-      // branding theme as a fallback. Mirror that here so the picker
-      // shows the same palette the admin sees on the gallery, rather
-      // than the hardcoded Classic Grid preset that has nothing to do
-      // with their branding (#550 follow-up). currentPresetName=custom
-      // because the inherited config isn't a named preset; combined
-      // with themeChanged=false below, saving without touching the
-      // picker leaves color_theme NULL and preserves inheritance.
-      const branding = publicSettings?.theme_config as ThemeConfig | undefined;
-      setCurrentTheme(branding ?? GALLERY_THEME_PRESETS.default.config);
-      setCurrentPresetName(branding ? 'custom' : 'default');
-    }
-    setThemeChanged(false);
-
-    setIsEditing(true);
-  };
-
-  const handleSaveEdit = async () => {
-    // Prepare color_theme - if we have a custom theme, serialize it
-    let themeToSave = editForm.color_theme;
-    if (currentTheme && currentPresetName === 'custom') {
-      themeToSave = JSON.stringify(currentTheme);
-    } else if (currentPresetName && currentPresetName !== 'custom') {
-      // Use preset name for non-custom themes
-      themeToSave = currentPresetName;
-    }
-
-    const externalPathToSave = editForm.external_path?.trim() || '';
-
-    const currentRequirePassword = normalizeRequirePassword(event.require_password);
-    const requirePasswordChanged = editForm.require_password !== currentRequirePassword;
-
-    if (editForm.require_password) {
-      if (requirePasswordChanged && !editForm.new_password) {
-        toast.error(t('events.newPasswordRequired', 'Please set a password before enabling protection.'));
-        return;
-      }
-      if (editForm.new_password) {
-        if (editForm.new_password.length < 6) {
-          toast.error(t('validation.passwordMinLength'));
-          return;
-        }
-        if (editForm.new_password !== editForm.confirm_new_password) {
-          toast.error(t('validation.passwordsDoNotMatch'));
-          return;
-        }
-      }
-    }
-
-    if (editForm.source_mode === 'reference' && !externalPathToSave) {
-      toast.error(t('events.externalFolderRequired', 'Please select an external folder before saving.'));
-      return;
-    }
-
-    // No expiration-required validation on edit (#426). The global
-    // `event_require_expiration` setting only enforces a default at
-    // create-time — once an event exists, an admin can clear the
-    // expiration via this form. The matching backend gate was dropped
-    // in adminEvents.js.
-
-    // Clean up the data - remove undefined values
-    const updateData: any = {
-      expires_at: editForm.expires_at || null,
-      allow_user_uploads: editForm.allow_user_uploads,
-      guest_name_mode: editForm.guest_name_mode,
-      show_credits_to_guests: editForm.show_credits_to_guests,
-      reveal_mode: editForm.allow_user_uploads && editForm.reveal_mode,
-      reveal_at: editForm.allow_user_uploads && editForm.reveal_mode && editForm.reveal_at
-        ? new Date(editForm.reveal_at).toISOString()
-        : null,
-      require_password: editForm.require_password,
-      css_template_id: editForm.css_template_id,
-      // Download protection settings
-      protection_level: editForm.protection_level,
-      allow_downloads: editForm.allow_downloads,
-      // Hero logo settings
-      hero_logo_visible: editForm.hero_logo_visible,
-      hero_logo_size: editForm.hero_logo_size,
-      hero_logo_position: editForm.hero_logo_position,
-      login_logo_visible: editForm.login_logo_visible,
-      // Hero image anchor position (#162)
-      hero_image_anchor: editForm.hero_image_anchor,
-      // Photo cap
-      photo_cap: editForm.photo_cap > 0 ? editForm.photo_cap : null,
-      // Default photo sort
-      default_photo_sort: editForm.default_photo_sort,
-      // Header style settings (decoupled from layout, #158)
-      header_style: currentTheme?.headerStyle || 'standard',
-      hero_divider_style: currentTheme?.heroDividerStyle || 'wave',
-      // Per-event promotional override (#440). Backend nulls
-      // promo_markdown automatically when mode != 'custom'.
-      promo_mode: editForm.promo_mode,
-      promo_markdown: editForm.promo_mode === 'custom' ? editForm.promo_markdown : null,
-      info_mode: editForm.info_mode,
-      info_markdown: editForm.info_mode === 'custom' ? editForm.info_markdown : null,
-      // Customer accounts (#354) — flat array of ids. Backend diffs
-      // against existing assignments in one transaction.
-      customer_account_ids: editForm.customer_accounts.map((c) => c.id),
-    };
-
-    // Only include fields that have defined values
-    if (editForm.welcome_message !== undefined && editForm.welcome_message !== null) {
-      updateData.welcome_message = editForm.welcome_message;
-    }
-    // Only persist color_theme when the admin actually interacted with
-    // the picker. Writing the initial display state back to the row
-    // silently overwrote NULL (= "inherit branding") with the picker's
-    // default preset on any save (#550 follow-up).
-    if (themeChanged && themeToSave) {
-      updateData.color_theme = themeToSave;
-    }
-    if (editForm.upload_category_id !== undefined) {
-      updateData.upload_category_id = editForm.upload_category_id;
-    }
-    if (editForm.hero_photo_id !== undefined) {
-      updateData.hero_photo_id = editForm.hero_photo_id;
-    }
-    // Per-event hero-photo OG share opt-in (#474). Always send the
-    // current state — the backend writes through formatBoolean either
-    // way, so an explicit save can flip the value back to false.
-    updateData.og_image_share_enabled = editForm.og_image_share_enabled;
-    updateData.source_mode = editForm.source_mode;
-    updateData.external_path = editForm.source_mode === 'reference'
-      ? externalPathToSave
+  // Archived events and users without events.edit see Settings read-only (spec 5.2).
+  const settingsLock = event.is_archived
+    ? t('events.settings.lockedArchived', 'This event is archived. Its settings are read-only.')
+    : !hasPermission('events.edit')
+      ? t('events.settings.lockedPermission', 'Locked: needs the {{permission}} permission', { permission: 'events.edit' })
       : null;
-    // Always sent, like og_image_share_enabled: the backend writes through
-    // formatBoolean, so a save can switch the watcher off again.
-    updateData.external_watch = editForm.source_mode === 'reference' && editForm.external_watch;
-    if (editForm.customer_name !== undefined && editForm.customer_name !== null) {
-      updateData.customer_name = editForm.customer_name;
-    }
-    if (editForm.customer_email !== undefined && editForm.customer_email !== null && editForm.customer_email.trim()) {
-      updateData.customer_email = editForm.customer_email;
-    }
-    if (editForm.customer_phone !== undefined) {
-      // Send empty string as null so an admin can clear the field. Backend
-      // strips this entirely if the global phone-field toggle is off.
-      updateData.customer_phone = editForm.customer_phone.trim() || null;
-    }
-
-    if (editForm.new_password) {
-      updateData.password = editForm.new_password;
-    }
-
-    // Remove any keys with undefined values
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined) {
-        delete updateData[key];
-      }
-    });
-
-    // Event update with validation
-
-    // Update event details
-    updateMutation.mutate(updateData);
-
-    // Update feedback settings separately. This is its own request, so a
-    // failure here is NOT covered by updateMutation's onError (#1030) — the
-    // old bare catch left the admin looking at "Event updated successfully"
-    // while the Guest Feedback toggle silently never persisted.
-    try {
-      await feedbackService.updateEventFeedbackSettings(id!, feedbackSettings);
-      queryClient.invalidateQueries({ queryKey: ['admin-event-feedback-settings', id] });
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.error
-        || t('feedback.settingsUpdateError', 'Failed to update settings')
-      );
-    }
-  };
 
   return (
     <div>
@@ -617,12 +459,7 @@ export const EventDetailsPage: React.FC = () => {
       <EventDetailsHeader
         event={event}
         id={id}
-        isEditing={isEditing}
-        setIsEditing={setIsEditing}
-        handleStartEdit={handleStartEdit}
-        handleSaveEdit={handleSaveEdit}
-        isSaving={updateMutation.isPending}
-        feedbackSettings={feedbackSettings}
+        feedbackSettings={eventFeedbackSettings}
         setShowRenameDialog={setShowRenameDialog}
         setShowPublishDialog={setShowPublishDialog}
         isPublishing={publishMutation.isPending}
@@ -646,11 +483,9 @@ export const EventDetailsPage: React.FC = () => {
           event={event}
           id={id}
           passwordVersion={eventUpdatedAt}
-          isEditing={isEditing}
+          isEditing={false}
           editForm={editForm}
           setEditForm={setEditForm}
-          showNewPassword={showNewPassword}
-          setShowNewPassword={setShowNewPassword}
           feedbackSettings={feedbackSettings}
           setFeedbackSettings={setFeedbackSettings}
           categories={categories}
@@ -669,11 +504,11 @@ export const EventDetailsPage: React.FC = () => {
           isArchiving={archiveMutation.isPending}
           isPublishing={publishMutation.isPending}
           isDuplicating={duplicateMutation.isPending}
-          currentTheme={currentTheme}
-          setCurrentTheme={setCurrentTheme}
-          currentPresetName={currentPresetName}
-          setCurrentPresetName={setCurrentPresetName}
-          setThemeChanged={setThemeChanged}
+          currentTheme={theme.config}
+          setCurrentTheme={() => undefined}
+          currentPresetName={theme.preset}
+          setCurrentPresetName={() => undefined}
+          setThemeChanged={() => undefined}
           cssTemplates={cssTemplates}
         />
       )}
@@ -710,6 +545,28 @@ export const EventDetailsPage: React.FC = () => {
       {/* Download ledger (migration 214) */}
       {activeTab === 'downloads' && (
         <DownloadLedgerTab eventId={parseInt(id!)} />
+      )}
+
+      {/* Settings tab (spec 5.1): one section at a time, saved by the bar */}
+      {activeTab === 'settings' && (
+        <EventSettingsContext.Provider value={{
+          event, editForm, setEditForm, feedbackSettings, setFeedbackSettings, theme, setTheme, draft,
+          readOnly: settingsLock !== null, lockReason: settingsLock, expert, setExpert, refetchEvent,
+          categories, phoneFieldEnabled,
+        }}>
+          <EventSettingsTab section={section} onSection={setSection} />
+        </EventSettingsContext.Provider>
+      )}
+
+      {settingsLock === null && (
+        <EventSaveBar
+          count={draft.count}
+          isSaving={isSaving}
+          error={saveError}
+          changedElsewhere={changedElsewhereSections}
+          onSave={handleSave}
+          onDiscard={() => { draft.discard(); setSaveError(null); }}
+        />
       )}
 
       {/* Password Reset Modal */}
