@@ -175,4 +175,14 @@ describe('settings protected-key boundary (/general)', () => {
     expect(await readSetting('backup_manifest_path')).toBe(manifestBefore);
     expect(await readSetting('backup_destination_type')).toBe(destinationBefore);
   });
+
+  it('validates the notification email and lets it be cleared (P3)', async () => {
+    const put = (body) => auth(request(app).put('/api/admin/settings/general'), superTok).send(body);
+    const stored = async () => JSON.parse((await db('app_settings').where({ setting_key: 'general_notification_email' }).first()).setting_value);
+    expect((await put({ general_notification_email: 'not an address' })).status).toBe(400);
+    expect((await put({ general_notification_email: ' ops@example.com ' })).status).toBe(200);
+    expect(await stored()).toBe('ops@example.com');
+    expect((await put({ general_notification_email: '' })).status).toBe(200);
+    expect(await stored()).toBe('');
+  });
 });

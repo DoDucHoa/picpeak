@@ -1602,6 +1602,17 @@ router.put('/general', adminAuth, requirePermission('settings.edit'), async (req
       settings.general_site_url = siteUrl;
     }
 
+    // The notification email (P3, spec 5.11) decides where admin mail about
+    // galleries goes. Empty clears it; anything else must be an address.
+    if (Object.prototype.hasOwnProperty.call(settings, 'general_notification_email')) {
+      const address = typeof settings.general_notification_email === 'string'
+        ? settings.general_notification_email.trim() : '';
+      if (address && !validator.isEmail(address)) {
+        return res.status(400).json({ error: 'The notification email is not a valid address' });
+      }
+      settings.general_notification_email = address;
+    }
+
     // Customer documents (#1444): checked and normalised before storing.
     const documentSettingsError = require('../utils/customerDocumentSettings')
       .normaliseCustomerDocumentSettings(settings);

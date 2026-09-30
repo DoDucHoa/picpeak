@@ -30,6 +30,7 @@ const crypto = require('crypto');
 const { db, withRetry, logActivity } = require('../database/db');
 const logger = require('../utils/logger');
 const { getAppSetting } = require('../utils/appSettings');
+const { getNotificationEmail } = require('./notificationEmail');
 const { cleanNetMinor } = require('../utils/invoiceRounding');
 const { AppError } = require('../utils/errors');
 const { validateLineItemHierarchy } = require('../utils/lineItemPositions');
@@ -2383,7 +2384,10 @@ async function convertToEvent(quoteId, adminId, options = {}) {
     const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ')
       || customer.display_name || customer.company_name || quote.quote_number;
     const customerEmail = customer.email || `${quote.quote_number.toLowerCase()}@picpeak.local`;
-    const adminEmail = adminRow?.email || customer.email || 'admin@picpeak.local';
+    // The global notification email when set (spec 5.11), else the acting
+    // admin's own; never the customer's address, which would send admin
+    // mail to the customer. NULL skips admin mail, as the column allows.
+    const adminEmail = (await getNotificationEmail(trx)) || adminRow?.email || null;
 
     // Event type for the new event: the type chosen on the quote (migration 146),
     // else a configurable org default, else the resolved catch-all (an ACTIVE

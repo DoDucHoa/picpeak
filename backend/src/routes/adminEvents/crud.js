@@ -912,7 +912,8 @@ module.exports = (router) => {
         } : {}),
         host_name: customer_name || null,
         host_email: customer_email || null,
-        admin_email: source.admin_email || null,
+        // The global notification email when set (spec 5.11).
+        admin_email: (await require('../../services/notificationEmail').getNotificationEmail()) || source.admin_email || null,
         password_hash,
         welcome_message: source.welcome_message || '',
         color_theme: source.color_theme,

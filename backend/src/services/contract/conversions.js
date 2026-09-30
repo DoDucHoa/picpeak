@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { db, logActivity } = require('../../database/db');
 const logger = require('../../utils/logger');
 const { getAppSetting } = require('../../utils/appSettings');
+const { getNotificationEmail } = require('../notificationEmail');
 const { AppError } = require('../../utils/errors');
 const { hasColumnCached } = require('../../utils/schemaCache');
 const businessProfileService = require('../businessProfileService');
@@ -221,7 +222,10 @@ async function convertToEvent(contractId, adminId) {
   const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(' ')
     || customer.display_name || customer.company_name || contract.contract_number;
   const customerEmail = customer.email || `${contract.contract_number.toLowerCase()}@picpeak.local`;
-  const adminEmail = adminRow?.email || customer.email || 'admin@picpeak.local';
+  // The global notification email when set (spec 5.11), else the acting
+  // admin's own; never the customer's address, which would send admin
+  // mail to the customer. NULL skips admin mail, as the column allows.
+  const adminEmail = (await getNotificationEmail()) || adminRow?.email || null;
   const placeholderHash = crypto.randomBytes(32).toString('hex');
   const shareToken = crypto.randomBytes(32).toString('hex');
 

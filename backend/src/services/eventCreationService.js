@@ -22,6 +22,7 @@ const { getStoragePath, getEventFieldRequirements, readBooleanSetting, getDownlo
   getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, hasCustomerContactColumns,
   SLIDESHOW_TRANSITIONS, SLIDESHOW_COLORFILTERS } = require('./eventSettings');
 const { validateCreationInput } = require('./eventCreationValidation');
+const { getNotificationEmail } = require('./notificationEmail');
 const { guestNameModeOf } = require('./photoCredit');
 function creationError(body) {
   const error = new AppError(body.error || 'Invalid event', 400, 'EVENT_INVALID');
@@ -140,6 +141,10 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   if (validationErrors.length > 0) {
     throw creationError({ errors: validationErrors });
   }
+
+  // The admin address stored on the event (spec 5.11): the global
+  // notification email when set, else the one given, else none.
+  const storedAdminEmail = (await getNotificationEmail()) || admin_email || null;
 
   // Default require_password from global "event_default_require_password"
   // setting when the body omits it (#317 — admins want to flip the default).
@@ -360,7 +365,7 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     ...(customerPhone ? { customer_phone: customerPhone } : {}),
     host_name: customerName || null,
     host_email: customerEmail || null,
-    admin_email: admin_email || null,
+    admin_email: storedAdminEmail,
     password_hash,
     // Opt-in recoverable copy (#1271), written with the hash so the two
     // can never disagree. Empty unless the security setting is on.
@@ -608,7 +613,7 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     await require('./workflows').emitWorkflowEvent('gallery.published', {
       entityType: 'event', entityId: eventId,
       payload: { eventId, slug, eventName: event_name, eventDate: event_date,
-        customerEmail, adminEmail: admin_email, galleryLink: shareUrl,
+        customerEmail, adminEmail: storedAdminEmail, galleryLink: shareUrl,
         expiresAt: expires_at ? expires_at.toISOString() : null },
     }).catch(error => logger.warn('Failed to emit gallery.published', { eventId, error: error.message }));
   }

@@ -7,6 +7,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { db } = require('../database/db');
 const { queueEmail, getSupportEmail } = require('./emailProcessor');
+const { resolveAdminEmail } = require('./notificationEmail');
 const logger = require('../utils/logger');
 const feedbackService = require('./feedbackService');
 const { getStorage } = require('./storage');
@@ -303,15 +304,18 @@ async function archiveEvent(event) {
       );
     }
 
-    // Queue completion email — admin_email is nullable on events (migration 073);
-    // skip queueing rather than violating email_queue.recipient_email NOT NULL.
+    // Queue the completion email to the resolved admin address (spec 5.11:
+    // the global notification email, else the event's admin_email). Either
+    // can be missing, so skip queueing rather than violating
+    // email_queue.recipient_email NOT NULL.
     //
     // The shipped EN/DE templates (legacy 028) and NL/PT/RU (core 075) reference
     // {{host_name}}, {{photo_count}}, {{archive_date}} and {{support_email}};
     // without these the recipient saw literal {{...}} placeholders.
-    if (event.admin_email) {
+    const adminEmail = await resolveAdminEmail(event);
+    if (adminEmail) {
       const supportEmail = await getSupportEmail();
-      await queueEmail(event.id, event.admin_email, 'archive_complete', {
+      await queueEmail(event.id, adminEmail, 'archive_complete', {
         host_name: event.customer_name || event.host_name || 'Admin',
         event_name: event.event_name,
         event_date: event.event_date,
@@ -321,7 +325,7 @@ async function archiveEvent(event) {
         support_email: supportEmail
       });
     } else {
-      logger.info(`Skipping archive_complete email for event ${event.slug}: no admin_email set`);
+      logger.info(`Skipping archive_complete email for event ${event.slug}: no notification or admin email set`);
     }
   } catch (error) {
     logger.error(`Error archiving event ${event.slug}:`, error);
