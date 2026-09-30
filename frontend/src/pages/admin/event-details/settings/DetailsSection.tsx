@@ -1,12 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Input, LocalizedDateInput } from '../../../../components/common';
+import { Card, Input, LocalizedDateInput, useConfirm } from '../../../../components/common';
 import { WelcomeMessageEditor } from '../../../../components/admin';
 import { CustomerAccountPicker } from '../../../../components/admin/CustomerAccountPicker';
 import { useActiveEventTypes } from '../../../../hooks/useActiveEventTypes';
+import { GALLERY_THEME_PRESETS } from '../../../../types/theme.types';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
 import { ExpiryField } from './ExpiryField';
+import { storedThemeKind } from './storedThemeKind';
 
 /**
  * Settings > Details (spec 5.1): the event date and type, the customer, the
@@ -14,9 +16,32 @@ import { ExpiryField } from './ExpiryField';
  */
 export const DetailsSection: React.FC = () => {
   const { t } = useTranslation();
-  const { editForm, setEditForm, phoneFieldEnabled, expert } = useEventSettings();
+  const { event, editForm, setEditForm, theme, setTheme, draft, phoneFieldEnabled, expert } = useEventSettings();
+  const confirm = useConfirm();
   const { data: types = [] } = useActiveEventTypes();
-  const onTypeChange = (slug: string) => setEditForm(prev => ({ ...prev, event_type: slug }));
+  // Spec 5.9: the new type's preset replaces a NULL or preset theme at once;
+  // a hand-customised one is replaced only after asking. A type whose preset
+  // is 'default' leaves the theme alone.
+  const onTypeChange = async (slug: string) => {
+    setEditForm(prev => ({ ...prev, event_type: slug }));
+    const type = types.find((candidate) => candidate.slug_prefix === slug);
+    const presetName = type?.theme_preset;
+    if (!type || !presetName || presetName === 'default' || !GALLERY_THEME_PRESETS[presetName]) return;
+    const kind = draft.state['event.__theme']
+      ? (theme.preset === 'custom' ? 'custom' : 'preset')
+      : storedThemeKind(event.color_theme);
+    if (kind === 'custom') {
+      const ok = await confirm({
+        title: t('events.typeTheme.title', 'Replace the customised theme?'),
+        message: t('events.typeTheme.message', { type: type.name, defaultValue: `This gallery's look was customised by hand. Apply the ${type.name} theme instead?` }),
+        confirmLabel: t('events.typeTheme.confirm', 'Apply theme'),
+        cancelLabel: t('events.typeTheme.keep', 'Keep my theme'),
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+    setTheme(() => ({ config: GALLERY_THEME_PRESETS[presetName].config, preset: presetName }));
+  };
   return (
     <Card padding="md">
       <h2 className="text-lg font-semibold text-heading mb-4">{t('events.settings.sectionDetails', 'Details')}</h2>
@@ -32,7 +57,7 @@ export const DetailsSection: React.FC = () => {
           <select
             id="event-type"
             value={editForm.event_type}
-            onChange={(e) => onTypeChange(e.target.value)}
+            onChange={(e) => { void onTypeChange(e.target.value); }}
             className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg"
           >
             {/* A type deactivated after the event was made stays the current

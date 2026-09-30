@@ -283,6 +283,7 @@ export const EventRenameDialog: React.FC<EventRenameDialogProps> = ({
                     <li>{t('events.rename.warning1', 'The gallery URL will change')}</li>
                     <li>{t('events.rename.warning2', 'Old URLs will automatically redirect to the new URL')}</li>
                     <li>{t('events.rename.warning3', 'Photo files may be renamed')}</li>
+                    <li>{t('events.rename.warning4', "The new address is built from the event's current type, name and date.")}</li>
                   </ul>
                 </div>
               </div>

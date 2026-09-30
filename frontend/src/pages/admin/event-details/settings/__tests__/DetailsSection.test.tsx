@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -21,10 +21,12 @@ vi.mock('../../../../../hooks/useActiveEventTypes', () => ({
     { slug_prefix: 'birthday', name: 'Birthday', emoji: '', theme_preset: 'birthdayFun', is_active: true },
   ] }),
 }));
+vi.mock('../../../../../hooks/usePublicSettings', () => ({ usePublicSettings: () => ({ data: {} }) }));
 vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ CustomerAccountPicker: () => null }));
 
 import { EventSettingsContext } from '../EventSettingsContext';
 import { DetailsSection } from '../DetailsSection';
+import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';
 
 const form = {
   customer_name: 'Anna', customer_email: 'a@example.com', customer_phone: '', customer_accounts: [],
@@ -68,4 +70,36 @@ it('uses the one welcome message editor', () => {
 it('offers Never for the expiry on edit', () => {
   renderSection();
   expect(screen.getByRole('button', { name: 'Never' })).toBeInTheDocument();
+});
+
+const customTheme = JSON.stringify({ ...GALLERY_THEME_PRESETS.default.config, primaryColor: '#123456' });
+
+it('applies the new type theme to an inherited theme without asking', async () => {
+  const setTheme = vi.fn();
+  renderSection({ setTheme });
+  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(setTheme.mock.calls[0][0]({})).toEqual({ config: GALLERY_THEME_PRESETS.birthdayFun.config, preset: 'birthdayFun' });
+});
+
+it('asks before replacing a customised theme, and keeps it on Keep', async () => {
+  const setTheme = vi.fn();
+  renderSection({ setTheme, event: { color_theme: customTheme } });
+  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
+  await userEvent.click(await screen.findByRole('button', { name: 'Keep my theme' }));
+  expect(setTheme).not.toHaveBeenCalled();
+});
+
+it('replaces a customised theme when confirmed', async () => {
+  const setTheme = vi.fn();
+  renderSection({ setTheme, event: { color_theme: customTheme } });
+  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
+  await userEvent.click(await screen.findByRole('button', { name: 'Apply theme' }));
+  await waitFor(() => expect(setTheme).toHaveBeenCalledTimes(1));
+});
+
+it('counts a theme changed in this draft by its draft preset', async () => {
+  renderSection({ draft: { state: { 'event.__theme': { base: null, value: { config: {}, preset: 'custom' } } } } });
+  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
 });

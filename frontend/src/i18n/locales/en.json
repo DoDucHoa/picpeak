@@ -1784,7 +1784,8 @@
       "warningTitle": "Please note:",
       "warning1": "The gallery URL will change",
       "warning2": "Old URLs will automatically redirect to the new URL",
-      "warning3": "Photo files may be renamed"
+      "warning3": "Photo files may be renamed",
+      "warning4": "The new address is built from the event's current type, name and date."
     },
     "bulkArchiveSuccess_one": "Successfully archived {{count}} event",
     "bulkArchiveSuccess_other": "Successfully archived {{count}} events",
@@ -1942,6 +1943,12 @@
       "tip": "Press Enter for a new line. Each line appears as its own paragraph in emails.",
       "preview": "Preview:",
       "lineBreaks": "Line breaks are kept in emails"
+    },
+    "typeTheme": {
+      "title": "Replace the customised theme?",
+      "message": "This gallery's look was customised by hand. Apply the {{type}} theme instead?",
+      "confirm": "Apply theme",
+      "keep": "Keep my theme"
     }
   },
   "settings": {

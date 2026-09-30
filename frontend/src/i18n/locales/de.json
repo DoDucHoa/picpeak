@@ -2296,7 +2296,8 @@
       "warningTitle": "Bitte beachten:",
       "warning1": "Die Galerie-URL wird sich ändern",
       "warning2": "Alte URLs werden automatisch zur neuen URL weitergeleitet",
-      "warning3": "Fotodateien können umbenannt werden"
+      "warning3": "Fotodateien können umbenannt werden",
+      "warning4": "Die neue Adresse wird aus dem aktuellen Typ, Namen und Datum des Events gebildet."
     },
     "stats": {
       "totalEvents": "Gesamtveranstaltungen",
@@ -2469,6 +2470,12 @@
       "tip": "Drück Enter für eine neue Zeile. Jede Zeile erscheint in E-Mails als eigener Absatz.",
       "preview": "Vorschau:",
       "lineBreaks": "Zeilenumbrüche bleiben in E-Mails erhalten"
+    },
+    "typeTheme": {
+      "title": "Angepasstes Theme ersetzen?",
+      "message": "Das Aussehen dieser Galerie wurde von Hand angepasst. Stattdessen das Theme für {{type}} verwenden?",
+      "confirm": "Theme übernehmen",
+      "keep": "Mein Theme behalten"
     }
   },
   "settings": {

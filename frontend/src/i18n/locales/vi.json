@@ -1783,7 +1783,8 @@
       "warningTitle": "Lưu ý:",
       "warning1": "URL bộ sưu tập ảnh sẽ thay đổi",
       "warning2": "URL cũ sẽ tự động chuyển hướng đến URL mới",
-      "warning3": "File ảnh có thể bị đổi tên"
+      "warning3": "File ảnh có thể bị đổi tên",
+      "warning4": "Địa chỉ mới được tạo từ loại, tên và ngày hiện tại của sự kiện."
     },
     "bulkArchiveSuccess_one": "Đã lưu trữ thành công {{count}} sự kiện",
     "bulkArchiveSuccess_other": "Đã lưu trữ thành công {{count}} sự kiện",
@@ -1940,6 +1941,12 @@
       "tip": "Nhấn Enter để xuống dòng. Mỗi dòng là một đoạn riêng trong email.",
       "preview": "Xem trước:",
       "lineBreaks": "Email giữ nguyên các lần xuống dòng"
+    },
+    "typeTheme": {
+      "title": "Thay giao diện đã tuỳ chỉnh?",
+      "message": "Giao diện của gallery này đã được chỉnh tay. Dùng giao diện của loại {{type}} thay thế?",
+      "confirm": "Dùng giao diện mới",
+      "keep": "Giữ giao diện của tôi"
     }
   },
   "settings": {
