@@ -539,6 +539,8 @@ Done 2026-09-30: c61c09ee..ef94481a. Verified by the Tests workflow and the E2E 
 
 ### P4: Section components
 
+Done 2026-09-30: 32e6ecb2..79e887e1. Verified by the Tests workflow and the E2E smoke subset on PR #2 of the fork. Publish and send-email take the stored password on the server instead of prefilling it (operator decision 2026-09-30), and the WhatsApp message on publish carries the same value. Generated passwords add six random characters to the readable name and year, since the name and date are part of the gallery address.
+
 Builds the simplified controls as section components used by the Settings tab. The
 create screen is not touched until P5.
 
@@ -606,6 +608,10 @@ not exist yet are compared against their planned seed values.
 7. Events with client access on and no client password.
 8. Events whose feedback toggles will show as Custom.
 9. Pre-built zips to be cleared: each rebuilds on demand, two at a time, on the N100.
+10. Whether `security_gallery_password_recoverable` is on (O2). It is an admin switch in
+    Settings > Security, off by default; galleries whose password was set while it was off
+    show "Set, not viewable" until the password is written again, and their publish dialog
+    still asks for the password.
 
 Also before deploying, from the upstream sync:
 
