@@ -417,7 +417,8 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       // Defaults match /info: downloads on unless explicitly disabled,
       // uploads off unless explicitly enabled (#1028).
       allow_downloads: parseBooleanInput(event.allow_downloads, true),
-      allow_user_uploads: parseBooleanInput(event.allow_user_uploads, false),
+      // Guest uploads are removed (P3); the field stays for old clients.
+      allow_user_uploads: false,
       // Upload dialog name step (#1561): off | optional | required.
       guest_name_mode: guestNameModeOf(event),
       // Whether photos carry credit_name, so the UI can show the "By" filter

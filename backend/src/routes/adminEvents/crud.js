@@ -922,8 +922,6 @@ module.exports = (router) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         created_by: req.admin.id,
-        allow_user_uploads: source.allow_user_uploads,
-        upload_category_id: source.upload_category_id,
         // Uploader names are part of the gallery's configuration (#1561).
         guest_name_mode: source.guest_name_mode || 'off',
         show_credits_to_guests: formatBoolean(parseBooleanInput(source.show_credits_to_guests, false)),
@@ -1234,10 +1232,10 @@ module.exports = (router) => {
         'project_id', 'quote_id',
         // Legacy mirrors — rejected explicitly below in favour of customer_*.
         'host_name', 'host_email',
-        // Reveal mode is removed (P3, spec 5.12): the PUT accepts the fields and
-        // ignores them, so old clients keep working and the columns keep their
-        // values.
-        'reveal_mode', 'reveal_at',
+        // Reveal mode and guest uploads are removed (P3, spec 5.12): the PUT
+        // accepts the fields and ignores them, so old clients keep working and
+        // the columns keep their values.
+        'reveal_mode', 'reveal_at', 'allow_user_uploads', 'upload_category_id',
       ];
       // Only canonical keys reach the UPDATE. SQLite resolves quoted
       // identifiers case-insensitively, so `{ "Event_Name": ... }` lands on

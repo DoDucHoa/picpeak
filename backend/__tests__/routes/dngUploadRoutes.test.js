@@ -49,12 +49,6 @@ describe('iPhone DNG through the upload routes', () => {
   let eventId;
   let adminToken;
 
-  const galleryToken = () => jwt.sign(
-    { eventId, eventSlug: SLUG, type: 'gallery' },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h', issuer: 'picpeak-auth' }
-  );
-
   beforeAll(async () => {
     ({ db, cleanup } = await bootCrmDb());
     await seedMinimal(db);
@@ -109,7 +103,6 @@ describe('iPhone DNG through the upload routes', () => {
     app.use(express.json());
     app.use(cookieParser());
     app.use('/api/admin/photos', require('../../src/routes/adminPhotos'));
-    app.use('/api/gallery', require('../../src/routes/gallery'));
   }, 120000);
 
   afterAll(async () => { if (cleanup) await cleanup(); });
@@ -133,15 +126,5 @@ describe('iPhone DNG through the upload routes', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('File content does not match declared type: renamed.dng');
-  });
-
-  it('guest route accepts a DNG the browser reported as octet-stream', async () => {
-    const res = await request(app)
-      .post(`/api/gallery/${eventId}/upload`)
-      .set('Authorization', `Bearer ${galleryToken()}`)
-      .attach('photos', iphoneDng(), { filename: 'IMG_0001.DNG', contentType: 'application/octet-stream' });
-
-    expect(res.body.error).toBeUndefined();
-    expect(res.status).toBe(202);
   });
 });

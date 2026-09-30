@@ -54,8 +54,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     welcome_message = '',
     color_theme = null,
     expiration_days = 30,
-    allow_user_uploads = false,
-    upload_category_id = null,
     // Uploader names (#1561). undefined = take the Event Defaults value.
     guest_name_mode: guestNameModeInput,
     show_credits_to_guests: showCreditsInput,
@@ -381,8 +379,8 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     created_by: actor.id,
-    allow_user_uploads: formatBoolean(allow_user_uploads),
-    upload_category_id,
+    // Guest uploads are removed (P3): allow_user_uploads and
+    // upload_category_id take their column defaults (false, NULL).
     guest_name_mode,
     show_credits_to_guests: formatBoolean(show_credits_to_guests),
     allow_downloads: formatBoolean(allow_downloads !== undefined ? allow_downloads : true),

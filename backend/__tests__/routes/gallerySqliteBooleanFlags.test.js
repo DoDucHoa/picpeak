@@ -6,7 +6,9 @@
  * so on SQLite:
  *
  *   allow_downloads:    0 !== false → true   (button shown while disabled)
- *   allow_user_uploads: 1 === true  → false  (button hidden while enabled)
+ *   allow_user_uploads: 1 === true  → false  (button hidden while enabled;
+ *                                     guest uploads are removed since P3,
+ *                                     so the payload now always says false)
  *   if (allow_downloads === false)  → never fires, so ALL download endpoints
  *                                     kept serving with downloads switched off
  *
@@ -103,8 +105,8 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
       expect((await getPayload()).allow_downloads).toBe(false);
     });
 
-    test('payload reports allow_user_uploads true (was false — upload button hidden)', async () => {
-      expect((await getPayload()).allow_user_uploads).toBe(true);
+    test('payload always reports uploads off, whatever the stored 1 says (P3)', async () => {
+      expect((await getPayload()).allow_user_uploads).toBe(false);
     });
 
     test('single-photo download is refused', async () => {

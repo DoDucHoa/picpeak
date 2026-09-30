@@ -169,7 +169,6 @@ router.get('/:slug/info', async (req, res) => {
         'share_link',
         'share_token',
         'allow_downloads',
-        'allow_user_uploads',
         'reveal_mode',
         'reveal_at',
         'revealed_at',
@@ -255,7 +254,8 @@ router.get('/:slug/info', async (req, res) => {
       requires_password: requiresPassword,
       color_theme: event.color_theme,
       allow_downloads: !(event.allow_downloads === false || event.allow_downloads === 0 || event.allow_downloads === '0'),
-      allow_user_uploads: event.allow_user_uploads === true || event.allow_user_uploads === 1 || event.allow_user_uploads === '1',
+      // Guest uploads are removed (P3); the field stays for old clients.
+      allow_user_uploads: false,
       // Reveal mode (#838): effective hidden state (computed, time-exact) so
       // the landing page can hint at the reveal before login too.
       hidden_until_reveal: isGalleryHidden(event),

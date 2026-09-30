@@ -1,18 +1,10 @@
 /**
- * Guest-facing upload processing status + cache headers on the gallery router
- * (testplan REPORT.md B6 / B7).
- *
- * B7: a guest upload is queued — POST /gallery/:eventId/upload answers 202 and
- * /gallery/:slug/photos only returns rows that reached 'complete'. Without a
- * status signal the gallery has to poll the photo list blind and cannot tell a
- * slow worker from a photo that failed outright. The contract that matters
- * most here is the authorization scope: the endpoint is keyed on an opaque
- * upload_id, so it must never report on an upload belonging to a gallery the
- * caller's token did not unlock.
+ * Cache headers on the gallery router (testplan REPORT.md B6), and the guest
+ * upload routes that P3 of the event form redesign removed (spec 5.12).
  *
  * B6: the private per-guest JSON on this router carried no Cache-Control at
  * all and fell back to heuristic freshness. The media routes must keep their
- * own caching — the point of the change is that it is per route, not global.
+ * own caching: the point of the change is that it is per route, not global.
  */
 
 const request = require('supertest');
@@ -27,12 +19,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'upload-status-test-secret';
 const SLUG_A = 'upload-status-a';
 const SLUG_B = 'upload-status-b';
 
-// Shape of a real guest upload id: crypto.randomBytes(16).toString('hex').
-const UPLOAD_A = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
-const UPLOAD_A2 = '0f1e2d3c4b5a69788796a5b4c3d2e1f0';
-const UPLOAD_B = 'ffeeddccbbaa99887766554433221100';
-
-describe('gallery upload status + cache headers (B6/B7)', () => {
+describe('gallery cache headers, and guest uploads removed', () => {
   let db;
   let cleanup;
   let app;
@@ -65,43 +52,12 @@ describe('gallery upload status + cache headers (B6/B7)', () => {
     return inserted[0]?.id ?? inserted[0];
   };
 
-  // `status: undefined` writes no processing_status at all, so the column
-  // default ('complete', migration 085) applies — the shape a row imported by
-  // a path that predates async processing has.
-  const addPhoto = async (eventId, filename, uploadId, status) => {
-    await db('photos').insert({
-      event_id: eventId,
-      filename,
-      path: `events/${filename}`,
-      type: 'individual',
-      upload_id: uploadId,
-      ...(status ? { processing_status: status } : {}),
-      uploaded_at: new Date().toISOString(),
-    });
-  };
-
-  const status = (slug, token, query) => request(app)
-    .get(`/api/gallery/${slug}/uploads/status`)
-    .query(query)
-    .set('Authorization', `Bearer ${token}`);
-
   beforeAll(async () => {
     ({ db, cleanup } = await bootCrmDb());
     await seedMinimal(db);
 
     eventA = await createEvent(SLUG_A, 'Upload Status A');
     eventB = await createEvent(SLUG_B, 'Upload Status B');
-
-    // Gallery A: one settled group (complete + failed) and one still queued.
-    await addPhoto(eventA, 'a-complete.jpg', UPLOAD_A, 'complete');
-    await addPhoto(eventA, 'a-failed.jpg', UPLOAD_A, 'failed');
-    await addPhoto(eventA, 'a-pending.jpg', UPLOAD_A2, 'pending');
-    await addPhoto(eventA, 'a-processing.jpg', UPLOAD_A2, 'processing');
-    // Row written without an explicit status — takes the column default.
-    await addPhoto(eventA, 'a-legacy.jpg', UPLOAD_A2, undefined);
-
-    // Gallery B: the group a guest of A must never be able to read.
-    await addPhoto(eventB, 'b-pending.jpg', UPLOAD_B, 'pending');
 
     app = express();
     app.use(express.json());
@@ -113,56 +69,32 @@ describe('gallery upload status + cache headers (B6/B7)', () => {
     if (cleanup) await cleanup();
   });
 
-  describe('B7 — processing status', () => {
-    it('summarises the caller\'s own upload group', async () => {
-      const res = await status(SLUG_A, galleryToken(eventA, SLUG_A), { ids: UPLOAD_A });
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ total: 2, pending: 0, processing: 0, complete: 1, failed: 1 });
-    });
-
-    it('reports a batch of upload ids in one request', async () => {
-      const res = await status(SLUG_A, galleryToken(eventA, SLUG_A), {
-        ids: `${UPLOAD_A},${UPLOAD_A2}`,
-      });
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ total: 5, pending: 1, processing: 1, complete: 2, failed: 1 });
-    });
-
-    it('rejects a missing, malformed or oversized id list', async () => {
-      const token = galleryToken(eventA, SLUG_A);
-      expect((await status(SLUG_A, token, {})).status).toBe(400);
-      expect((await status(SLUG_A, token, { ids: '' })).status).toBe(400);
-      expect((await status(SLUG_A, token, { ids: 'not a valid id' })).status).toBe(400);
-      expect((await status(SLUG_A, token, { ids: `${UPLOAD_A},oops!` })).status).toBe(400);
-      // 51 well-formed ids — one over the cap that bounds the IN-list.
-      const tooMany = Array.from({ length: 51 }, (_, i) => UPLOAD_A.slice(0, 30) + String(i % 10) + '0').join(',');
-      expect((await status(SLUG_A, token, { ids: tooMany })).status).toBe(400);
-    });
-
-    it('never reports on another gallery\'s upload group', async () => {
-      // A valid guest of gallery B, asking about gallery A's upload id.
-      const res = await status(SLUG_B, galleryToken(eventB, SLUG_B), { ids: UPLOAD_A });
-      expect(res.status).toBe(200);
-      // Filtered on event_id, so the rows simply do not exist for this caller —
-      // no counts, and no "this id exists elsewhere" oracle either.
-      expect(res.body).toEqual({ total: 0, pending: 0, processing: 0, complete: 0, failed: 0 });
-    });
-
-    it('cannot be reached by pointing a gallery-B token at gallery A\'s slug', async () => {
-      const res = await status(SLUG_A, galleryToken(eventB, SLUG_B), { ids: UPLOAD_A });
+  describe('guest uploads removed (P3)', () => {
+    it('refuses an upload even on an event whose stored flag is still on', async () => {
+      const res = await request(app)
+        .post(`/api/gallery/${eventA}/upload`)
+        .set('Authorization', `Bearer ${galleryToken(eventA, SLUG_A)}`)
+        .attach('photos', Buffer.from('not really a photo'), { filename: 'guest.jpg', contentType: 'image/jpeg' });
       expect(res.status).toBe(403);
+      const count = await db('photos').where({ event_id: eventA }).count('id as c').first();
+      expect(Number(count.c)).toBe(0);
     });
 
-    it('requires a gallery token and refuses display-only slideshow tokens', async () => {
-      const anon = await request(app)
+    it('has no upload status route', async () => {
+      const res = await request(app)
         .get(`/api/gallery/${SLUG_A}/uploads/status`)
-        .query({ ids: UPLOAD_A });
-      expect(anon.status).toBe(401);
+        .query({ ids: 'a1b2c3d4e5f60718293a4b5c6d7e8f90' })
+        .set('Authorization', `Bearer ${galleryToken(eventA, SLUG_A)}`);
+      expect(res.status).toBe(404);
+    });
 
-      const kiosk = await status(SLUG_A, galleryToken(eventA, SLUG_A, { accessLevel: 'slideshow' }), {
-        ids: UPLOAD_A,
-      });
-      expect(kiosk.status).toBe(403);
+    it('tells the gallery that uploads are off', async () => {
+      const photos = await request(app)
+        .get(`/api/gallery/${SLUG_A}/photos`)
+        .set('Authorization', `Bearer ${galleryToken(eventA, SLUG_A)}`);
+      expect(photos.body.event.allow_user_uploads).toBe(false);
+      const info = await request(app).get(`/api/gallery/${SLUG_A}/info`);
+      expect(info.body.allow_user_uploads).toBe(false);
     });
   });
 
@@ -174,8 +106,6 @@ describe('gallery upload status + cache headers (B6/B7)', () => {
 
     it('marks the private per-guest JSON routes no-store', async () => {
       const token = galleryToken(eventA, SLUG_A);
-      noStore(await status(SLUG_A, token, { ids: UPLOAD_A }));
-
       const photos = await request(app)
         .get(`/api/gallery/${SLUG_A}/photos`)
         .set('Authorization', `Bearer ${token}`);

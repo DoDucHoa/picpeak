@@ -537,8 +537,9 @@ router.post('/gallery/verify', [
         welcome_message: event.welcome_message,
         color_theme: event.color_theme,
         expires_at: event.expires_at,
-        allow_user_uploads: event.allow_user_uploads,
-        upload_category_id: event.upload_category_id,
+        // Guest uploads are removed (P3); the fields stay for old clients.
+        allow_user_uploads: false,
+        upload_category_id: null,
         require_password: requiresPassword,
         photo_cap: event.photo_cap
       }
@@ -615,8 +616,9 @@ router.post('/gallery/:slug/client-login', [
         welcome_message: event.welcome_message,
         color_theme: event.color_theme,
         expires_at: event.expires_at,
-        allow_user_uploads: event.allow_user_uploads,
-        upload_category_id: event.upload_category_id,
+        // Guest uploads are removed (P3); the fields stay for old clients.
+        allow_user_uploads: false,
+        upload_category_id: null,
         require_password: true
       },
       accessLevel: 'client'
@@ -714,8 +716,9 @@ router.post('/gallery/share-login', [
         welcome_message: event.welcome_message,
         color_theme: event.color_theme,
         expires_at: event.expires_at,
-        allow_user_uploads: event.allow_user_uploads,
-        upload_category_id: event.upload_category_id,
+        // Guest uploads are removed (P3); the fields stay for old clients.
+        allow_user_uploads: false,
+        upload_category_id: null,
         require_password: requiresPassword,
         photo_cap: event.photo_cap
       }

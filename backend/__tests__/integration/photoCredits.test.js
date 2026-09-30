@@ -102,12 +102,12 @@ describe('Photo credits (issue 1561)', () => {
     return res;
   }
 
-  function upload(event, token, guestToken) {
-    const req = request(app)
-      .post(`/api/gallery/${event.id}/upload`)
-      .set('Authorization', `Bearer ${token}`);
-    if (guestToken) req.set('x-guest-token', guestToken);
-    return req.attach('photos', plainJpeg, { filename: 'guest.jpg', contentType: 'image/jpeg' });
+  // Guest uploads are removed (P3). Erasure and merge still have to clear
+  // names from photos guests uploaded before, so seed such a photo directly.
+  async function seedGuestPhoto(event, guest) {
+    return addPhoto(event, {
+      uploaded_by: 'guest', credit_name: guest.name, credit_source: 'guest', uploader_guest_id: guest.id,
+    });
   }
 
   beforeAll(async () => {
@@ -151,74 +151,7 @@ describe('Photo credits (issue 1561)', () => {
 
   const admin = (req) => req.set('Cookie', [`admin_token=${adminToken}`]).set('Authorization', `Bearer ${adminToken}`);
 
-  describe('guest upload', () => {
-    it('records the guest name, the identity and uploaded_by guest', async () => {
-      const { event, token } = await makeEvent();
-      const reg = await register(event, token, 'Anna');
-      expect(reg.status).toBe(200);
-
-      const res = await upload(event, token, reg.body.token);
-      expect(res.status).toBe(202);
-      const row = await db('photos').where({ id: res.body.photo_ids[0] }).first();
-      expect(row).toMatchObject({
-        uploaded_by: 'guest',
-        credit_name: 'Anna',
-        credit_source: 'guest',
-        uploader_guest_id: reg.body.guest.id,
-      });
-      // The switch is off, so the guest was told other guests would not see it.
-      expect(Boolean(row.credit_visible_to_guests)).toBe(false);
-    });
-
-    it('snapshots the visibility switch as the upload is stored', async () => {
-      const { event, token } = await makeEvent({ show_credits_to_guests: 1 });
-      const reg = await register(event, token, 'Anna');
-      const res = await upload(event, token, reg.body.token);
-      expect(res.status).toBe(202);
-      const row = await db('photos').where({ id: res.body.photo_ids[0] }).first();
-      expect(Boolean(row.credit_visible_to_guests)).toBe(true);
-    });
-
-    it('optional mode accepts a nameless upload, still as a guest upload', async () => {
-      const { event, token } = await makeEvent();
-      const res = await upload(event, token);
-      expect(res.status).toBe(202);
-      const row = await db('photos').where({ id: res.body.photo_ids[0] }).first();
-      expect(row.uploaded_by).toBe('guest');
-      expect(row.credit_name).toBeNull();
-      expect(row.credit_source).toBeNull();
-    });
-
-    it('required mode refuses a nameless upload before storing anything', async () => {
-      const { event, token } = await makeEvent({ guest_name_mode: 'required' });
-      const res = await upload(event, token);
-      expect(res.status).toBe(400);
-      expect(res.body.code).toBe('UPLOADER_NAME_REQUIRED');
-      const count = await db('photos').where({ event_id: event.id }).count('id as c').first();
-      expect(Number(count.c)).toBe(0);
-    });
-
-    it('a guest token from another gallery names nobody', async () => {
-      const { event: other, token: otherToken } = await makeEvent();
-      const reg = await register(other, otherToken, 'Mallory');
-      const { event, token } = await makeEvent({ guest_name_mode: 'required' });
-      const res = await upload(event, token, reg.body.token);
-      expect(res.status).toBe(400);
-    });
-
-    it('off records no name, whatever the request carries', async () => {
-      const { event: named, token: namedToken } = await makeEvent();
-      const reg = await register(named, namedToken, 'Anna');
-      // Same event, switched off after the guest registered.
-      await db('events').where({ id: named.id }).update({ guest_name_mode: 'off' });
-      const res = await upload(named, namedToken, reg.body.token);
-      expect(res.status).toBe(202);
-      const row = await db('photos').where({ id: res.body.photo_ids[0] }).first();
-      expect(row.uploaded_by).toBe('guest');
-      expect(row.credit_name).toBeNull();
-      expect(row.uploader_guest_id).toBeNull();
-    });
-
+  describe('guest registration gate', () => {
     it('sanitises the name the guest registers', async () => {
       const { event, token } = await makeEvent();
       const reg = await register(event, token, 'An\u202Ena <b>\u200B');
@@ -232,12 +165,7 @@ describe('Photo credits (issue 1561)', () => {
       expect(reg.body.guest.name).toBe('Siobhan O\'Brien');
       const typographic = await register(event, token, 'Luca D\u2019Angelo');
       expect(typographic.body.guest.name).toBe('Luca D\u2019Angelo');
-      const res = await upload(event, token, reg.body.token);
-      expect((await db('photos').where({ id: res.body.photo_ids[0] }).first()).credit_name).toBe('Siobhan O\'Brien');
     });
-  });
-
-  describe('guest registration gate', () => {
     it('allows registration for uploader names with feedback off', async () => {
       const { event, token } = await makeEvent();
       expect((await register(event, token, 'Bea')).status).toBe(200);
@@ -286,7 +214,7 @@ describe('Photo credits (issue 1561)', () => {
     });
 
     it('keeps a name given while the switch was off from guests when it is turned on', async () => {
-      // The snapshot each upload stores is pinned under "guest upload".
+      // Each photo carries the snapshot its upload stored.
       const { event, token } = await makeEvent({ show_credits_to_guests: 1 });
       const guestPhoto = (name, shown) => addPhoto(event, {
         credit_name: name, credit_source: 'guest', uploaded_by: 'guest', credit_visible_to_guests: shown ? 1 : 0,
@@ -538,8 +466,8 @@ describe('Photo credits (issue 1561)', () => {
       const { event, token } = await makeEvent();
       const anna = await register(event, token, 'Anna');
       const bea = await register(event, token, 'Bea');
-      const annaPhoto = (await upload(event, token, anna.body.token)).body.photo_ids[0];
-      const beaPhoto = (await upload(event, token, bea.body.token)).body.photo_ids[0];
+      const annaPhoto = await seedGuestPhoto(event, anna.body.guest);
+      const beaPhoto = await seedGuestPhoto(event, bea.body.guest);
 
       const del = await admin(request(app).delete(`/api/admin/events/${event.id}/guests/${anna.body.guest.id}`));
       expect(del.status).toBe(200);
@@ -558,8 +486,8 @@ describe('Photo credits (issue 1561)', () => {
       const { event, token } = await makeEvent();
       const anna = await register(event, token, 'Joker');
       const bea = await register(event, token, 'Bea');
-      const annaPhoto = (await upload(event, token, anna.body.token)).body.photo_ids[0];
-      const beaPhoto = (await upload(event, token, bea.body.token)).body.photo_ids[0];
+      const annaPhoto = await seedGuestPhoto(event, anna.body.guest);
+      const beaPhoto = await seedGuestPhoto(event, bea.body.guest);
       // The admin replaces the joke name with the guest's real one.
       await admin(request(app).put(`/api/admin/photos/${event.id}/photos/${annaPhoto}/credit`))
         .send({ credit_name: 'Anna Example' }).expect(200);
@@ -601,7 +529,7 @@ describe('Photo credits (issue 1561)', () => {
       const { event, token } = await makeEvent();
       const keep = await register(event, token, 'Anna Example');
       const dup = await register(event, token, 'anna');
-      const photo = (await upload(event, token, dup.body.token)).body.photo_ids[0];
+      const photo = await seedGuestPhoto(event, dup.body.guest);
 
       const res = await admin(request(app).post(`/api/admin/events/${event.id}/guests/${keep.body.guest.id}/merge`))
         .send({ mergeIds: [dup.body.guest.id] });
