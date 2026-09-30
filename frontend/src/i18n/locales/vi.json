@@ -1947,6 +1947,22 @@
       "message": "Giao diện của gallery này đã được chỉnh tay. Dùng giao diện của loại {{type}} thay thế?",
       "confirm": "Dùng giao diện mới",
       "keep": "Giữ giao diện của tôi"
+    },
+    "access": {
+      "currentPassword": "Mật khẩu hiện tại",
+      "notViewable": "Đã đặt, không xem được",
+      "notViewableHelp": "Mật khẩu này chỉ lưu dạng băm. Đặt mật khẩu mới để sau này xem được ở đây.",
+      "show": "Hiện",
+      "hide": "Ẩn",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép",
+      "regenerate": "Tạo lại",
+      "newPassword": "Mật khẩu mới",
+      "newPasswordKeep": "Mật khẩu mới (để trống để giữ mật khẩu hiện tại)",
+      "galleryPassword": "Mật khẩu gallery",
+      "turnOffTitle": "Bỏ mật khẩu?",
+      "turnOffMessage": "Gallery này đã công khai. Không có mật khẩu thì ai có đường dẫn cũng xem được ảnh.",
+      "turnOffConfirm": "Bỏ mật khẩu"
     }
   },
   "settings": {

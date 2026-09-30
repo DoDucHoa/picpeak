@@ -15,7 +15,6 @@ export { EmailPreviewModal } from './EmailPreviewModal';
 export { AdminPhotoGrid } from './AdminPhotoGrid';
 export { AdminPhotoViewer } from './AdminPhotoViewer';
 export { PhotoFilters } from './PhotoFilters';
-export { PasswordResetModal } from './PasswordResetModal';
 export { PublishGalleryDialog } from './PublishGalleryDialog';
 export { SendGalleryEmailDialog } from './SendGalleryEmailDialog';
 export { DuplicateEventDialog } from './DuplicateEventDialog';

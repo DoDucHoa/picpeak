@@ -15,7 +15,7 @@ const FEEDBACK = [
 
 export const SECTION_FIELDS: Record<SectionId, string[]> = {
   details: ['event_date', 'event_type', 'customer_name', 'customer_email', 'customer_phone', 'customer_accounts', 'expires_at', 'welcome_message'].map((f) => `event.${f}`),
-  access: ['require_password', 'new_password', 'confirm_new_password', 'client_access_enabled', 'client_password'].map((f) => `event.${f}`),
+  access: ['require_password', 'new_password', 'client_access_enabled', 'client_password'].map((f) => `event.${f}`),
   appearance: [
     '__theme', 'css_template_id', 'hero_photo_id', 'og_image_share_enabled', 'hero_image_anchor', 'hero_logo_visible',
     'promo_mode', 'promo_markdown', 'info_mode', 'info_markdown',

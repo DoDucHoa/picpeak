@@ -36,7 +36,6 @@ export function buildEventPayload(
     if (GROUPED.has(key)) continue;
     switch (key) {
       case 'new_password': if (form.new_password) out.password = form.new_password; break;
-      case 'confirm_new_password': break;
       case 'client_password': if (form.client_password.trim()) out.client_password = form.client_password.trim(); break;
       case 'customer_accounts': out.customer_account_ids = form.customer_accounts.map((c) => c.id); break;
       case 'customer_name': out.customer_name = form.customer_name.trim() || null; break;
@@ -69,16 +68,13 @@ export function buildEventPayload(
 export function validateDraft(
   changed: Set<string>, form: EditFormState, server: EditFormState,
 ): { key: string; fallback: string } | null {
-  const touchesPassword = ['require_password', 'new_password', 'confirm_new_password'].some((k) => changed.has(k));
+  const touchesPassword = ['require_password', 'new_password'].some((k) => changed.has(k));
   if (touchesPassword && form.require_password) {
     if (form.require_password !== server.require_password && !form.new_password) {
       return { key: 'events.newPasswordRequired', fallback: 'Please set a password before enabling protection.' };
     }
     if (form.new_password && form.new_password.length < 6) {
       return { key: 'validation.passwordMinLength', fallback: 'Password must be at least 6 characters' };
-    }
-    if (form.new_password && form.new_password !== form.confirm_new_password) {
-      return { key: 'validation.passwordsDoNotMatch', fallback: 'Passwords do not match' };
     }
   }
   // Client access is a second way into the gallery: the gallery password's

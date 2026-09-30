@@ -21,7 +21,6 @@ export type EditFormState = {
   external_watch: boolean;
   require_password: boolean;
   new_password: string;
-  confirm_new_password: string;
   // Download protection settings
   protection_level: 'basic' | 'standard' | 'enhanced' | 'maximum';
   allow_downloads: boolean;
@@ -73,7 +72,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   external_watch: false,
   require_password: true,
   new_password: '',
-  confirm_new_password: '',
   // Download protection settings
   protection_level: 'standard',
   allow_downloads: true,

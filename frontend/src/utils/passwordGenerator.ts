@@ -294,3 +294,13 @@ export function validatePassword(password: string, config: Partial<PasswordConfi
     score
   };
 }
+/**
+ * The next suggestion for a Regenerate button (event form redesign P4). The
+ * moderate form is deterministic, so cycling through the suggestions is what
+ * makes a second press give a different password.
+ */
+export function nextEventPassword(eventName: string, eventDate: string, current = ''): string {
+  const list = [...new Set(generatePasswordSuggestions({ eventName, eventDate }))];
+  const at = list.indexOf(current);
+  return list[(at + 1) % list.length];
+}

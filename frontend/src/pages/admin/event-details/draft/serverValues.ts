@@ -33,7 +33,6 @@ export function eventFormValues(event: Event): EditFormState {
     external_watch: Boolean(event.external_watch),
     require_password: normalizeRequirePassword(event.require_password),
     new_password: '',
-    confirm_new_password: '',
     // Load protection settings from event
     protection_level: event.protection_level || 'standard',
     allow_downloads: event.allow_downloads ?? true,

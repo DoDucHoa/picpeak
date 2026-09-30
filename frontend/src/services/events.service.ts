@@ -263,7 +263,7 @@ export const eventsService = {
 
   // Whether recoverable gallery passwords (#1271) are switched on. Answered
   // per event so editors without settings access can ask too.
-  async getGalleryPasswordStatus(eventId: number): Promise<{ enabled: boolean }> {
+  async getGalleryPasswordStatus(eventId: number): Promise<{ enabled: boolean; password_stored?: boolean; client_password_stored?: boolean }> {
     const response = await api.get(`/admin/events/${eventId}/password-status`);
     return response.data;
   },

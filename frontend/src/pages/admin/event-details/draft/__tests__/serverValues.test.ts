@@ -32,7 +32,6 @@ describe('eventFormValues', () => {
   it('never carries a password', () => {
     const v = eventFormValues(legacy);
     expect(v.new_password).toBe('');
-    expect(v.confirm_new_password).toBe('');
     expect(v.client_password).toBe('');
   });
 });

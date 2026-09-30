@@ -313,7 +313,11 @@ const EventDetailsPageContent: React.FC = () => {
     });
     setIsSaving(false);
     draft.dropParts(result.saved);
-    if (result.saved.includes('event')) queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+    if (result.saved.includes('event')) {
+      queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+      // A saved password changes what is stored (Settings > Access, publish).
+      queryClient.invalidateQueries({ queryKey: ['admin-event-password-status', event.id] });
+    }
     if (result.saved.includes('feedback')) queryClient.invalidateQueries({ queryKey: ['admin-event-feedback-settings', id] });
     if (result.saved.includes('quota')) queryClient.invalidateQueries({ queryKey: ['admin-download-quota', event.id] });
     if (result.saved.includes('resolution')) {

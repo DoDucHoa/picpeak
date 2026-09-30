@@ -27,9 +27,9 @@ describe('buildEventPayload', () => {
     expect(buildEventPayload(new Set(['customer_email', 'customer_name']), form, theme, theme))
       .toEqual({ customer_email: null, customer_name: null });
   });
-  it('sends a new password as password and never its confirmation', () => {
-    const form = { ...server, new_password: 'secret1', confirm_new_password: 'secret1' };
-    expect(buildEventPayload(new Set(['new_password', 'confirm_new_password']), form, theme, theme)).toEqual({ password: 'secret1' });
+  it('sends a new password as password', () => {
+    const form = { ...server, new_password: 'secret1' };
+    expect(buildEventPayload(new Set(['new_password']), form, theme, theme)).toEqual({ password: 'secret1' });
   });
   it('sends a changed type and date as they are', () => {
     const next = { ...server, event_date: '2026-06-01', event_type: 'birthday' };
@@ -73,8 +73,9 @@ describe('validateDraft', () => {
     expect(validateDraft(new Set(['require_password']), form, s)?.key).toBe('events.newPasswordRequired');
   });
   it('checks length and confirmation of a new password', () => {
-    expect(validateDraft(new Set(['new_password']), { ...server, new_password: 'abc', confirm_new_password: 'abc' }, server)?.key).toBe('validation.passwordMinLength');
-    expect(validateDraft(new Set(['new_password']), { ...server, new_password: 'abcdef', confirm_new_password: 'x' }, server)?.key).toBe('validation.passwordsDoNotMatch');
+    expect(validateDraft(new Set(['new_password']), { ...server, new_password: 'abc' }, server)?.key).toBe('validation.passwordMinLength');
+    // No confirm field any more (spec 3): a typed password is taken as typed.
+    expect(validateDraft(new Set(['new_password']), { ...server, new_password: 'abcdef' }, server)).toBeNull();
   });
   it('asks for a folder in reference mode', () => {
     const form = { ...server, source_mode: 'reference' as const, external_path: '' };
@@ -128,7 +129,7 @@ describe('runSave', () => {
 
   it('sends nothing for an event part that builds an empty payload', async () => {
     const a = api();
-    const only: DraftState = { [fieldKey('event', 'confirm_new_password')]: { base: '', value: 'x' } };
+    const only: DraftState = { [fieldKey('event', 'new_password')]: { base: '', value: 'x' } };
     const r = await runSave(only, () => ({}), a);
     expect(a.updateEvent).not.toHaveBeenCalled();
     expect(r.saved).toEqual(['event']);

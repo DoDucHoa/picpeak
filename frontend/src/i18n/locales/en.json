@@ -1949,6 +1949,22 @@
       "message": "This gallery's look was customised by hand. Apply the {{type}} theme instead?",
       "confirm": "Apply theme",
       "keep": "Keep my theme"
+    },
+    "access": {
+      "currentPassword": "Current password",
+      "notViewable": "Set, not viewable",
+      "notViewableHelp": "Only a hash is stored for this password. Set a new one to see it here later.",
+      "show": "Show",
+      "hide": "Hide",
+      "copy": "Copy",
+      "copied": "Copied",
+      "regenerate": "Regenerate",
+      "newPassword": "New password",
+      "newPasswordKeep": "New password (leave empty to keep the current one)",
+      "galleryPassword": "Gallery password",
+      "turnOffTitle": "Remove the password?",
+      "turnOffMessage": "This gallery is published. Without a password, anyone with the link can see the photos.",
+      "turnOffConfirm": "Remove password"
     }
   },
   "settings": {

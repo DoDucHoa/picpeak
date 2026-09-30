@@ -83,6 +83,8 @@ export interface Event {
   is_draft?: boolean;
   // Client access (#172)
   client_access_enabled?: boolean;
+  // Whether a client password is set (event form redesign P4). Never the hash.
+  has_client_password?: boolean;
   client_share_token?: string;
   // Set when the API withheld the gallery links because the admin sees this
   // event but cannot act on it (another owner's gallery).

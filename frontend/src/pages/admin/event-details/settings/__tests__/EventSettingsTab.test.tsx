@@ -16,7 +16,7 @@ import { EventSettingsTab } from '../EventSettingsTab';
 
 const base = (over: Partial<EventSettingsValue> = {}): EventSettingsValue => ({
   event: { id: 1, customer_name: 'Anna' } as never,
-  editForm: { customer_name: 'Anna', customer_email: '', customer_phone: '', expires_at: '', event_date: '2026-01-01', event_type: 'wedding', welcome_message: '', customer_accounts: [], require_password: true, new_password: '', confirm_new_password: '', source_mode: 'managed', external_path: '', external_watch: false, photo_cap: 0, default_photo_sort: 'upload_date_desc' } as never,
+  editForm: { customer_name: 'Anna', customer_email: '', customer_phone: '', expires_at: '', event_date: '2026-01-01', event_type: 'wedding', welcome_message: '', customer_accounts: [], require_password: true, new_password: '', source_mode: 'managed', external_path: '', external_watch: false, photo_cap: 0, default_photo_sort: 'upload_date_desc' } as never,
   setEditForm: vi.fn(),
   feedbackSettings: {} as never, setFeedbackSettings: vi.fn(),
   theme: { config: {} as never, preset: 'default' }, setTheme: vi.fn(),

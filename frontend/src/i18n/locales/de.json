@@ -2476,6 +2476,22 @@
       "message": "Das Aussehen dieser Galerie wurde von Hand angepasst. Stattdessen das Theme für {{type}} verwenden?",
       "confirm": "Theme übernehmen",
       "keep": "Mein Theme behalten"
+    },
+    "access": {
+      "currentPassword": "Aktuelles Passwort",
+      "notViewable": "Gesetzt, nicht einsehbar",
+      "notViewableHelp": "Für dieses Passwort ist nur ein Hash gespeichert. Setz ein neues, um es hier später zu sehen.",
+      "show": "Anzeigen",
+      "hide": "Verbergen",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "regenerate": "Neu erzeugen",
+      "newPassword": "Neues Passwort",
+      "newPasswordKeep": "Neues Passwort (leer lassen, um das aktuelle zu behalten)",
+      "galleryPassword": "Galerie-Passwort",
+      "turnOffTitle": "Passwort entfernen?",
+      "turnOffMessage": "Diese Galerie ist veröffentlicht. Ohne Passwort kann jeder mit dem Link die Fotos sehen.",
+      "turnOffConfirm": "Passwort entfernen"
     }
   },
   "settings": {
