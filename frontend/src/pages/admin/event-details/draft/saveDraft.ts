@@ -67,6 +67,7 @@ export function buildEventPayload(
 /** The old header save's client checks, run only for the fields they guard. */
 export function validateDraft(
   changed: Set<string>, form: EditFormState, server: EditFormState,
+  context: { hasClientPassword: boolean } = { hasClientPassword: true },
 ): { key: string; fallback: string } | null {
   const touchesPassword = ['require_password', 'new_password'].some((k) => changed.has(k));
   if (touchesPassword && form.require_password) {
@@ -87,6 +88,13 @@ export function validateDraft(
     if (/^\d+$/.test(candidate)) {
       return { key: 'validation.passwordTooSimple', fallback: 'Password cannot be just numbers. Consider using a date format like "04.07.2025"' };
     }
+  }
+  // Spec 5.4: client access is not saved as on without a way in. Checked only
+  // when client access is part of the change, so an old event already in
+  // that state can still save its other settings.
+  const touchesClient = changed.has('client_access_enabled') || changed.has('client_password');
+  if (touchesClient && form.client_access_enabled && !candidate && !context.hasClientPassword) {
+    return { key: 'clientAccess.passwordRequiredOn', fallback: 'Set a client password before turning client access on.' };
   }
   if (changed.has('event_date') && !form.event_date) {
     return { key: 'events.details.eventDateRequired', fallback: 'The event date cannot be empty.' };

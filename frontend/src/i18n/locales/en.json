@@ -5635,7 +5635,11 @@
     "passwordLabel": "Client password",
     "passwordPlaceholder": "Enter the client password",
     "passwordUpdated": "Client password updated",
-    "setPassword": "Set password"
+    "setPassword": "Set password",
+    "noPasswordSet": "No client password set. The client cannot open the review page until one is set.",
+    "generate": "Generate",
+    "newPasswordKeep": "New client password (leave empty to keep the current one)",
+    "passwordRequiredOn": "Set a client password before turning client access on."
   },
   "export": {
     "button": "Export",

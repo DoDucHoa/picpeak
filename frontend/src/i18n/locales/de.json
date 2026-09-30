@@ -5461,7 +5461,11 @@
     "passwordLabel": "Kundenpasswort",
     "passwordPlaceholder": "Kundenpasswort eingeben",
     "passwordUpdated": "Kundenpasswort aktualisiert",
-    "setPassword": "Passwort setzen"
+    "setPassword": "Passwort setzen",
+    "noPasswordSet": "Kein Kunden-Passwort gesetzt. Der Kunde kann die Auswahlseite erst öffnen, wenn eins gesetzt ist.",
+    "generate": "Erzeugen",
+    "newPasswordKeep": "Neues Kunden-Passwort (leer lassen, um das aktuelle zu behalten)",
+    "passwordRequiredOn": "Setz ein Kunden-Passwort, bevor du den Kundenzugang einschaltest."
   },
   "setup": {
     "title": "Willkommen bei PicPeak",

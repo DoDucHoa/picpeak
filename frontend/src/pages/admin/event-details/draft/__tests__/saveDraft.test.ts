@@ -63,6 +63,12 @@ describe('buildEventPayload', () => {
 });
 
 describe('validateDraft', () => {
+  it('refuses client access on without a client password, only when client access is part of the change', () => {
+    const on = { ...server, client_access_enabled: true, client_password: '' };
+    expect(validateDraft(new Set(['client_access_enabled']), on, server, { hasClientPassword: false })?.key).toBe('clientAccess.passwordRequiredOn');
+    expect(validateDraft(new Set(['client_access_enabled']), on, server, { hasClientPassword: true })).toBeNull();
+    expect(validateDraft(new Set(['customer_name']), on, server, { hasClientPassword: false })).toBeNull();
+  });
   it('refuses to clear the event date', () => {
     const form = { ...server, event_date: '' };
     expect(validateDraft(new Set(['event_date']), form, server)?.key).toBe('events.details.eventDateRequired');

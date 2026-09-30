@@ -298,7 +298,7 @@ const EventDetailsPageContent: React.FC = () => {
   const handleSave = async () => {
     if (!event) return;
     const changed = new Set(Object.keys(changesFor(draft.state, 'event')));
-    const invalid = validateDraft(changed, editForm, serverForm);
+    const invalid = validateDraft(changed, editForm, serverForm, { hasClientPassword: event.has_client_password === true });
     if (invalid) {
       toast.error(t(invalid.key, invalid.fallback));
       return;

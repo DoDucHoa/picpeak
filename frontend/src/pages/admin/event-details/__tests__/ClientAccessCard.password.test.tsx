@@ -10,7 +10,8 @@
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render as rtlRender, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 
 import type { Event } from '../../../../types';
@@ -30,9 +31,20 @@ vi.mock('react-i18next', async () => {
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const updateEvent = vi.fn(async () => ({}));
+const status = vi.fn();
+const reveal = vi.fn();
 vi.mock('../../../../services/events.service', () => ({
-  eventsService: { updateEvent: (...args: unknown[]) => updateEvent(...args) },
+  eventsService: {
+    updateEvent: (...args: unknown[]) => updateEvent(...args),
+    getGalleryPasswordStatus: (...args: unknown[]) => status(...args),
+    getGalleryPassword: (...args: unknown[]) => reveal(...args),
+  },
 }));
+
+// Settings mode reads the password status through TanStack Query.
+const render = (ui: React.ReactElement) => rtlRender(
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>,
+);
 
 import { ClientAccessCard } from '../ClientAccessCard';
 
@@ -53,7 +65,10 @@ const apply = (setEditForm: ReturnType<typeof vi.fn>, call = 0) => {
   return typeof arg === 'function' ? arg(form) : arg;
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  status.mockResolvedValue({ enabled: true, password_stored: false, client_password_stored: false });
+});
 afterEach(cleanup);
 
 describe('ClientAccessCard in Settings > Access', () => {
@@ -88,6 +103,36 @@ describe('ClientAccessCard in Settings > Access', () => {
   it('has no password field while client access is off in the draft', () => {
     render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={vi.fn()} />);
     expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
+  });
+});
+
+describe('ClientAccessCard client password (spec 5.4)', () => {
+  it('says no client password is set for an event already on without one, and Generate fills one', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={{ ...event, has_client_password: false } as Event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    expect(screen.getByText(/No client password set/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    const arg = setEditForm.mock.calls[0][0];
+    expect((typeof arg === 'function' ? arg(on) : arg).client_password.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('shows the stored client password on request when one is set', async () => {
+    status.mockResolvedValue({ enabled: true, password_stored: false, client_password_stored: true });
+    reveal.mockResolvedValue({ enabled: true, password: null, client_password: '7788aa' });
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={{ ...event, has_client_password: true } as Event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Show' }));
+    expect(await screen.findByText('7788aa')).toBeInTheDocument();
+  });
+
+  it('generates a client password when client access is switched on', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={{ ...event, client_access_enabled: false, has_client_password: false } as Event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    const next = apply(setEditForm);
+    expect(next.client_access_enabled).toBe(true);
+    expect(next.client_password.length).toBeGreaterThanOrEqual(6);
   });
 });
 

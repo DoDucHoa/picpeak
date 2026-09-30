@@ -5633,7 +5633,11 @@
     "linkLabel": "Liên kết truy cập dành cho khách hàng",
     "regenerateToken": "Tạo lại liên kết",
     "tokenRegenerated": "Liên kết truy cập dành cho khách hàng đã được tạo lại",
-    "linkAfterCreate": "Link truy cập của khách hàng sẽ xuất hiện ở trang chi tiết event ngay sau khi tạo."
+    "linkAfterCreate": "Link truy cập của khách hàng sẽ xuất hiện ở trang chi tiết event ngay sau khi tạo.",
+    "noPasswordSet": "Chưa đặt mật khẩu khách hàng. Khách chưa mở được trang duyệt ảnh cho tới khi có mật khẩu.",
+    "generate": "Tạo",
+    "newPasswordKeep": "Mật khẩu khách hàng mới (để trống để giữ mật khẩu hiện tại)",
+    "passwordRequiredOn": "Đặt mật khẩu khách hàng trước khi bật quyền truy cập cho khách hàng."
   },
   "export": {
     "button": "Xuất",
