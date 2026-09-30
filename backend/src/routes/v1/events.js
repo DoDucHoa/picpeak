@@ -160,8 +160,8 @@ const photoUpload = async (req, res, next) => {
  *               use_canvas_rendering: { type: boolean, nullable: true, description: "Render gallery images to a canvas instead of an img tag. When omitted, falls back to the global enable_canvas_rendering setting." }
  *               image_quality: { type: integer, minimum: 1, maximum: 100, nullable: true, description: "Served image quality percentage. When omitted, falls back to the global default_image_quality setting." }
  *               hero_logo_visible: { type: boolean, nullable: true, description: "Show event logo in the hero block. When omitted, falls back to the global branding_logo_display_hero setting." }
- *               hero_logo_size: { type: string, nullable: true, enum: [small, medium, large, xlarge], description: "Hero logo size. When omitted, falls back to the global branding_logo_size setting." }
- *               hero_logo_position: { type: string, nullable: true, enum: [top, center, bottom], description: "Hero logo position. Defaults to 'top' (not settings-backed — see migration 084)." }
+ *               hero_logo_size: { type: string, nullable: true, enum: [small, medium, large, xlarge], description: "Ignored since P3: Branding sets the hero logo size for every gallery (branding_logo_size)." }
+ *               hero_logo_position: { type: string, nullable: true, enum: [top, center, bottom], description: "Ignored since P3: Branding sets the hero logo position for every gallery (branding_hero_logo_position)." }
  *     responses:
  *       201:
  *         description: Event created

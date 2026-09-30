@@ -95,3 +95,19 @@ describe('a new watermark logo', () => {
     expect(invalidateAll).not.toHaveBeenCalled();
   });
 });
+
+describe('hero logo globals (P3, spec 5.10)', () => {
+  const read = async (key) => JSON.parse((await db('app_settings').where({ setting_key: key }).first()).setting_value);
+
+  it('stores the hero logo position and the password page logo switch', async () => {
+    expect((await save({ hero_logo_position: 'center', gallery_password_logo_visible: false })).status).toBe(200);
+    expect(await read('branding_hero_logo_position')).toBe('center');
+    expect(await read('branding_gallery_password_logo_visible')).toBe(false);
+  });
+
+  it('ignores an unknown hero logo position and leaves the stored one', async () => {
+    expect((await save({ hero_logo_position: 'center' })).status).toBe(200);
+    expect((await save({ hero_logo_position: 'sideways' })).status).toBe(200);
+    expect(await read('branding_hero_logo_position')).toBe('center');
+  });
+});

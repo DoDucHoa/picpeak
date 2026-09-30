@@ -114,9 +114,8 @@ async function readKeybindModeSetting() {
 }
 
 /**
- * Resolve the global feedback defaults in ONE query (mirrors
- * getBrandingDefaults' batched whereIn rather than firing seven `.first()`
- * calls on every event creation).
+ * Resolve the global feedback defaults in ONE query (a batched whereIn
+ * rather than seven `.first()` calls on every event creation).
  *
  * Never throws: a settings-table hiccup must not fail event creation, so the
  * built-in fallbacks stand in.

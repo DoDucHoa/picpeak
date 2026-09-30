@@ -5,7 +5,7 @@ const { getAppSetting } = require('../utils/appSettings');
 const { formatBoolean } = require('../utils/dbCompat');
 const { SHARED_COLOR_LABEL_IDENTITY } = require('../constants/colorLabels');
 const watermarkService = require('./watermarkService');
-const { getGalleryProtectionSettings } = require('./eventSettings');
+const { getGalleryProtectionSettings, getHeroLogoGlobals } = require('./eventSettings');
 const logger = require('../utils/logger');
 const { getEventCategoriesOrdered } = require('../utils/categoryOrder');
 const { getUseOriginalFilenames } = require('./downloadFilenameService');
@@ -389,7 +389,7 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
   // one switch controls both surfaces.
   const useOriginalFilenames = await getUseOriginalFilenames();
   const globalHeroLogoVisible = await getAppSetting('branding_logo_display_hero', true);
-  const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
+  const heroLogo = await getHeroLogoGlobals();
   const downloadPolicy = await resolveEventDownloadPolicy(event);
   const guardProtection = await getGalleryProtectionSettings();
 
@@ -443,8 +443,9 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       enable_devtools_protection: guardProtection.enable_devtools_protection,
       use_canvas_rendering: guardProtection.use_canvas_rendering,
       hero_logo_visible: resolveHeroLogoVisible(event.hero_logo_visible, globalHeroLogoVisible),
-      hero_logo_size: event.hero_logo_size || globalLogoSize || 'medium',
-      hero_logo_position: event.hero_logo_position || 'top',
+      // Branding decides the hero logo's size and position (P3).
+      hero_logo_size: heroLogo.hero_logo_size,
+      hero_logo_position: heroLogo.hero_logo_position,
       hero_logo_url: event.hero_logo_url || null,
       header_style: event.header_style || 'standard',
       hero_divider_style: event.hero_divider_style || 'wave',

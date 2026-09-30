@@ -1081,6 +1081,9 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
       //   the two login screens.
       login_logo_frame_enabled,
       login_logo_size,
+      // Hero logo position and the gallery password page logo (P3, spec 5.10).
+      hero_logo_position,
+      gallery_password_logo_visible,
       // Footer overhaul (#441 + #440). Socials are URL strings (empty
       // hides the icon). Promo content is markdown (rendered via
       // marked → DOMPurify on the frontend, no raw HTML accepted).
@@ -1127,6 +1130,10 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
     const normalizedLoginLogoSize = allowedLoginLogoSizes.includes(login_logo_size)
       ? login_logo_size
       : undefined;
+    // Hero logo position and the password page logo are Branding settings
+    // since P3 (spec 5.10). An unknown position is ignored, not stored.
+    const normalizedHeroLogoPosition = ['top', 'center', 'bottom'].includes(hero_logo_position)
+      ? hero_logo_position : undefined;
 
     const brandingSettings = {
       company_name,
@@ -1154,6 +1161,8 @@ router.put('/branding', adminAuth, requirePermission('settings.edit'), async (re
       ...(login_logo_frame_enabled !== undefined && { login_logo_frame_enabled }),
       ...(watermark_downloads_enabled !== undefined && { watermark_downloads_enabled: !!watermark_downloads_enabled }),
       ...(normalizedLoginLogoSize !== undefined && { login_logo_size: normalizedLoginLogoSize }),
+      ...(normalizedHeroLogoPosition !== undefined && { hero_logo_position: normalizedHeroLogoPosition }),
+      ...(gallery_password_logo_visible !== undefined && { gallery_password_logo_visible: !!gallery_password_logo_visible }),
       // Footer overhaul (#441 + #440). String fields normalize empty/
       // undefined → '' so the column is always a known type. Only persist
       // when the request actually included the key (partial PUTs).

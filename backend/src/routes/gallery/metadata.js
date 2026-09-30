@@ -6,7 +6,7 @@ const { getAppSetting } = require('../../utils/appSettings');
 const { timingSafeEqualStr } = require('../../utils/timingSafe');
 const router = express.Router();
 const { resolveHeroLogoVisible } = require('../../services/galleryModel');
-const { getGalleryProtectionSettings } = require('../../services/eventSettings');
+const { getGalleryProtectionSettings, getHeroLogoGlobals } = require('../../services/eventSettings');
 const { verifyAdminPreview } = require('../../middleware/gallery');
 const { noStoreCache } = require('../../middleware/noStoreCache');
 const logger = require('../../utils/logger');
@@ -242,7 +242,7 @@ router.get('/:slug/info', async (req, res) => {
       : !(event.require_password === false || event.require_password === 0 || event.require_password === '0');
     const globalHeroLogoVisible = await getAppSetting('branding_logo_display_hero', true);
     const guardProtection = await getGalleryProtectionSettings();
-    const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
+    const heroLogo = await getHeroLogoGlobals();
 
     res.json({
       event_name: event.event_name,
@@ -267,12 +267,11 @@ router.get('/:slug/info', async (req, res) => {
       enable_devtools_protection: guardProtection.enable_devtools_protection,
       use_canvas_rendering: guardProtection.use_canvas_rendering,
       hero_logo_visible: resolveHeroLogoVisible(event.hero_logo_visible, globalHeroLogoVisible),
-      // #894: only an explicit false hides the logo on the password page;
-      // NULL keeps the default (show).
-      login_logo_visible: !(event.login_logo_visible === false || event.login_logo_visible === 0 || event.login_logo_visible === '0'),
-      // #756: NULL per-event size inherits the global branding_logo_size.
-      hero_logo_size: event.hero_logo_size || globalLogoSize || 'medium',
-      hero_logo_position: event.hero_logo_position || 'top',
+      // Branding decides the password page logo and the hero logo's size and
+      // position for every gallery (P3); the event's own columns are ignored.
+      login_logo_visible: heroLogo.login_logo_visible,
+      hero_logo_size: heroLogo.hero_logo_size,
+      hero_logo_position: heroLogo.hero_logo_position,
       hero_logo_url: event.hero_logo_url || null,
       header_style: event.header_style || 'standard',
       hero_divider_style: event.hero_divider_style || 'wave',

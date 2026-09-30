@@ -18,7 +18,7 @@ const { clampIntOrUndefined } = require('../utils/numericHelpers');
 const { getFrontendBaseUrl } = require('../utils/frontendUrl');
 const { resolveEventFeedbackDefaults, applyFeedbackDefaults } = require('./feedbackDefaults');
 const { getStoragePath, getEventFieldRequirements, readBooleanSetting, getDownloadProtectionDefaults,
-  getImageSecurityDefaults, resolveImageSecurityColumns, getBrandingDefaults, getCustomerNameFromPayload,
+  getImageSecurityDefaults, resolveImageSecurityColumns, getCustomerNameFromPayload,
   getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, hasCustomerContactColumns,
   SLIDESHOW_TRANSITIONS, SLIDESHOW_COLORFILTERS } = require('./eventSettings');
 const { validateCreationInput } = require('./eventCreationValidation');
@@ -276,8 +276,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     }
   }
 
-  // Get branding defaults for hero logo settings (Feature 7: Branding Inheritance)
-  const brandingDefaults = await getBrandingDefaults();
   // hero_logo_visible: store NULL ("inherit") unless the admin explicitly
   // set it, so the global branding_logo_display_hero toggle keeps
   // controlling this gallery afterwards (#756). Only an explicit per-event
@@ -290,7 +288,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   // NULL = inherit the global branding_logo_size (#756), resolved at read
   // time. Only an explicit per-event size overrides it.
   const effectiveHeroLogoSize = input.hero_logo_size || null;
-  const effectiveHeroLogoPosition = input.hero_logo_position || brandingDefaults.hero_logo_position;
 
   // Inherit "Detect dev tools" from the global Image Security setting unless
   // the request explicitly overrides it (#317 — admin disabled it globally
@@ -396,7 +393,8 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     // Already formatBoolean-coerced above, or null = inherit global (#756).
     hero_logo_visible: effectiveHeroLogoVisible,
     hero_logo_size: effectiveHeroLogoSize,
-    hero_logo_position: effectiveHeroLogoPosition,
+    // hero_logo_position is a Branding setting since P3 (spec 5.10); the
+    // column takes its database default and is no longer read.
     // Banner overrides. Both were accepted by the validators above and
     // then dropped here, so an API client could POST info_mode:'off' or a
     // custom banner, get 201, and find the row still on 'inherit'.

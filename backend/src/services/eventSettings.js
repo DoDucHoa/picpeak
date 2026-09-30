@@ -272,53 +272,31 @@ const resolveImageSecurityColumns = (body = {}, defaults = {}) => {
   return columns;
 };
 
-// Helper to get branding defaults for new events (Feature 7: Branding Inheritance).
-//
-// Note: `branding_logo_position` (header bar — left/center/right) is a
-// different concept from `hero_logo_position` (hero block — top/center/
-// bottom) and must NOT be mapped here. A previous version copied the
-// branding value over, which wrote 'left'/'right' into per-event
-// hero_logo_position columns and broke any subsequent PUT validation
-// (#357). Migration 084 heals existing rows.
-const getBrandingDefaults = async () => {
-  try {
-    const settings = await db('app_settings')
-      .whereIn('setting_key', [
-        'branding_logo_display_hero',
-        'branding_logo_size'
-      ])
-      .select('setting_key', 'setting_value');
+const HERO_LOGO_POSITIONS = ['top', 'center', 'bottom'];
 
-    const defaults = {
-      hero_logo_visible: true,
-      hero_logo_size: 'medium',
-      hero_logo_position: 'top'
-    };
-
-    settings.forEach(s => {
-      let value = s.setting_value;
-      if (typeof value === 'string') {
-        try { value = JSON.parse(value); } catch (e) { /* use as-is */ }
-      }
-      if (s.setting_key === 'branding_logo_display_hero') {
-        defaults.hero_logo_visible = value !== false;
-      }
-      if (s.setting_key === 'branding_logo_size' && value) {
-        defaults.hero_logo_size = value;
-      }
-    });
-
-    return defaults;
-  } catch (error) {
-    logger.error('Failed to get branding defaults', { error: error.message });
-    return {
-      hero_logo_visible: true,
-      hero_logo_size: 'medium',
-      hero_logo_position: 'top'
-    };
-  }
+/**
+ * Hero logo size and position, and the logo on the gallery password page, for
+ * every gallery (P3, spec 5.10). Branding decides; the per-event columns are
+ * no longer read. Values are decoded the way decodeSettingValue does, since
+ * they may be stored JSON encoded more than once.
+ *
+ * branding_logo_position (the header bar: left, center, right) is a different
+ * setting from the hero position and is not read here (#357).
+ */
+const getHeroLogoGlobals = async () => {
+  const rows = await db('app_settings')
+    .whereIn('setting_key', ['branding_logo_size', 'branding_hero_logo_position'])
+    .select('setting_key', 'setting_value');
+  const value = (key) => decodeSettingValue(rows.find((r) => r.setting_key === key)?.setting_value);
+  const size = value('branding_logo_size');
+  const position = value('branding_hero_logo_position');
+  const passwordLogo = await readBooleanSetting('branding_gallery_password_logo_visible');
+  return {
+    hero_logo_size: typeof size === 'string' && size ? size : 'medium',
+    hero_logo_position: HERO_LOGO_POSITIONS.includes(position) ? position : 'top',
+    login_logo_visible: passwordLogo ?? true,
+  };
 };
-
 // Use parseStringInput from shared parsers for customer data extraction
 const getCustomerNameFromPayload = (payload = {}) => parseStringInput(payload.customer_name);
 const getCustomerEmailFromPayload = (payload = {}) => parseStringInput(payload.customer_email);
@@ -409,7 +387,7 @@ module.exports = {
   getGalleryProtectionSettings,
   getImageSecurityDefaults,
   resolveImageSecurityColumns,
-  getBrandingDefaults,
+  getHeroLogoGlobals,
   getCustomerNameFromPayload,
   getCustomerEmailFromPayload,
   getCustomerPhoneFromPayload,

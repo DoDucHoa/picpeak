@@ -228,6 +228,56 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
     });
   });
 
+  // Branding decides the hero logo's size and position and the logo on the
+  // password page for every gallery (P3, spec 5.10); the event's own columns
+  // are ignored.
+  describe('hero logo globals (P3)', () => {
+    const setSetting = (key, value) => db('app_settings')
+      .insert({ setting_key: key, setting_value: JSON.stringify(value), setting_type: 'branding' })
+      .onConflict('setting_key').merge();
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+    const KEYS = ['branding_logo_size', 'branding_hero_logo_position', 'branding_gallery_password_logo_visible'];
+
+    afterAll(async () => {
+      await db('app_settings').whereIn('setting_key', KEYS).delete();
+      await setEventFlags({ hero_logo_size: null, hero_logo_position: 'top', login_logo_visible: null });
+    });
+
+    test('takes size, position and the password page logo from Branding, never from the event', async () => {
+      await setSetting('branding_logo_size', 'large');
+      await setSetting('branding_hero_logo_position', 'bottom');
+      await setSetting('branding_gallery_password_logo_visible', false);
+      await setEventFlags({ hero_logo_size: 'small', hero_logo_position: 'center', login_logo_visible: 1 });
+
+      const payload = await getPayload();
+      expect(payload.hero_logo_size).toBe('large');
+      expect(payload.hero_logo_position).toBe('bottom');
+      const info = await getInfo();
+      expect(info.hero_logo_size).toBe('large');
+      expect(info.hero_logo_position).toBe('bottom');
+      expect(info.login_logo_visible).toBe(false);
+    });
+
+    test('falls back to medium, top and shown when nothing is set', async () => {
+      await db('app_settings').whereIn('setting_key', KEYS).delete();
+      await setEventFlags({ hero_logo_size: 'small', hero_logo_position: 'center', login_logo_visible: 0 });
+      const info = await getInfo();
+      expect(info.hero_logo_size).toBe('medium');
+      expect(info.hero_logo_position).toBe('top');
+      expect(info.login_logo_visible).toBe(true);
+    });
+
+    test('reads a position stored JSON encoded twice', async () => {
+      await setEventFlags({ hero_logo_position: 'bottom' });
+      await setSetting('branding_hero_logo_position', JSON.stringify('center'));
+      expect((await getInfo()).hero_logo_position).toBe('center');
+    });
+  });
+
   describe('per-category download blocking (#640) on SQLite', () => {
     test('a category with allow_downloads = 0 is reported as blocked', async () => {
       const cat = await db('photo_categories').insert({
