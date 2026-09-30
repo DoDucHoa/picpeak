@@ -342,7 +342,10 @@ const mapEventForApi = (event) => {
     ...rest,
     customer_name: customer_name ?? host_name ?? null,
     customer_email: customer_email ?? host_email ?? null,
-    customer_phone: customer_phone ?? null
+    customer_phone: customer_phone ?? null,
+    // P4 (spec 5.4): whether a client password exists, so Settings > Access
+    // can say "No client password set". A boolean, never the hash.
+    has_client_password: Boolean(_cph)
   };
 };
 

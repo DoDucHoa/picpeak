@@ -26,7 +26,16 @@ module.exports = (router) => {
       // defence in depth (issue 1670, §2.4).
       const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first('id');
       if (!event) return res.status(404).json({ error: 'Event not found' });
-      res.json({ enabled: await isRecoverableStorageEnabled() });
+      const enabled = await isRecoverableStorageEnabled();
+      // Whether copies exist, not what they are (P4, ruling 3).
+      const row = enabled
+        ? await db('events').where('id', id).first('password_recoverable', 'client_password_recoverable')
+        : null;
+      res.json({
+        enabled,
+        password_stored: Boolean(row?.password_recoverable),
+        client_password_stored: Boolean(row?.client_password_recoverable),
+      });
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to read gallery password status');
     }

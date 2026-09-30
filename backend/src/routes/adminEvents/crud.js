@@ -26,7 +26,7 @@ const { normaliseEventTimeTriple } = require('../../services/eventService');
 const { hasColumnCached } = require('../../utils/schemaCache');
 const { requireEventOwnership, scopeEventsListQuery, withoutForeignEventSecrets, scopeEventsQuery } = require('../../middleware/ownership');
 
-const { galleryPasswordColumns, dropCopiesIfStorageOff } = require('../../utils/galleryPasswordVault');
+const { galleryPasswordColumns, dropCopiesIfStorageOff, readGalleryPassword } = require('../../utils/galleryPasswordVault');
 const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCredentialCutoff');
 
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
@@ -609,8 +609,11 @@ module.exports = (router) => {
         await dropCopiesIfStorageOff(id);
       }
 
+      // P4 (ruling 1): no typed password means the stored copy, as resend does.
+      const stored = hasInlineRecipient && requirePassword && !password ? await readGalleryPassword(id) : null;
+      const mailPassword = password || stored?.password || undefined;
       const queued = hasInlineRecipient
-        && await queueGalleryCreatedEmail(event, { password, requirePassword });
+        && await queueGalleryCreatedEmail(event, { password: mailPassword, requirePassword });
       if (!queued) {
         // No inline recipient, but the gallery may be assigned to registered
         // customer account(s) — the same path publish takes. Without this the
@@ -653,6 +656,7 @@ module.exports = (router) => {
 
       res.json({
         message: 'Gallery email queued',
+        usedStoredPassword: Boolean(stored?.password),
         recipient: event.customer_email || event.host_email,
       });
     } catch (error) {
@@ -697,6 +701,7 @@ module.exports = (router) => {
       const requirePassword = parseBooleanInput(event.require_password, true);
       const publishUpdates = { is_draft: formatBoolean(false) };
       let publishKeepsHash = false;
+      let usedStoredPassword = false;
       let publishWritesPassword = false;
       if (requirePassword && password) {
       // Re-hash so the stored hash matches what the email carries — even if
@@ -732,7 +737,10 @@ module.exports = (router) => {
       const customerEmail = event.customer_email || event.host_email;
       if (notifyCustomer) {
         if (customerEmail) {
-          await queueGalleryCreatedEmail(event, { password, requirePassword });
+          // P4 (ruling 1): no typed password means the stored copy, as resend does.
+          const stored = requirePassword && !password ? await readGalleryPassword(id) : null;
+          usedStoredPassword = Boolean(stored?.password);
+          await queueGalleryCreatedEmail(event, { password: password || stored?.password || undefined, requirePassword });
         } else {
         // No inline email, but the gallery may be assigned to registered
         // customer account(s). Notify them via the account "your galleries"
@@ -812,6 +820,7 @@ module.exports = (router) => {
         message: 'Event published successfully',
         is_draft: false,
         notified_customer: notifyCustomer,
+        usedStoredPassword,
       });
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to publish event');
