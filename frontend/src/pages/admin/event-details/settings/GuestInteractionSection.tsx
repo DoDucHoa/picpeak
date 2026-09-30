@@ -5,37 +5,34 @@ import { FeedbackSettings } from '../../../../components/admin';
 import { CreditVisibilitySetting } from '../../../../components/admin/CreditVisibilitySetting';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
+import { FeedbackModeSelector } from './FeedbackModeSelector';
+import { applyFeedbackMode, feedbackMode, offeredModes } from './feedbackMode';
 
 /**
- * Settings > Guest interaction (spec 5.1). The feedback controls are edited
- * here only and saved by the bar; the photo credit switch sits in the
- * advanced area.
+ * Settings > Guest interaction (spec 5.1). The feedback mode is the everyday
+ * control; the individual toggles and the photo credit switch sit in the
+ * advanced area. Everything is saved by the bar.
  */
 export const GuestInteractionSection: React.FC = () => {
   const { t } = useTranslation();
-  const { editForm, setEditForm, feedbackSettings, setFeedbackSettings, expert } = useEventSettings();
+  const { editForm, setEditForm, feedbackSettings, setFeedbackSettings, savedFeedbackSettings, expert } = useEventSettings();
+  const saved = savedFeedbackSettings ?? feedbackSettings;
   return (
     <Card padding="md">
       <h2 className="text-lg font-semibold text-heading mb-4">{t('events.settings.sectionGuests', 'Guest interaction')}</h2>
-      <div className="space-y-4">
-          {/* Feedback Settings */}
-          <div className="mt-4 pt-4 border-t border-line">
-            <h3 className="text-sm font-semibold text-heading mb-3">{t('feedback.settings.title', 'Guest Feedback Settings')}</h3>
-            <FeedbackSettings
-              settings={feedbackSettings}
-              onChange={setFeedbackSettings}
-            />
-          </div>
-      </div>
+      <FeedbackModeSelector
+        mode={feedbackMode(feedbackSettings)}
+        offered={offeredModes(feedbackSettings, saved)}
+        onSelect={(mode) => setFeedbackSettings(applyFeedbackMode(feedbackSettings, saved, mode))}
+      />
       <AdvancedArea expert={expert}>
-          {/* Guest uploads, uploader names and reveal mode were removed in
-              P3 (spec 5.12). The credit switch stays: it also covers the
-              photographer credit read from each photo. */}
-          <CreditVisibilitySetting
-            idPrefix="event-credits"
-            checked={editForm.show_credits_to_guests}
-            onChange={(show_credits_to_guests) => setEditForm(prev => ({ ...prev, show_credits_to_guests }))}
-          />
+        {/* The component carries its own title; the mode owns its enable switch. */}
+        <FeedbackSettings settings={feedbackSettings} onChange={setFeedbackSettings} hideEnableToggle />
+        <CreditVisibilitySetting
+          idPrefix="event-credits"
+          checked={editForm.show_credits_to_guests}
+          onChange={(show_credits_to_guests) => setEditForm(prev => ({ ...prev, show_credits_to_guests }))}
+        />
       </AdvancedArea>
     </Card>
   );

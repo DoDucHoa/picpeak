@@ -1911,7 +1911,18 @@
       "showToGuests": "Show photo credits to guests",
       "showToGuestsHelp": "Guests see the photographer's name stored in each photo. You always see it."
     },
-    "heroLogoInfoGlobal": "The logo's size and position come from Branding and apply to every gallery."
+    "heroLogoInfoGlobal": "The logo's size and position come from Branding and apply to every gallery.",
+    "feedbackMode": {
+      "label": "Guest feedback",
+      "off": "Off",
+      "offHelp": "Guests view and download only.",
+      "picks": "Client picks photos",
+      "picksHelp": "Guests mark favourites, nothing else.",
+      "full": "Full feedback",
+      "fullHelp": "Favourites, likes, ratings, comments and reactions.",
+      "custom": "Custom",
+      "customHelp": "The individual switches under advanced options decide."
+    }
   },
   "settings": {
     "title": "System Settings",

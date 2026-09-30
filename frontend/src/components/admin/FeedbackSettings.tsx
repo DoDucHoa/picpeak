@@ -8,6 +8,8 @@ interface FeedbackSettingsProps {
   settings: FeedbackSettings;
   onChange: (settings: FeedbackSettings) => void;
   className?: string;
+  /** Hide the enable switch: the event page's feedback mode owns it (P4, spec 5.7). */
+  hideEnableToggle?: boolean;
 }
 
 interface FeedbackSettings {
@@ -30,7 +32,8 @@ interface FeedbackSettings {
 export const FeedbackSettings: React.FC<FeedbackSettingsProps> = ({
   settings,
   onChange,
-  className = ''
+  className = '',
+  hideEnableToggle = false,
 }) => {
   const { t } = useTranslation();
 
@@ -49,17 +52,19 @@ export const FeedbackSettings: React.FC<FeedbackSettingsProps> = ({
             <MessageSquare className="w-5 h-5" />
             {t('feedback.settings.title', 'Guest Feedback Settings')}
           </h2>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.feedback_enabled}
-              onChange={() => handleToggle('feedback_enabled')}
-              className="w-4 h-4 text-accent bg-neutral-100 border-neutral-300 rounded focus:ring-primary-500"
-            />
-            <span className="text-sm font-medium text-body">
-              {t('feedback.settings.enableFeedback', 'Enable feedback')}
-            </span>
-          </label>
+          {!hideEnableToggle && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.feedback_enabled}
+                onChange={() => handleToggle('feedback_enabled')}
+                className="w-4 h-4 text-accent bg-neutral-100 border-neutral-300 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-body">
+                {t('feedback.settings.enableFeedback', 'Enable feedback')}
+              </span>
+            </label>
+          )}
         </div>
 
         {settings.feedback_enabled && (

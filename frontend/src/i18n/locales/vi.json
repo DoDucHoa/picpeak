@@ -1910,7 +1910,18 @@
       "showToGuests": "Hiện tên tác giả ảnh cho khách",
       "showToGuestsHelp": "Khách thấy tên nhiếp ảnh gia được lưu trong từng ảnh. Bạn luôn thấy tên này."
     },
-    "heroLogoInfoGlobal": "Kích thước và vị trí logo lấy từ phần Branding và áp dụng cho mọi gallery."
+    "heroLogoInfoGlobal": "Kích thước và vị trí logo lấy từ phần Branding và áp dụng cho mọi gallery.",
+    "feedbackMode": {
+      "label": "Phản hồi của khách",
+      "off": "Tắt",
+      "offHelp": "Khách chỉ xem và tải ảnh.",
+      "picks": "Khách hàng chọn ảnh",
+      "picksHelp": "Khách chỉ đánh dấu ảnh yêu thích.",
+      "full": "Phản hồi đầy đủ",
+      "fullHelp": "Yêu thích, thích, chấm điểm, bình luận và biểu cảm.",
+      "custom": "Tuỳ chỉnh",
+      "customHelp": "Các công tắc riêng trong phần tuỳ chọn nâng cao quyết định."
+    }
   },
   "settings": {
     "title": "Cài đặt hệ thống",

@@ -12,6 +12,8 @@ export interface EventSettingsValue {
   setEditForm: (action: SetStateAction<EditFormState>) => void;
   feedbackSettings: FeedbackSettings;
   setFeedbackSettings: (action: SetStateAction<FeedbackSettings>) => void;
+  /** The saved feedback settings, for the mode's Custom (spec 5.7). */
+  savedFeedbackSettings: FeedbackSettings;
   theme: ThemeDraft;
   setTheme: (fn: (current: ThemeDraft) => ThemeDraft) => void;
   draft: EventDraft;

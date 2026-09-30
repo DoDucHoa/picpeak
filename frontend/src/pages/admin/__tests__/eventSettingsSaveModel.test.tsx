@@ -18,7 +18,9 @@ vi.mock('react-i18next', async () => {
   return {
     ...actual,
     useTranslation: () => ({
-      t: (k: string, fb?: unknown) => (typeof fb === 'string' ? fb : k),
+      // A count option is echoed, so the save bar's number can be read.
+      t: (k: string, fb?: unknown) => (typeof fb === 'string' ? fb
+        : (fb && typeof fb === 'object' && 'count' in fb) ? `${k}:${(fb as { count: number }).count}` : k),
       i18n: { language: 'en' },
     }),
   };
@@ -152,11 +154,8 @@ const rail = () => screen.getByRole('navigation', { name: 'Event settings' });
 const goTo = (name: RegExp) => userEvent.click(within(rail()).getByRole('button', { name }));
 const saveButton = () => within(bar() as HTMLElement).getByRole('button', { name: /Save$/ });
 const nameField = () => screen.findByPlaceholderText('events.hostNamePlaceholder');
-// The first switch inside the section, not the Expert mode switch above it.
-const firstSectionCheckbox = async () => {
-  await screen.findByRole('group');
-  return within(screen.getByRole('group')).getAllByRole('checkbox')[0] as HTMLInputElement;
-};
+// A choice of the guest feedback mode (spec 5.7).
+const modeRadio = (name: RegExp) => screen.findByRole('radio', { name });
 const setPhotoLimit = async (value: string) => {
   await goTo(/^Advanced/);
   await userEvent.click(screen.getByRole('button', { name: 'Show advanced options' }));
@@ -207,7 +206,7 @@ describe('event Settings save model', () => {
   it('keeps only the failed part, and a retry resends only that part', async () => {
     updateFeedback.mockRejectedValueOnce(new Error('500'));
     await open('/admin/events/7?tab=settings&section=guests');
-    await userEvent.click((await firstSectionCheckbox()));
+    await userEvent.click(await modeRadio(/^Full feedback/));
     await setPhotoLimit('40');
     await userEvent.click(saveButton());
     expect(await screen.findByRole('alert')).toHaveTextContent(/Not saved/);
@@ -215,17 +214,17 @@ describe('event Settings save model', () => {
     expect(bar()).not.toBeNull();
     await userEvent.click(saveButton());
     await waitFor(() => expect(updateFeedback).toHaveBeenCalledTimes(2));
+    expect(updateFeedback).toHaveBeenLastCalledWith('7', { feedback_enabled: true });
     expect(updateEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('restores the feedback toggles on Discard', async () => {
+  it('restores the feedback mode on Discard, and a mode switch counts as one change', async () => {
     await open('/admin/events/7?tab=settings&section=guests');
-    const toggle = (await firstSectionCheckbox()) as HTMLInputElement;
-    const before = toggle.checked;
-    await userEvent.click(toggle);
-    expect(bar()).not.toBeNull();
+    expect(await modeRadio(/^Off/)).toBeChecked();
+    await userEvent.click(await modeRadio(/^Client picks photos/));
+    expect(within(bar() as HTMLElement).getByRole('status')).toHaveTextContent('events.saveBar.count:1');
     await userEvent.click(within(bar() as HTMLElement).getByRole('button', { name: 'Discard' }));
-    expect((await firstSectionCheckbox()).checked).toBe(before);
+    expect(await modeRadio(/^Off/)).toBeChecked();
     expect(bar()).toBeNull();
   });
 

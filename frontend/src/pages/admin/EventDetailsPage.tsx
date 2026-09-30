@@ -561,6 +561,7 @@ const EventDetailsPageContent: React.FC = () => {
           setEditForm: settingsLock === null ? setEditForm : noop,
           feedbackSettings,
           setFeedbackSettings: settingsLock === null ? setFeedbackSettings : noop,
+          savedFeedbackSettings: serverFeedback,
           theme,
           setTheme: settingsLock === null ? setTheme : noop,
           draft: settingsLock === null ? draft : lockedDraft,
