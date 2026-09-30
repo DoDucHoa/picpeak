@@ -79,7 +79,6 @@ const { startExpirationChecker } = require('./src/services/expirationChecker');
 const { startTransferCleanup } = require('./src/services/transferCleanupService');
 const { startDownloadJobCleanup } = require('./src/services/downloadJobCleanupService');
 const { startFeedbackRateLimitCleanup } = require('./src/services/feedbackRateLimitCleanupService');
-const { startRevealScheduler } = require('./src/services/revealScheduler');
 const { startInvoiceScheduler } = require('./src/services/invoiceSchedulerService');
 const { startDownloadOrderExpiryChecker } = require('./src/services/downloadOrderExpiryChecker');
 const { initializeTransporter, startEmailQueueProcessor } = require('./src/services/emailProcessor');
@@ -1200,8 +1199,6 @@ async function startServer() {
     // just handled, so a gallery that goes quiet leaves its rows behind —
     // sweep them on a schedule as a backstop.
     startFeedbackRateLimitCleanup();
-    // Reveal-mode scheduler (#838): minutely stamp for scheduled reveals.
-    startRevealScheduler();
     // CRM invoice scheduler: hourly tick to flush scheduled-send invoices
     // + run the overdue reminder ladder. No-op when the `bills` feature
     // flag is OFF (the service short-circuits on empty result sets).

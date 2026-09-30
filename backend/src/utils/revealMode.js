@@ -1,40 +1,14 @@
 /**
- * Reveal mode (#838): effective-visibility math, shared by the gallery
- * routes, the admin routes and the reveal scheduler.
- *
- * The gate is computed from the event row at request time — a scheduled
- * reveal opens EXACTLY at reveal_at even if the minutely scheduler (which
- * only stamps revealed_at durably and fires notifications) lags behind.
+ * Reveal mode (#838) is removed (event form redesign P3, spec 5.12): no
+ * gallery is hidden any more, whatever its stored reveal_mode says. The module
+ * and its exports stay, so every gate that calls it keeps working as a no-op
+ * and the suites that mock it keep their shape. The columns keep their values,
+ * so a rollback is a code revert.
  */
 
-/** Truthy check that survives SQLite 0/1 and Postgres booleans. */
-function isTrue(value) {
-  return value === true || value === 1 || value === '1';
-}
-
-/**
- * Parse a timestamp column that may arrive as a Date (Postgres), an ISO
- * string, or a millisecond number/number-string (SQLite stores knex Dates
- * as ms — `new Date("178…")` on that string would be Invalid Date and
- * silently keep the gallery hidden past its scheduled reveal).
- */
-function toDate(value) {
-  if (value instanceof Date) return value;
-  if (typeof value === 'number') return new Date(value);
-  const asNumber = Number(value);
-  if (!Number.isNaN(asNumber) && String(value).trim() !== '') return new Date(asNumber);
-  return new Date(value);
-}
-
-/**
- * Whether the gallery is currently hidden from plain guests.
- * Host/admin/slideshow/client access bypasses this at the route layer.
- */
-function isGalleryHidden(event, now = new Date()) {
-  if (!isTrue(event.reveal_mode)) return false;
-  if (event.revealed_at) return false;
-  if (event.reveal_at && toDate(event.reveal_at) <= now) return false;
-  return true;
+/** Whether the gallery is hidden from plain guests: never, since P3. */
+function isGalleryHidden() {
+  return false;
 }
 
 /**

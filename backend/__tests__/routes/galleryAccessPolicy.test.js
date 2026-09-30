@@ -108,21 +108,24 @@ it.each(['ISO', 'epoch'])('enforces expiry immediately for public and JWT access
   await expectDirect(undefined, 404); await expectDirect(token(), 404);
   await expectDirect(mintAdminToken(adminId), 200, '?admin_preview=1');
 });
-it('blocks an empty cross-site cookie POST before the reveal state changes', async () => {
-  await db('events').where({ id: eventId }).update({ reveal_mode: 1, revealed_at: null });
+it('blocks an empty cross-site cookie POST before the event state changes', async () => {
+  await db('events').where({ id: eventId }).update({ is_active: 1 });
   const cookie = `admin_token=${mintAdminToken(adminId)}`;
-  const url = `/api/admin/events/${eventId}/reveal`;
+  const url = `/api/admin/events/${eventId}/toggle-status`;
   const blocked = await request(app).post(url).set('Cookie', cookie).set('Origin', 'https://attacker.example')
     .set('Sec-Fetch-Site', 'cross-site').set('Content-Type', 'application/x-www-form-urlencoded').send('');
   expect(blocked.status).toBe(403);
-  expect((await db('events').where({ id: eventId }).first()).revealed_at).toBeNull();
+  expect(Boolean((await db('events').where({ id: eventId }).first()).is_active)).toBe(true);
   process.env.ADMIN_URL = 'https://admin.example.test';
   try {
     const allowed = await request(app).post(url).set('Cookie', cookie).set('Origin', process.env.ADMIN_URL)
       .set('Sec-Fetch-Site', 'cross-site').send({});
     expect(allowed.status).toBe(200);
-    expect((await db('events').where({ id: eventId }).first()).revealed_at).not.toBeNull();
-  } finally { delete process.env.ADMIN_URL; }
+    expect(Boolean((await db('events').where({ id: eventId }).first()).is_active)).toBe(false);
+  } finally {
+    delete process.env.ADMIN_URL;
+    await db('events').where({ id: eventId }).update({ is_active: 1 });
+  }
 });
 
 it('toggles status on a fully migrated fresh database and records updated_at', async () => {

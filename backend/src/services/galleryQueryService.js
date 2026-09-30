@@ -433,7 +433,8 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       },
       // Reveal mode (#838): armed flag lets an open VISIBLE gallery keep
       // polling so a re-hide propagates without a manual reload.
-      reveal_armed: parseBooleanInput(event.reveal_mode, false),
+      // Reveal mode is removed (P3): nothing is armed any more.
+      reveal_armed: false,
       disable_right_click: guardProtection.disable_right_click,
       // Branding decides download watermarks; the event's own flag is ignored.
       watermark_downloads: parseBooleanInput(await getAppSetting('branding_watermark_downloads_enabled', false), false),
