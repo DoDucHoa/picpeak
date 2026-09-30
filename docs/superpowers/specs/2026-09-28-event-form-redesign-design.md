@@ -488,6 +488,8 @@ Done 2026-09-29: fe9fa4b5..f502b37d.
 
 ### P2: Event page skeleton and save model
 
+Done 2026-09-30: d71b1de3..98e10d30. Verified by the Tests workflow and the E2E smoke subset on PR #2 of the fork; the full E2E suite runs once `e2e.yml` is on the fork's `main`.
+
 This phase changes behaviour, listed here in full:
 
 - Router migration to `createBrowserRouter` with `createRoutesFromElements`, with a root
