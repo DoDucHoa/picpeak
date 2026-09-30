@@ -145,7 +145,7 @@ const ClientAccessSettings: React.FC<{
               setEditForm((prev) => ({
                 ...prev,
                 client_access_enabled: on,
-                client_password: on ? (prev.client_password || (savedOn && hasPassword ? '' : generate())) : '',
+                client_password: on ? (prev.client_password || (hasPassword ? '' : generate())) : '',
               }));
             }}
           />

@@ -126,6 +126,15 @@ describe('ClientAccessCard client password (spec 5.4)', () => {
     expect(await screen.findByText('7788aa')).toBeInTheDocument();
   });
 
+  // Switching access off keeps the stored password, so switching it back on
+  // must not replace the one the client already holds.
+  it('keeps the existing client password when client access is switched back on', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={{ ...event, client_access_enabled: false, has_client_password: true } as Event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    expect(apply(setEditForm)).toMatchObject({ client_access_enabled: true, client_password: '' });
+  });
+
   it('generates a client password when client access is switched on', async () => {
     const setEditForm = vi.fn();
     render(<ClientAccessCard event={{ ...event, client_access_enabled: false, has_client_password: false } as Event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
