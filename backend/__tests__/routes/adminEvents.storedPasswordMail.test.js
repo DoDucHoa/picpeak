@@ -108,6 +108,25 @@ describe('stored passwords in gallery mails', () => {
     expect((await lastMail(id)).gallery_password).toBe('Harbour-Light-91!');
   });
 
+  it('publish without a typed password gives the stored one to WhatsApp too', async () => {
+    const whatsapp = require('../../src/services/whatsappProcessor');
+    const config = jest.spyOn(whatsapp, 'getWhatsAppConfig').mockResolvedValue({ enabled: true });
+    const queue = jest.spyOn(whatsapp, 'queueWhatsapp').mockResolvedValue(undefined);
+    try {
+      await setSetting(true);
+      const id = await createDraft();
+      // The phone field is off by default on create; set the stored column directly.
+      await db('events').where({ id }).update({ customer_phone: '+491701234567' });
+      const res = await auth(request(app).post(`/api/admin/events/${id}/publish`)).send({});
+      expect(res.status).toBe(200);
+      expect(queue).toHaveBeenCalledTimes(1);
+      expect(queue.mock.calls[0][3].gallery_password).toBe(PASSWORD);
+    } finally {
+      config.mockRestore();
+      queue.mockRestore();
+    }
+  });
+
   it('send-gallery-email without a typed password mails the stored one', async () => {
     await setSetting(true);
     const id = await createDraft();

@@ -735,12 +735,14 @@ module.exports = (router) => {
       // fires, because those describe a state change rather than a message to
       // a customer.
       const customerEmail = event.customer_email || event.host_email;
+      // P4 (ruling 1): no typed password means the stored copy, as resend does.
+      // Read once: the email and the WhatsApp message carry the same value.
+      const stored = notifyCustomer && requirePassword && !password ? await readGalleryPassword(id) : null;
+      const mailPassword = password || stored?.password || undefined;
       if (notifyCustomer) {
         if (customerEmail) {
-          // P4 (ruling 1): no typed password means the stored copy, as resend does.
-          const stored = requirePassword && !password ? await readGalleryPassword(id) : null;
           usedStoredPassword = Boolean(stored?.password);
-          await queueGalleryCreatedEmail(event, { password: password || stored?.password || undefined, requirePassword });
+          await queueGalleryCreatedEmail(event, { password: mailPassword, requirePassword });
         } else {
         // No inline email, but the gallery may be assigned to registered
         // customer account(s). Notify them via the account "your galleries"
@@ -776,10 +778,10 @@ module.exports = (router) => {
               customer_name: event.customer_name || event.host_name || '',
               event_name: event.event_name,
               gallery_link: shareUrlForWa || `${await getFrontendBaseUrl()}/gallery/${event.slug}`,
-              // Plaintext only when the admin re-typed at publish; otherwise
-              // omit so the buildComponents() helper renders an empty {{4}}
-              // line instead of leaking the "(set at creation)" sentinel.
-              gallery_password: requirePassword && password ? password : '',
+              // The typed or stored plaintext; otherwise omit so the
+              // buildComponents() helper renders an empty {{4}} line instead
+              // of leaking the "(set at creation)" sentinel.
+              gallery_password: requirePassword && mailPassword ? mailPassword : '',
               expiry_date: event.expires_at ? new Date(event.expires_at).toISOString() : null,
               language: null, // resolved by processor via general_default_language
             });
