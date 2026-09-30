@@ -1931,6 +1931,17 @@
       "expiresOn": "Expires on {{date}}",
       "neverExpires": "Never expires",
       "quickHelp": "Counted from today."
+    },
+    "details": {
+      "eventDate": "Event date",
+      "eventType": "Event type",
+      "inactiveType": "{{name}} (inactive)",
+      "eventDateRequired": "The event date cannot be empty."
+    },
+    "welcomeEditor": {
+      "tip": "Press Enter for a new line. Each line appears as its own paragraph in emails.",
+      "preview": "Preview:",
+      "lineBreaks": "Line breaks are kept in emails"
     }
   },
   "settings": {

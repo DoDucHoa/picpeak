@@ -23,6 +23,12 @@ describe('eventFormValues', () => {
     expect(v.external_watch).toBe(false);
     expect(v.client_access_enabled).toBe(false);
   });
+  it('seeds the event date and type, and reads a Postgres timestamp as its day', () => {
+    const v = eventFormValues({ ...legacy, event_date: '2020-06-01T00:00:00.000Z', event_type: 'wedding' } as never);
+    expect(v.event_date).toBe('2020-06-01');
+    expect(v.event_type).toBe('wedding');
+    expect(eventFormValues({ id: 1 } as never)).toMatchObject({ event_date: '', event_type: '' });
+  });
   it('never carries a password', () => {
     const v = eventFormValues(legacy);
     expect(v.new_password).toBe('');

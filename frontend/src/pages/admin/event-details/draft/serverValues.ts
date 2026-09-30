@@ -14,11 +14,15 @@ import { safeParseDate } from '../utils';
  */
 export function eventFormValues(event: Event): EditFormState {
   const expiresAtDate = safeParseDate(event.expires_at);
+  const eventDate = safeParseDate(event.event_date);
   return {
     welcome_message: event.welcome_message || '',
     color_theme: event.color_theme || '',
     css_template_id: event.css_template_id || null,
     expires_at: expiresAtDate ? format(expiresAtDate, 'yyyy-MM-dd') : '',
+    // Seeded like expires_at, so a Postgres timestamp reads as its day.
+    event_date: eventDate ? format(eventDate, 'yyyy-MM-dd') : '',
+    event_type: event.event_type || '',
     show_credits_to_guests: Boolean(event.show_credits_to_guests),
     hero_photo_id: event.hero_photo_id || null,
     customer_name: event.customer_name || '',

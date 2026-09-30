@@ -7,6 +7,9 @@ export type EditFormState = {
   color_theme: string;
   css_template_id: number | null;
   expires_at: string;
+  // Event date and type, edited in Settings > Details (spec 5.1, 5.9).
+  event_date: string;
+  event_type: string;
   // Photo credits (#1561)
   show_credits_to_guests: boolean;
   hero_photo_id: number | null;
@@ -58,6 +61,8 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   color_theme: '',
   css_template_id: null,
   expires_at: '',
+  event_date: '',
+  event_type: '',
   show_credits_to_guests: false,
   hero_photo_id: null,
   customer_name: '',

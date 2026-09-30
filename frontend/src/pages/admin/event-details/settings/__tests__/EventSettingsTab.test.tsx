@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EventSettingsContext, type EventSettingsValue } from '../EventSettingsContext';
 import { SECTION_FIELDS, sectionOf } from '../sectionFields';
 
-vi.mock('react-i18next', async () => ({ ...(await vi.importActual<typeof import('react-i18next')>('react-i18next')), useTranslation: () => ({ t: (_k: string, fb: string) => fb ?? _k, i18n: { language: 'en' } }) }));
+vi.mock('react-i18next', async () => ({ ...(await vi.importActual<typeof import('react-i18next')>('react-i18next')), useTranslation: () => ({ t: (_k: string, fb?: unknown) => (typeof fb === 'string' ? fb : (fb as { defaultValue?: string } | undefined)?.defaultValue ?? _k), i18n: { language: 'en' } }) }));
+vi.mock('../../../../../hooks/useActiveEventTypes', () => ({ useActiveEventTypes: () => ({ data: [] }) }));
 vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ CustomerAccountPicker: () => null }));
 vi.mock('../../ExternalFolderPicker', () => ({ ExternalFolderPicker: () => null }));
 vi.mock('../../../../../contexts/FeatureFlagsContext', () => ({ useFeatureFlags: () => ({ flags: {} }) }));
@@ -14,7 +15,7 @@ import { EventSettingsTab } from '../EventSettingsTab';
 
 const base = (over: Partial<EventSettingsValue> = {}): EventSettingsValue => ({
   event: { id: 1, customer_name: 'Anna' } as never,
-  editForm: { customer_name: 'Anna', customer_email: '', customer_phone: '', expires_at: '', welcome_message: '', customer_accounts: [], require_password: true, new_password: '', confirm_new_password: '', source_mode: 'managed', external_path: '', external_watch: false, photo_cap: 0, default_photo_sort: 'upload_date_desc' } as never,
+  editForm: { customer_name: 'Anna', customer_email: '', customer_phone: '', expires_at: '', event_date: '2026-01-01', event_type: 'wedding', welcome_message: '', customer_accounts: [], require_password: true, new_password: '', confirm_new_password: '', source_mode: 'managed', external_path: '', external_watch: false, photo_cap: 0, default_photo_sort: 'upload_date_desc' } as never,
   setEditForm: vi.fn(),
   feedbackSettings: {} as never, setFeedbackSettings: vi.fn(),
   theme: { config: {} as never, preset: 'default' }, setTheme: vi.fn(),

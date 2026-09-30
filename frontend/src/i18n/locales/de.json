@@ -2458,6 +2458,17 @@
       "expiresOn": "Läuft ab am {{date}}",
       "neverExpires": "Läuft nie ab",
       "quickHelp": "Ab heute gezählt."
+    },
+    "details": {
+      "eventDate": "Eventdatum",
+      "eventType": "Eventtyp",
+      "inactiveType": "{{name}} (inaktiv)",
+      "eventDateRequired": "Das Eventdatum darf nicht leer sein."
+    },
+    "welcomeEditor": {
+      "tip": "Drück Enter für eine neue Zeile. Jede Zeile erscheint in E-Mails als eigener Absatz.",
+      "preview": "Vorschau:",
+      "lineBreaks": "Zeilenumbrüche bleiben in E-Mails erhalten"
     }
   },
   "settings": {

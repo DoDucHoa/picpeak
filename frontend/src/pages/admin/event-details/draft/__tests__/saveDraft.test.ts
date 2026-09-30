@@ -31,6 +31,10 @@ describe('buildEventPayload', () => {
     const form = { ...server, new_password: 'secret1', confirm_new_password: 'secret1' };
     expect(buildEventPayload(new Set(['new_password', 'confirm_new_password']), form, theme, theme)).toEqual({ password: 'secret1' });
   });
+  it('sends a changed type and date as they are', () => {
+    const next = { ...server, event_date: '2026-06-01', event_type: 'birthday' };
+    expect(buildEventPayload(new Set(['event_date', 'event_type']), next, theme, theme)).toEqual({ event_date: '2026-06-01', event_type: 'birthday' });
+  });
   it('sends a trimmed client password', () => {
     const form = { ...server, client_password: '  Wedding-2026 ' };
     expect(buildEventPayload(new Set(['client_password']), form, theme, theme)).toEqual({ client_password: 'Wedding-2026' });
@@ -59,6 +63,10 @@ describe('buildEventPayload', () => {
 });
 
 describe('validateDraft', () => {
+  it('refuses to clear the event date', () => {
+    const form = { ...server, event_date: '' };
+    expect(validateDraft(new Set(['event_date']), form, server)?.key).toBe('events.details.eventDateRequired');
+  });
   it('asks for a password when protection is newly turned on without one', () => {
     const s = { ...server, require_password: false };
     const form = { ...s, require_password: true };

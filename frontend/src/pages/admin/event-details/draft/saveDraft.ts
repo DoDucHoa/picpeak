@@ -92,6 +92,9 @@ export function validateDraft(
       return { key: 'validation.passwordTooSimple', fallback: 'Password cannot be just numbers. Consider using a date format like "04.07.2025"' };
     }
   }
+  if (changed.has('event_date') && !form.event_date) {
+    return { key: 'events.details.eventDateRequired', fallback: 'The event date cannot be empty.' };
+  }
   if (SOURCE.some((k) => changed.has(k)) && form.source_mode === 'reference' && !form.external_path?.trim()) {
     return { key: 'events.externalFolderRequired', fallback: 'Please select an external folder before saving.' };
   }

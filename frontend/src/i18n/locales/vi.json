@@ -1929,6 +1929,17 @@
       "expiresOn": "Hết hạn ngày {{date}}",
       "neverExpires": "Không bao giờ hết hạn",
       "quickHelp": "Tính từ hôm nay."
+    },
+    "details": {
+      "eventDate": "Ngày sự kiện",
+      "eventType": "Loại sự kiện",
+      "inactiveType": "{{name}} (ngừng dùng)",
+      "eventDateRequired": "Ngày sự kiện không được để trống."
+    },
+    "welcomeEditor": {
+      "tip": "Nhấn Enter để xuống dòng. Mỗi dòng là một đoạn riêng trong email.",
+      "preview": "Xem trước:",
+      "lineBreaks": "Email giữ nguyên các lần xuống dòng"
     }
   },
   "settings": {
