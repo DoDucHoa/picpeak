@@ -1048,6 +1048,12 @@ module.exports = (router) => {
   router.put('/:id', adminAuth, requirePermission('events.edit'), requireEventOwnership, [
     body('event_name').optional().trim().notEmpty(),
     body('event_date').optional({ values: 'falsy' }).isDate(),
+    // P4 (spec 5.9): validated only when sent, so an event whose type was
+    // deactivated later still saves its other fields.
+    body('event_type').optional().isString().trim().toLowerCase().custom(async (value) => {
+      if (!(await eventTypeService.isValidEventType(value))) throw new Error('Invalid event type');
+      return true;
+    }),
     // Migration 137 — calendar time fields. Same regex/range rule as POST.
     body('event_time_start').optional({ values: 'falsy', nullable: true })
       .matches(/^([01]\d|2[0-3]):[0-5]\d$/)

@@ -202,6 +202,38 @@ describe('admin events CRUD endpoints (smoke)', () => {
   });
 
   describe('PUT /:id', () => {
+    // Event form redesign P4 (spec 5.9, finding 13): the PUT validates the
+    // type against the active catalog, as POST does, and never moves the slug.
+    it('400s on an unknown event type and writes nothing', async () => {
+      const id = await insertEvent(db, adminId, { event_name: 'Typed' });
+      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ event_type: 'not-a-real-type' });
+      expect(res.status).toBe(400);
+      expect(Array.isArray(res.body.errors)).toBe(true);
+      expect((await db('events').where({ id }).first()).event_type).toBe('wedding');
+    });
+
+    it('changes type and date without touching the slug, and stores the type lowercased', async () => {
+      const id = await insertEvent(db, adminId, { slug: 'wedding-typed-2026-05-29' });
+      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ event_type: 'Birthday', event_date: '2026-06-01' });
+      expect(res.status).toBe(200);
+      const row = await db('events').where({ id }).first();
+      expect(row.event_type).toBe('birthday');
+      expect(String(row.event_date).slice(0, 10)).toBe('2026-06-01');
+      expect(row.slug).toBe('wedding-typed-2026-05-29');
+    });
+
+    it('saves other fields of an event whose type was deactivated', async () => {
+      const id = await insertEvent(db, adminId, { event_name: 'Old type' });
+      await db('event_types').where({ slug_prefix: 'wedding' }).update({ is_active: 0 });
+      try {
+        const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ welcome_message: 'Still editable' });
+        expect(res.status).toBe(200);
+        expect((await db('events').where({ id }).first()).event_type).toBe('wedding');
+      } finally {
+        await db('event_types').where({ slug_prefix: 'wedding' }).update({ is_active: 1 });
+      }
+    });
+
     it('updates mutable fields and persists them', async () => {
       const id = await insertEvent(db, adminId, { event_name: 'Before' });
       const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({
