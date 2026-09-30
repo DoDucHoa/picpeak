@@ -71,6 +71,7 @@ export const EventThemeSection: React.FC<EventThemeSectionProps> = ({
           toast.success(t('toast.brandingPaletteSynced', 'Palette synced from Branding.'));
         }}
         showGalleryLayouts={true}
+        hidePresets
         hideActions={true}
         cssTemplates={cssTemplates}
         cssTemplateId={editForm.css_template_id}

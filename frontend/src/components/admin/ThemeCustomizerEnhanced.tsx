@@ -47,6 +47,8 @@ interface ThemeCustomizerEnhancedProps {
   // so they live with the other typography choices rather than after
   // the always-bulky Custom CSS editor.
   slotBeforeCustomCss?: React.ReactNode;
+  /** Hide the preset grid: the event page shows the presets on their own (P4). */
+  hidePresets?: boolean;
 }
 
 // Layout descriptions will use translation keys
@@ -66,7 +68,8 @@ export const ThemeCustomizerEnhanced: React.FC<ThemeCustomizerEnhancedProps> = (
   forceColorMode,
   onForceColorModeChange,
   onSyncFromBranding,
-  slotBeforeCustomCss
+  slotBeforeCustomCss,
+  hidePresets = false,
 }) => {
   const { t } = useTranslation();
   // A force lock (instance-wide light/dark) overrides the per-theme color
@@ -248,6 +251,7 @@ export const ThemeCustomizerEnhanced: React.FC<ThemeCustomizerEnhancedProps> = (
   return (
     <div className="space-y-6">
       {/* Preset Themes */}
+      {!hidePresets && (
       <ThemePresetsCard
         selectedPreset={selectedPreset}
         handlePresetSelect={handlePresetSelect}
@@ -258,6 +262,7 @@ export const ThemeCustomizerEnhanced: React.FC<ThemeCustomizerEnhancedProps> = (
         thumbnailHeight={thumbnailHeight}
         minRecommendedThumbnailSize={MIN_RECOMMENDED_THUMBNAIL_SIZE}
       />
+      )}
 
       {/* Gallery Layout */}
       {showGalleryLayouts && (
