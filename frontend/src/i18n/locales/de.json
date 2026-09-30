@@ -2449,6 +2449,15 @@
       "fullHelp": "Favoriten, Likes, Bewertungen, Kommentare und Reaktionen.",
       "custom": "Eigene Auswahl",
       "customHelp": "Die einzelnen Schalter unter den erweiterten Optionen entscheiden."
+    },
+    "expiry": {
+      "label": "Galerie läuft ab",
+      "days_one": "{{count}} Tag",
+      "days_other": "{{count}} Tage",
+      "never": "Nie",
+      "expiresOn": "Läuft ab am {{date}}",
+      "neverExpires": "Läuft nie ab",
+      "quickHelp": "Ab heute gezählt."
     }
   },
   "settings": {

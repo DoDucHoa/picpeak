@@ -1922,6 +1922,15 @@
       "fullHelp": "Favourites, likes, ratings, comments and reactions.",
       "custom": "Custom",
       "customHelp": "The individual switches under advanced options decide."
+    },
+    "expiry": {
+      "label": "Gallery expires",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "never": "Never",
+      "expiresOn": "Expires on {{date}}",
+      "neverExpires": "Never expires",
+      "quickHelp": "Counted from today."
     }
   },
   "settings": {

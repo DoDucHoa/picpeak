@@ -1921,6 +1921,14 @@
       "fullHelp": "Yêu thích, thích, chấm điểm, bình luận và biểu cảm.",
       "custom": "Tuỳ chỉnh",
       "customHelp": "Các công tắc riêng trong phần tuỳ chọn nâng cao quyết định."
+    },
+    "expiry": {
+      "label": "Gallery hết hạn",
+      "days_other": "{{count}} ngày",
+      "never": "Không bao giờ",
+      "expiresOn": "Hết hạn ngày {{date}}",
+      "neverExpires": "Không bao giờ hết hạn",
+      "quickHelp": "Tính từ hôm nay."
     }
   },
   "settings": {
