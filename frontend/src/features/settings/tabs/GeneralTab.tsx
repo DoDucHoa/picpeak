@@ -2,6 +2,8 @@ import React from 'react';
 import { Globe, Mail, User } from 'lucide-react';
 import { Card, Input, Loading } from '../../../components/common';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { businessProfileService } from '../../../services/businessProfile.service';
 import { SettingsSaveBar } from '../../../components/admin/SettingsSaveBar';
 import type { GeneralSettings } from '../hooks/useSettingsState';
 import { MAX_FILES_PER_UPLOAD_LIMIT } from '../hooks/useSettingsState';
@@ -44,6 +46,16 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   adminProfileLoading,
 }) => {
   const { t } = useTranslation();
+
+  // The business profile address is only a suggestion for the notification
+  // email; roles without settings.view get a 403 here, which simply means no
+  // suggestion.
+  const { data: businessProfile } = useQuery({
+    queryKey: ['business-profile'],
+    queryFn: () => businessProfileService.get(),
+    retry: false,
+  });
+  const businessEmail = businessProfile?.profile?.email?.trim() || '';
 
   // The public address reaches the CORS allowlist and the
   // Access-Control-Allow-Origin header since #705, not just email links — and
@@ -144,6 +156,30 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
                   ? t('settings.general.siteUrlEnvPinned', 'Pinned by the FRONTEND_URL environment variable, which overrides this setting. Remove it from your .env (or container environment) and restart to manage the address here.')
                   : t('settings.general.siteUrlHelp')}
               </p>
+            )}
+          </div>
+          <div>
+            <Input
+              id="general-notification-email"
+              type="email"
+              label={t('settings.general.notificationEmail')}
+              value={generalSettings.notification_email}
+              onChange={(e) => {
+                const notification_email = e.target.value;
+                setGeneralSettings(prev => ({ ...prev, notification_email }));
+              }}
+              placeholder={businessEmail || 'studio@example.com'}
+              leftIcon={<Mail className="w-5 h-5 text-neutral-400" />}
+            />
+            <p className="text-xs text-muted mt-1">{t('settings.general.notificationEmailHelp')}</p>
+            {!(generalSettings.notification_email || '').trim() && businessEmail && (
+              <button
+                type="button"
+                className="text-xs text-accent hover:underline mt-1"
+                onClick={() => setGeneralSettings(prev => ({ ...prev, notification_email: businessEmail }))}
+              >
+                {t('settings.general.useBusinessEmail', { email: businessEmail })}
+              </button>
             )}
           </div>
 

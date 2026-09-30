@@ -23,6 +23,9 @@ export interface GeneralSettings {
   // value the admin never touched strands anyone without settings.domains,
   // who cannot correct it either (the write 403s on the protected key).
   site_url_stored: string;
+  // Where admin mail about galleries goes (P3, spec 5.11); empty = each
+  // event's own address.
+  notification_email: string;
   default_expiration_days: number;
   max_file_size_mb: number;
   /** Videos get their own per-file cap — the photo cap would otherwise
@@ -170,6 +173,7 @@ export function useSettingsState() {
     site_url: '',
     site_url_env_pinned: false,
     site_url_stored: '',
+    notification_email: '',
     default_expiration_days: 30,
     max_file_size_mb: 50,
     max_video_size_mb: 500,
@@ -307,6 +311,7 @@ export function useSettingsState() {
           : (settings.general_site_url || ''),
         site_url_env_pinned: Boolean(settings.general_site_url_env_pinned),
         site_url_stored: settings.general_site_url || '',
+        notification_email: typeof settings.general_notification_email === 'string' ? settings.general_notification_email : '',
         default_expiration_days: toNumber(settings.general_default_expiration_days, 30),
         max_file_size_mb: toNumber(settings.general_max_file_size_mb, 50),
         max_video_size_mb: toNumber(settings.general_max_video_size_mb, 500),
