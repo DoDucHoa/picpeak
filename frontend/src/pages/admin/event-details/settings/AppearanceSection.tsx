@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { Image, Layout, Trash2, Upload } from 'lucide-react';
-import { Card, Loading, MarkdownContent } from '../../../../components/common';
+import { Card, Loading } from '../../../../components/common';
 import { HeroPhotoSelector, FocalPointPicker } from '../../../../components/admin';
 import { api } from '../../../../config/api';
 import { buildResourceUrl } from '../../../../utils/url';
 import { EventThemeSection } from '../EventThemeSection';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
+import { BannerOverride } from './BannerOverride';
+import { usePublicSettings } from '../../../../hooks/usePublicSettings';
 
 /**
  * Settings > Appearance (spec 5.1). The controls moved from the old edit form
@@ -20,6 +22,7 @@ export const AppearanceSection: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { event, editForm, setEditForm, theme, setTheme, heroPhotos, cssTemplates, expert } = useEventSettings();
+  const { data: publicSettings } = usePublicSettings();
   const [logoUploading, setLogoUploading] = useState(false);
   const id = String(event.id);
 
@@ -230,98 +233,33 @@ export const AppearanceSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Promotional Banner Override (#440), three-way: inherit / custom / off */}
+          {/* Banners follow Branding until the event overrides them (P4). */}
           <div className="mt-4 pt-4 border-t border-line">
-            <h3 className="text-sm font-semibold text-heading mb-3">
-              {t('events.promoBanner.title', 'Promotional Banner')}
-            </h3>
-            <p className="text-xs text-muted mb-3">
-              {t('events.promoBanner.help', 'Choose how this gallery handles the promotional banner. "Inherit" uses your global default; "Custom" overrides it for this event; "Off" hides it entirely.')}
-            </p>
-            <div className="space-y-2">
-              {(['inherit', 'custom', 'off'] as const).map((mode) => (
-                <label key={mode} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="promo_mode"
-                    value={mode}
-                    checked={editForm.promo_mode === mode}
-                    onChange={() => setEditForm(prev => ({ ...prev, promo_mode: mode }))}
-                    className="w-4 h-4 text-accent border-line-strong focus:ring-primary-500"
-                  />
-                  <span className="ml-2 text-sm text-body">
-                    {t(`events.promoBanner.mode_${mode}`, mode === 'inherit' ? 'Inherit global default' : mode === 'custom' ? 'Custom override for this event' : 'Off (hide for this event)')}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {editForm.promo_mode === 'custom' && (
-              <div className="mt-3 space-y-2">
-                <textarea
-                  value={editForm.promo_markdown}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, promo_markdown: e.target.value }))}
-                  rows={5}
-                  placeholder={t('events.promoBanner.placeholder', 'Markdown content (e.g. **Special offer:** [book your next session](https://example.com))')}
-                  className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark font-mono text-sm"
-                />
-                {editForm.promo_markdown.trim() && (
-                  <div className="border border-line rounded-lg p-3 bg-shell">
-                    <p className="text-xs uppercase tracking-wide text-muted mb-2">
-                      {t('events.promoBanner.preview', 'Preview')}
-                    </p>
-                    <MarkdownContent source={editForm.promo_markdown} className="prose prose-sm dark:prose-invert max-w-none text-sm text-body prose-a:text-primary-600 dark:prose-a:text-primary-400" />
-                  </div>
-                )}
-              </div>
-            )}
+            <BannerOverride
+              title={t('events.promoBanner.title', 'Promotional Banner')}
+              help={t('events.promoBanner.help', 'Choose how this gallery handles the promotional banner. "Inherit" uses your global default; "Custom" overrides it for this event; "Off" hides it entirely.')}
+              placeholder={t('events.promoBanner.placeholder', 'Markdown content (e.g. **Special offer:** [book your next session](https://example.com))')}
+              globalMarkdown={publicSettings?.branding_promo_markdown ?? ''}
+              mode={editForm.promo_mode}
+              markdown={editForm.promo_markdown}
+              onModeChange={(promo_mode) => setEditForm(prev => ({ ...prev, promo_mode }))}
+              onMarkdownChange={(promo_markdown) => setEditForm(prev => ({ ...prev, promo_markdown }))}
+            />
           </div>
 
-          {/* Info Banner Override (#932), three-way: inherit / custom / off.
-              Mirrors the promotional override above, but this banner renders
-              at the TOP of the gallery, above the photos. */}
+          {/* The info banner renders at the top of the gallery, above the photos (#932). */}
           <div className="mt-4 pt-4 border-t border-line">
-            <h3 className="text-sm font-semibold text-heading mb-3">
-              {t('events.infoBanner.title', 'Info Banner')}
-            </h3>
-            <p className="text-xs text-muted mb-3">
-              {t('events.infoBanner.help', 'A short note shown above the photos in this gallery. "Inherit" uses your global default; "Custom" overrides it for this event; "Off" hides it entirely.')}
-            </p>
-            <div className="space-y-2">
-              {(['inherit', 'custom', 'off'] as const).map((mode) => (
-                <label key={mode} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="info_mode"
-                    value={mode}
-                    checked={editForm.info_mode === mode}
-                    onChange={() => setEditForm(prev => ({ ...prev, info_mode: mode }))}
-                    className="w-4 h-4 text-accent border-line-strong focus:ring-primary-500"
-                  />
-                  <span className="ml-2 text-sm text-body">
-                    {t(`events.infoBanner.mode_${mode}`, mode === 'inherit' ? 'Inherit global default' : mode === 'custom' ? 'Custom override for this event' : 'Off (hide for this event)')}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {editForm.info_mode === 'custom' && (
-              <div className="mt-3 space-y-2">
-                <textarea
-                  value={editForm.info_markdown}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, info_markdown: e.target.value }))}
-                  rows={3}
-                  placeholder={t('events.infoBanner.placeholder', 'Use the menu button in the top-left corner to filter the photos.')}
-                  className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark font-mono text-sm"
-                />
-                {editForm.info_markdown.trim() && (
-                  <div className="border border-line rounded-lg p-3 bg-shell">
-                    <p className="text-xs uppercase tracking-wide text-muted mb-2">
-                      {t('events.infoBanner.preview', 'Preview')}
-                    </p>
-                    <MarkdownContent source={editForm.info_markdown} className="prose prose-sm dark:prose-invert max-w-none text-sm text-body prose-a:text-primary-600 dark:prose-a:text-primary-400" />
-                  </div>
-                )}
-              </div>
-            )}
+            <BannerOverride
+              title={t('events.infoBanner.title', 'Info Banner')}
+              help={t('events.infoBanner.help', 'A short note shown above the photos in this gallery. "Inherit" uses your global default; "Custom" overrides it for this event; "Off" hides it entirely.')}
+              placeholder={t('events.infoBanner.placeholder', 'Use the menu button in the top-left corner to filter the photos.')}
+              globalMarkdown={publicSettings?.branding_info_markdown ?? ''}
+              mode={editForm.info_mode}
+              markdown={editForm.info_markdown}
+              onModeChange={(info_mode) => setEditForm(prev => ({ ...prev, info_mode }))}
+              onMarkdownChange={(info_markdown) => setEditForm(prev => ({ ...prev, info_markdown }))}
+              modeKeyPrefix="events.infoBanner"
+            />
           </div>
         </AdvancedArea>
       </Card>

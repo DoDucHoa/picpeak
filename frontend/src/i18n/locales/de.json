@@ -2497,6 +2497,12 @@
       "storedNote": "Die E-Mail enthält das gespeicherte Galerie-Passwort.",
       "useDifferent": "Anderes Passwort verwenden",
       "useStored": "Gespeichertes Passwort verwenden"
+    },
+    "bannerOverride": {
+      "usesGlobal": "Verwendet das Banner aus dem Branding.",
+      "noGlobal": "Im Branding ist kein Banner gesetzt, daher erscheint keins.",
+      "override": "Für dieses Event überschreiben",
+      "backToGlobal": "Wieder das Branding-Banner verwenden"
     }
   },
   "settings": {

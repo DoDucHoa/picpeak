@@ -1968,6 +1968,12 @@
       "storedNote": "Email sẽ kèm mật khẩu gallery đã lưu.",
       "useDifferent": "Dùng mật khẩu khác",
       "useStored": "Dùng mật khẩu đã lưu"
+    },
+    "bannerOverride": {
+      "usesGlobal": "Dùng banner trong phần Branding.",
+      "noGlobal": "Branding chưa đặt banner nên không có banner nào hiện.",
+      "override": "Ghi đè cho sự kiện này",
+      "backToGlobal": "Dùng lại banner trong Branding"
     }
   },
   "settings": {

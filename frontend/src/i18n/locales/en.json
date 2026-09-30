@@ -1970,6 +1970,12 @@
       "storedNote": "The email includes the stored gallery password.",
       "useDifferent": "Use a different password",
       "useStored": "Use the stored password"
+    },
+    "bannerOverride": {
+      "usesGlobal": "Uses the banner from Branding.",
+      "noGlobal": "No banner is set in Branding, so none shows.",
+      "override": "Override for this event",
+      "backToGlobal": "Use the Branding banner again"
     }
   },
   "settings": {
