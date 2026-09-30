@@ -522,6 +522,8 @@ This phase changes behaviour, listed here in full:
 
 ### P3: Removals
 
+Done 2026-09-30: c61c09ee..ef94481a. Verified by the Tests workflow and the E2E smoke subset on PR #2 of the fork. Beyond 5.11: an event created on the admin page with no notification email set stores the acting admin's address, as the conversions do, so admin mail keeps flowing before the operator fills in the global address.
+
 - Guest uploads and reveal mode removed in code (5.12); their controls and the upload
   category go. Update `revealMode.test.js`, `galleryUploadStatus.test.js` and the v1
   create tests.
@@ -590,7 +592,8 @@ multiply JSON encoded are decoded the way `decodeSettingValue` does, and keys th
 not exist yet are compared against their planned seed values.
 
 1. Galleries hidden until reveal right now (reveal on, not revealed, not archived): they
-   become visible to guests. Also events with guest uploads on.
+   become visible to guests. Also events with guest uploads on. Events with uploader
+   names on keep their guests in the Guests tab, where they can still be erased.
 2. Whether the Branding watermark is on, and events with `watermark_downloads` on: their
    downloads become clean.
 3. Events whose right-click, devtools or canvas values differ from the planned global
