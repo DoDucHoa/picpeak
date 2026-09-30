@@ -140,8 +140,15 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   }
 
   // The admin address stored on the event (spec 5.11): the global
-  // notification email when set, else the one given, else none.
-  const storedAdminEmail = (await getNotificationEmail()) || admin_email || null;
+  // notification email when set, else the one given, else, on the admin
+  // create page, the acting admin's own address (what the page used to
+  // prefill), else none. The quote and contract conversions fall back the
+  // same way.
+  let storedAdminEmail = (await getNotificationEmail()) || admin_email || null;
+  if (!storedAdminEmail && source === 'admin') {
+    const actorRow = await db('admin_users').where({ id: actor.id }).first('email');
+    storedAdminEmail = actorRow?.email || null;
+  }
 
   // Default require_password from global "event_default_require_password"
   // setting when the body omits it (#317 — admins want to flip the default).

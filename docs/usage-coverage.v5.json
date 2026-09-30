@@ -639,7 +639,6 @@
         "POST /:id/publish",
         "POST /:id/duplicate",
         "PUT /:id",
-        "POST /:id/reveal",
         "DELETE /:id",
         "POST /:id/toggle-status",
         "POST /:id/extend"
@@ -1727,8 +1726,7 @@
       "signals": [],
       "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
       "route_signatures": [
-        "POST /:eventId/upload",
-        "GET /:slug/uploads/status"
+        "POST /:eventId/upload"
       ]
     },
     "adminQuoteCatalog.js": {

@@ -117,3 +117,24 @@ describe('GeneralTab — Site URL validation', () => {
     expect(urlInput()).toBeDisabled();
   });
 });
+
+// The server refuses the whole General save for a malformed notification
+// email (P3, spec 5.11), so the tab says which field is wrong before Save.
+describe('GeneralTab: notification email validation', () => {
+  const emailInput = () => screen.getByPlaceholderText('studio@example.com');
+
+  it('blocks Save and names the field for a malformed address', () => {
+    const { saveButton } = renderTab({});
+    fireEvent.change(emailInput(), { target: { value: 'ops@studio' } });
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
+  });
+
+  it('allows Save for a real address and for an empty field', () => {
+    const { saveButton } = renderTab({});
+    fireEvent.change(emailInput(), { target: { value: 'ops@studio.example' } });
+    expect(saveButton()).not.toBeDisabled();
+    fireEvent.change(emailInput(), { target: { value: '' } });
+    expect(saveButton()).not.toBeDisabled();
+  });
+});

@@ -1964,7 +1964,8 @@
       "timeFormatHelp": "Kiểm soát cách hiển thị thời gian trong các màn hình quản trị, trang hướng đến khách hàng và file PDF. Dữ liệu lưu trữ luôn theo định dạng 24 giờ (HH:mm); chỉ phần hiển thị thay đổi.",
       "notificationEmail": "Email nhận thông báo",
       "notificationEmailHelp": "PicPeak gửi thư quản trị về gallery tới địa chỉ này, ví dụ khi lưu trữ xong hoặc gallery hết hạn. Khách hàng cũng thấy đây là địa chỉ liên hệ. Để trống thì dùng địa chỉ lưu trong từng sự kiện.",
-      "useBusinessEmail": "Dùng {{email}}"
+      "useBusinessEmail": "Dùng {{email}}",
+      "notificationEmailInvalid": "Nhập một địa chỉ email hợp lệ, ví dụ studio@example.com"
     },
     "publicSite": {
       "badge": "Trang chủ công khai",

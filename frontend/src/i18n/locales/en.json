@@ -1965,7 +1965,8 @@
       "timeFormatHelp": "Controls how times render across admin views, customer-facing pages, and PDFs. Storage stays 24-hour (HH:mm); only the display switches.",
       "notificationEmail": "Notification email",
       "notificationEmailHelp": "Where PicPeak sends admin mail about galleries, such as a finished archive or an expired gallery. Customers also see it as the contact address. Leave empty to use the address stored on each event.",
-      "useBusinessEmail": "Use {{email}}"
+      "useBusinessEmail": "Use {{email}}",
+      "notificationEmailInvalid": "Enter a valid email address, for example studio@example.com"
     },
     "publicSite": {
       "badge": "Public Landing",

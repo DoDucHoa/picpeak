@@ -77,6 +77,14 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     ? t('settings.general.siteUrlInvalid', 'Enter the full address including http:// or https://, for example https://gallery.example.com')
     : undefined;
 
+  // The server refuses the whole General save for a malformed notification
+  // email (P3, spec 5.11), so the field says so before Save does, the way the
+  // Site URL does above. Empty is fine: it means each event keeps its own.
+  const notificationEmail = (generalSettings.notification_email || '').trim();
+  const notificationEmailError = notificationEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notificationEmail)
+    ? t('settings.general.notificationEmailInvalid', 'Enter a valid email address, for example studio@example.com')
+    : undefined;
+
   return (
     <div className="space-y-6">
       <Card padding="md">
@@ -170,8 +178,11 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
               }}
               placeholder={businessEmail || 'studio@example.com'}
               leftIcon={<Mail className="w-5 h-5 text-neutral-400" />}
+              error={notificationEmailError}
             />
-            <p className="text-xs text-muted mt-1">{t('settings.general.notificationEmailHelp')}</p>
+            {!notificationEmailError && (
+              <p className="text-xs text-muted mt-1">{t('settings.general.notificationEmailHelp')}</p>
+            )}
             {!(generalSettings.notification_email || '').trim() && businessEmail && (
               <button
                 type="button"
@@ -439,7 +450,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
         isSaving={saveGeneralMutation.isPending || updateAdminProfileMutation.isPending}
 
-        canSave={!siteUrlError}
+        canSave={!siteUrlError && !notificationEmailError}
 
         onSave={() => {
 

@@ -78,8 +78,14 @@ describe('create paths', () => {
   });
 
   it('succeeds with no admin email and no global address', async () => {
-    const created = await createEvent({ ...base, event_name: 'Global C' }, { actor: { id: adminId } });
+    const created = await createEvent({ ...base, event_name: 'Global C' }, { actor: { id: adminId }, source: 'v1' });
     expect((await db('events').where({ id: created.id }).first()).admin_email).toBeNull();
+  });
+
+  it('falls back to the acting admin on the create page, as the old prefill did', async () => {
+    const own = (await db('admin_users').where({ id: adminId }).first()).email;
+    const created = await createEvent({ ...base, event_name: 'Global D' }, { actor: { id: adminId } });
+    expect((await db('events').where({ id: created.id }).first()).admin_email).toBe(own);
   });
 
   it('keeps the typed address when no global address is set', async () => {

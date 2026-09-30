@@ -2492,7 +2492,8 @@
       "timeFormatHelp": "Steuert die Darstellung von Uhrzeiten in der Administration, auf kundenseitigen Seiten und in PDFs. Gespeichert wird weiterhin im 24-Stunden-Format (HH:mm) — nur die Anzeige ändert sich.",
       "notificationEmail": "Benachrichtigungs-E-Mail",
       "notificationEmailHelp": "Hierhin schickt PicPeak Admin-Mails zu Galerien, etwa zu einem fertigen Archiv oder einer abgelaufenen Galerie. Kunden sehen sie auch als Kontaktadresse. Lass das Feld leer, um die Adresse zu nutzen, die bei jedem Event gespeichert ist.",
-      "useBusinessEmail": "{{email}} verwenden"
+      "useBusinessEmail": "{{email}} verwenden",
+      "notificationEmailInvalid": "Gib eine gültige E-Mail-Adresse ein, zum Beispiel studio@example.com"
     },
     "publicSite": {
       "badge": "Öffentliche Landingpage",
