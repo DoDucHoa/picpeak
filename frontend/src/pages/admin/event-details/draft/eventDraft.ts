@@ -60,4 +60,13 @@ export function changesFor(state: DraftState, part: DraftPart): Record<string, u
   );
 }
 
-export const draftCount = (state: DraftState): number => Object.keys(state).length;
+// The feedback mode's keys (spec 5.7). One mode switch writes up to six of
+// them and counts as one change (spec 5.2).
+const MODE_KEYS = new Set(['feedback_enabled', 'allow_favorites', 'allow_likes', 'allow_ratings', 'allow_comments', 'allow_reactions']
+  .map((k) => `feedback.${k}`));
+
+export const draftCount = (state: DraftState): number => {
+  const keys = Object.keys(state);
+  const mode = keys.filter((k) => MODE_KEYS.has(k)).length;
+  return keys.length - mode + (mode > 0 ? 1 : 0);
+};

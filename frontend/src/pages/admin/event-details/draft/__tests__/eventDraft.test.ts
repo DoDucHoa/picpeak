@@ -60,3 +60,16 @@ describe('reading and splitting the draft', () => {
     expect(isChangedElsewhere(s, fieldKey('event', 'photo_cap'), 1)).toBe(false);
   });
 });
+
+describe('draftCount (spec 5.2: a feedback mode switch counts as one)', () => {
+  it('counts the enable switch and the five type toggles as one change', () => {
+    let s: DraftState = {};
+    for (const name of ['feedback_enabled', 'allow_likes', 'allow_ratings', 'allow_comments', 'allow_reactions', 'allow_favorites']) {
+      s = setField(s, fieldKey('feedback', name), true, false);
+    }
+    expect(draftCount(s)).toBe(1);
+    s = setField(s, fieldKey('feedback', 'allow_color_labels'), true, false);
+    s = setField(s, fieldKey('event', 'photo_cap'), 5, 0);
+    expect(draftCount(s)).toBe(3);
+  });
+});
