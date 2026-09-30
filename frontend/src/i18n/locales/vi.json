@@ -2173,7 +2173,9 @@
       "defaultAllowColorLabels": "Nhãn màu",
       "defaultKeybindMode": "Phím tắt hộp xem mặc định",
       "keybindColors": "Chỉ màu: 1 xanh lá, 2 vàng, 3 đỏ",
-      "keybindLightroom": "Lightroom: 1-5 sao, 6-9 màu"
+      "keybindLightroom": "Lightroom: 1-5 sao, 6-9 màu",
+      "keybindMode": "Phím tắt trong lightbox",
+      "keybindModeHelp": "Áp dụng ngay cho mọi gallery, kể cả gallery đã có."
     },
     "imageSecurity": {
       "title": "Bảo vệ hình ảnh",

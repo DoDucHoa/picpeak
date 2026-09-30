@@ -9,7 +9,7 @@ export const SECTION_ORDER: SectionId[] = ['details', 'access', 'appearance', 'g
 
 const FEEDBACK = [
   'feedback_enabled', 'allow_ratings', 'allow_likes', 'allow_comments', 'allow_favorites', 'allow_reactions',
-  'allow_color_labels', 'require_name_email', 'moderate_comments', 'show_feedback_to_guests', 'keybind_mode',
+  'allow_color_labels', 'require_name_email', 'moderate_comments', 'show_feedback_to_guests',
   'identity_mode', 'max_favorites_per_guest', 'max_likes_per_guest',
 ].map((f) => `feedback.${f}`);
 

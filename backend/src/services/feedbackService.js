@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 const { formatBoolean } = require('../utils/dbCompat');
 const { REACTION_EMOJIS } = require('../constants/reactions');
 const { isValidColorLabel, SHARED_COLOR_LABEL_IDENTITY } = require('../constants/colorLabels');
-const { resolveEventFeedbackDefaults, DEFAULT_KEYBIND_MODE, KEYBIND_MODES } = require('./feedbackDefaults');
+const { resolveEventFeedbackDefaults, readKeybindModeSetting } = require('./feedbackDefaults');
 
 // The camera-original name, for the feedback exports (#1224). Both exports
 // used to carry only `photos.filename` — the sanitized stored name
@@ -36,6 +36,7 @@ const CAMERA_NAME_SQL =
 // throw, so the request 500'd and the "Enable feedback" toggle silently
 // never persisted. Identity columns (id/event_id) and the timestamps stay
 // server-managed. New columns MUST be added here.
+// keybind_mode is global since P3 and no longer written per event.
 const FEEDBACK_SETTINGS_COLUMNS = [
   'feedback_enabled',
   'allow_ratings',
@@ -44,7 +45,6 @@ const FEEDBACK_SETTINGS_COLUMNS = [
   'allow_favorites',
   'allow_reactions',
   'allow_color_labels',
-  'keybind_mode',
   'require_name_email',
   'moderate_comments',
   'require_moderation',
@@ -147,12 +147,10 @@ class FeedbackService {
       if (!settings.identity_mode) {
         settings.identity_mode = 'simple';
       }
-      // Rows created before migration 180 have NULL keybind_mode. An
-      // unrecognised value gets the same treatment — the lightbox switches on
-      // this string and must never receive something it has no scheme for.
-      if (!KEYBIND_MODES.includes(settings.keybind_mode)) {
-        settings.keybind_mode = DEFAULT_KEYBIND_MODE;
-      }
+      // One global scheme for every gallery (P3, spec 5.10); the stored
+      // column is left untouched and no longer read. The no-row branch above
+      // gets the same value from resolveEventFeedbackDefaults.
+      settings.keybind_mode = await readKeybindModeSetting();
       // Per-guest caps (#655). NULL on existing rows = unlimited; the route
       // layer treats null/0/missing identically.
       settings.max_favorites_per_guest = settings.max_favorites_per_guest ?? null;

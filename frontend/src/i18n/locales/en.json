@@ -2174,7 +2174,9 @@
       "defaultAllowColorLabels": "Color labels",
       "defaultKeybindMode": "Default lightbox shortcuts",
       "keybindColors": "Colors only — 1 green, 2 yellow, 3 red",
-      "keybindLightroom": "Lightroom — 1-5 stars, 6-9 colors"
+      "keybindLightroom": "Lightroom — 1-5 stars, 6-9 colors",
+      "keybindMode": "Lightbox keyboard shortcuts",
+      "keybindModeHelp": "Applies to every gallery at once, including existing ones."
     },
     "imageSecurity": {
       "title": "Image Protection",

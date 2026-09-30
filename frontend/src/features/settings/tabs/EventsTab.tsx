@@ -260,31 +260,33 @@ export const EventsTab: React.FC<EventsTabProps> = ({
               </label>
             ))}
 
-            <div>
-              <label
-                className="block text-sm text-body mb-1"
-                htmlFor="event_default_keybind_mode"
-              >
-                {t('settings.events.defaultKeybindMode', 'Default lightbox shortcuts')}
-              </label>
-              <select
-                id="event_default_keybind_mode"
-                disabled={!eventSettings.event_default_feedback_enabled}
-                value={eventSettings.event_default_keybind_mode}
-                onChange={(e) => setEventSettings(prev => ({
-                  ...prev,
-                  event_default_keybind_mode: e.target.value === 'lightroom' ? 'lightroom' : 'colors',
-                }))}
-                className="w-full max-w-sm px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading text-sm"
-              >
-                <option value="colors">
-                  {t('settings.events.keybindColors', 'Colors only — 1 green, 2 yellow, 3 red')}
-                </option>
-                <option value="lightroom">
-                  {t('settings.events.keybindLightroom', 'Lightroom — 1-5 stars, 6-9 colors')}
-                </option>
-              </select>
-            </div>
+          </div>
+
+          {/* The lightbox keyboard shortcuts apply to every gallery at once
+              since P3 (spec 5.10), so they sit outside the defaults for new
+              galleries and never grey out with them. */}
+          <div>
+            <label
+              className="block text-sm text-body mb-1"
+              htmlFor="event_default_keybind_mode"
+            >
+              {t('settings.events.keybindMode', 'Lightbox keyboard shortcuts')}
+            </label>
+            <select
+              id="event_default_keybind_mode"
+              value={eventSettings.event_default_keybind_mode}
+              onChange={(e) => setEventSettings(prev => ({
+                ...prev,
+                event_default_keybind_mode: e.target.value === 'lightroom' ? 'lightroom' : 'colors',
+              }))}
+              className="w-full max-w-sm px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading text-sm"
+            >
+              <option value="colors">{t('settings.events.keybindColors')}</option>
+              <option value="lightroom">{t('settings.events.keybindLightroom')}</option>
+            </select>
+            <p className="text-xs text-muted mt-1">
+              {t('settings.events.keybindModeHelp', 'Applies to every gallery at once, including existing ones.')}
+            </p>
           </div>
 
           {/* Photo credits (#1561): the default for new galleries. The uploader

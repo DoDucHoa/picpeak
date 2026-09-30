@@ -174,3 +174,37 @@ describe('getEventFeedbackSettings no-row fallback (#1044)', () => {
     expect(settings.keybind_mode).toBe('colors');
   });
 });
+
+describe('keyboard shortcut mode is one live global (P3, spec 5.10)', () => {
+  async function insertEvent(slug) {
+    const inserted = await db('events').insert({
+      slug, event_type: 'wedding', event_name: 'Keybind Global', event_date: '2026-06-22',
+      host_email: 'host@example.com', admin_email: 'admin@example.com', password_hash: 'x',
+      share_link: `/gallery/${slug}/share`, share_token: `${slug}-share`,
+      expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+      is_active: 1, is_archived: 0, is_draft: 0, created_at: new Date().toISOString(),
+    }).returning('id');
+    return inserted[0]?.id ?? inserted[0];
+  }
+
+  it('overrides the stored per-event value when a row exists', async () => {
+    const eventId = await insertEvent('keybind-live');
+    await db('event_feedback_settings').insert({ event_id: eventId, feedback_enabled: true, keybind_mode: 'colors' });
+    await setGlobal('event_default_keybind_mode', JSON.stringify('lightroom'));
+    expect((await feedbackService.getEventFeedbackSettings(eventId)).keybind_mode).toBe('lightroom');
+  });
+
+  it('reads a value stored JSON encoded twice', async () => {
+    await setGlobal('event_default_keybind_mode', JSON.stringify(JSON.stringify('lightroom')));
+    expect((await resolveEventFeedbackDefaults()).keybind_mode).toBe('lightroom');
+    expect((await feedbackService.getEventFeedbackSettings(999998)).keybind_mode).toBe('lightroom');
+  });
+
+  it('ignores keybind_mode on the feedback PUT', async () => {
+    const eventId = await insertEvent('keybind-put');
+    await db('event_feedback_settings').insert({ event_id: eventId, feedback_enabled: true, keybind_mode: 'colors' });
+    await feedbackService.updateEventFeedbackSettings(eventId, { keybind_mode: 'lightroom' });
+    const row = await db('event_feedback_settings').where({ event_id: eventId }).first();
+    expect(row.keybind_mode).toBe('colors');
+  });
+});

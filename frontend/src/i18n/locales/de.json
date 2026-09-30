@@ -2636,7 +2636,9 @@
       "defaultAllowColorLabels": "Farbmarkierungen",
       "defaultKeybindMode": "Standard-Tastenkürzel in der Großansicht",
       "keybindColors": "Nur Farben – 1 Grün, 2 Gelb, 3 Rot",
-      "keybindLightroom": "Lightroom – 1–5 Sterne, 6–9 Farben"
+      "keybindLightroom": "Lightroom – 1–5 Sterne, 6–9 Farben",
+      "keybindMode": "Tastenkürzel in der Lightbox",
+      "keybindModeHelp": "Gilt sofort für jede Galerie, auch für bestehende."
     },
     "imageSecurity": {
       "title": "Bildschutz",
