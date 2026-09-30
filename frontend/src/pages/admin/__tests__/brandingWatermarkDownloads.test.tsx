@@ -4,7 +4,7 @@
  * is on: with only the download switch on, the look still decides what the
  * downloaded files carry.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -88,7 +88,9 @@ describe('BrandingPage: download watermark switch', () => {
     branding.branding_watermark_downloads_enabled = true;
     renderPage();
     const box = (await screen.findByLabelText(/Watermark downloaded files/)) as HTMLInputElement;
-    expect(box.checked).toBe(true);
+    // The switch renders with the page defaults before the stored settings
+    // load; under a loaded test run the first read can land in between.
+    await waitFor(() => expect(box.checked).toBe(true));
   });
 
   it('shows the watermark look when only downloads are watermarked', async () => {
