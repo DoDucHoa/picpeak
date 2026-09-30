@@ -23,7 +23,6 @@ interface OverviewTabProps {
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
   phoneFieldEnabled: boolean;
   daysUntilExpiration: number | null;
-  onRevealNow?: () => void;
   refetchEvent: () => void;
   setActiveTab: (tab: EventDetailsTab) => void;
   /** Opens the Settings tab at a section (the Overview holds no settings). */
@@ -46,7 +45,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   categories,
   phoneFieldEnabled,
   daysUntilExpiration,
-  onRevealNow,
   refetchEvent,
   setActiveTab,
   openSettings,
@@ -66,10 +64,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         {/* Event Information */}
         <EventInformationCard
           event={event}
-          categories={categories}
           phoneFieldEnabled={phoneFieldEnabled}
           daysUntilExpiration={daysUntilExpiration}
-          onRevealNow={onRevealNow}
         />
 
         {/* Share Link */}

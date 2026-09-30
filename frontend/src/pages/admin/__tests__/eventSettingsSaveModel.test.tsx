@@ -39,7 +39,6 @@ vi.mock('../../../services/events.service', () => ({
     duplicateEvent: vi.fn(),
     publishEvent: vi.fn(),
     renameEvent: vi.fn(),
-    revealEvent: vi.fn(),
     archiveEvent: vi.fn(),
     sendGalleryEmail: vi.fn(),
   },

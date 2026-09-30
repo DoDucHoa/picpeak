@@ -17,19 +17,14 @@ import { safeParseDate } from './utils';
  */
 interface EventInformationCardProps {
   event: Event;
-  categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
   phoneFieldEnabled: boolean;
   daysUntilExpiration: number | null;
-  // Reveal mode (#838): stamps revealed_at via POST /events/:id/reveal
-  onRevealNow?: () => void;
 }
 
 export const EventInformationCard: React.FC<EventInformationCardProps> = ({
   event,
-  categories,
   phoneFieldEnabled,
   daysUntilExpiration,
-  onRevealNow
 }) => {
   const { t } = useTranslation();
   
@@ -131,74 +126,16 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
             </dd>
           </div>
 
+          {/* Guest uploads, uploader names and reveal mode were removed in P3;
+              the credit switch stays (spec 5.12). */}
           <div>
-            <dt className="text-sm font-medium text-muted">{t('events.userUploads')}</dt>
+            <dt className="text-sm font-medium text-muted">{t('events.credits.showToGuests', 'Show photo credits to guests')}</dt>
             <dd className="mt-1 text-sm text-heading">
-              {event.allow_user_uploads ? (
-                <div className="space-y-1">
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded">
-                    {t('common.yes')}
-                  </span>
-                  {event.upload_category_id && (
-                    <p className="text-xs text-soft">
-                      {t('events.uploadCategory')}: {categories.find(c => c.id === event.upload_category_id)?.name || 'N/A'}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-body bg-inset rounded">
-                  {t('common.no')}
-                </span>
-              )}
+              {event.show_credits_to_guests
+                ? t('events.uploaderNames.shownToGuests')
+                : t('events.uploaderNames.hiddenFromGuests')}
             </dd>
           </div>
-
-          {(event.guest_name_mode && event.guest_name_mode !== 'off') || Boolean(event.show_credits_to_guests) ? (
-            <div>
-              <dt className="text-sm font-medium text-muted">{t('events.uploaderNames.label')}</dt>
-              <dd className="mt-1 text-sm text-heading">
-                {t(`events.uploaderNames.modes.${event.guest_name_mode || 'off'}`)}
-                <p className="text-xs text-soft">
-                  {event.show_credits_to_guests
-                    ? t('events.uploaderNames.shownToGuests')
-                    : t('events.uploaderNames.hiddenFromGuests')}
-                </p>
-              </dd>
-            </div>
-          ) : null}
-
-          {Boolean(event.reveal_mode) && (
-            <div>
-              <dt className="text-sm font-medium text-muted">{t('events.revealModeStatus', 'Reveal mode')}</dt>
-              <dd className="mt-1 text-sm text-heading">
-                {event.revealed_at ? (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 rounded">
-                    {t('events.revealed', 'Revealed')}
-                  </span>
-                ) : (
-                  <div className="space-y-2">
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 rounded">
-                      {t('events.hiddenUntilReveal', 'Hidden from guests')}
-                    </span>
-                    {event.reveal_at && (
-                      <p className="text-xs text-soft">
-                        {t('events.revealScheduled', 'Scheduled: {{date}}', { date: new Date(event.reveal_at).toLocaleString() })}
-                      </p>
-                    )}
-                    {onRevealNow && (
-                      <button
-                        type="button"
-                        onClick={onRevealNow}
-                        className="block px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-dark rounded transition-colors"
-                      >
-                        {t('events.revealNow', 'Reveal now')}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </dd>
-            </div>
-          )}
 
           {/* Download Protection Display */}
           <div className="pt-3 mt-3 border-t border-line">

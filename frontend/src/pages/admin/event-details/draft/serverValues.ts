@@ -19,14 +19,6 @@ export function eventFormValues(event: Event): EditFormState {
     color_theme: event.color_theme || '',
     css_template_id: event.css_template_id || null,
     expires_at: expiresAtDate ? format(expiresAtDate, 'yyyy-MM-dd') : '',
-    allow_user_uploads: event.allow_user_uploads || false,
-    reveal_mode: event.reveal_mode || false,
-    // datetime-local wants local "YYYY-MM-DDTHH:mm"
-    reveal_at: event.reveal_at
-      ? (() => { const d = new Date(event.reveal_at); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })()
-      : '',
-    upload_category_id: event.upload_category_id || null,
-    guest_name_mode: event.guest_name_mode || 'off',
     show_credits_to_guests: Boolean(event.show_credits_to_guests),
     hero_photo_id: event.hero_photo_id || null,
     customer_name: event.customer_name || '',

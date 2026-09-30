@@ -1905,7 +1905,11 @@
       "lockedPermission": "Đã khóa: cần quyền {{permission}}",
       "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
     },
-    "changePasswordLink": "Đổi mật khẩu"
+    "changePasswordLink": "Đổi mật khẩu",
+    "credits": {
+      "showToGuests": "Hiện tên tác giả ảnh cho khách",
+      "showToGuestsHelp": "Khách thấy tên nhiếp ảnh gia được lưu trong từng ảnh. Bạn luôn thấy tên này."
+    }
   },
   "settings": {
     "title": "Cài đặt hệ thống",

@@ -20,14 +20,12 @@ import { toast } from 'react-toastify';
 import { Button, Input, Card, PasswordGenerator, LocalizedDateInput, TimeField } from '../../components/common';
 import { ThemeCustomizerEnhanced, GalleryPreview, WelcomeMessageEditor, FeedbackSettings } from '../../components/admin';
 import { CustomerAccountPicker } from '../../components/admin/CustomerAccountPicker';
-import { UploaderNameSettings } from '../../components/admin/UploaderNameSettings';
-import type { GuestNameMode } from '../../types';
+import { CreditVisibilitySetting } from '../../components/admin/CreditVisibilitySetting';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { adminDownloadQuotaService } from '../../services/adminDownloadQuota.service';
 import { useIsMounted } from '../../hooks/useIsMounted';
 import { useLocalizedDate } from '../../hooks/useLocalizedDate';
-import { categoriesService } from '../../services/categories.service';
 import { settingsService } from '../../services/settings.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { cssTemplatesService } from '../../services/cssTemplates.service';
@@ -60,10 +58,7 @@ interface FormData {
   theme_preset: string;
   theme_config: ThemeConfig;
   expires_in_days: number;
-  allow_user_uploads: boolean;
-  upload_category_id: number | null;
-  // Uploader names (#1561), seeded from Settings → Event Defaults.
-  guest_name_mode: GuestNameMode;
+  // Photo credits (#1561), seeded from Settings > Event Defaults.
   show_credits_to_guests: boolean;
   css_template_id: number | null;
   photo_cap: number;
@@ -137,9 +132,6 @@ export const CreateEventPage: React.FC = () => {
     theme_preset: 'elegantWedding',
     theme_config: GALLERY_THEME_PRESETS.elegantWedding.config,
     expires_in_days: 30,
-    allow_user_uploads: false,
-    upload_category_id: null,
-    guest_name_mode: 'off',
     show_credits_to_guests: false,
     css_template_id: null,
     photo_cap: 0,
@@ -166,12 +158,6 @@ export const CreateEventPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [showPassword, setShowPassword] = useState(false);
-
-  // Fetch categories for user upload selection
-  const { data: categories } = useQuery({
-    queryKey: ['categories', 'global'],
-    queryFn: () => categoriesService.getGlobalCategories()
-  });
 
   // Fetch enabled CSS templates
   const { data: cssTemplates } = useQuery({
@@ -293,15 +279,14 @@ export const CreateEventPage: React.FC = () => {
   // seeding them here is what makes the Settings > Events defaults actually
   // reach a gallery created through the UI — the server-side inheritance in
   // feedbackDefaults.js only covers callers that omit them (the v1 API).
-  // Uploader-name defaults (#1561), applied once like the feedback ones below.
-  const uploaderNameDefaultsApplied = useRef(false);
+  // Photo credit default (#1561), applied once like the feedback ones below.
+  const creditDefaultApplied = useRef(false);
   useEffect(() => {
-    if (uploaderNameDefaultsApplied.current) return;
-    if (publicSettings?.event_default_guest_name_mode === undefined) return;
-    uploaderNameDefaultsApplied.current = true;
+    if (creditDefaultApplied.current) return;
+    if (publicSettings?.event_default_show_credits_to_guests === undefined) return;
+    creditDefaultApplied.current = true;
     setFormData(prev => ({
       ...prev,
-      guest_name_mode: publicSettings.event_default_guest_name_mode || 'off',
       show_credits_to_guests: publicSettings.event_default_show_credits_to_guests === true,
     }));
   }, [publicSettings]);
@@ -543,9 +528,6 @@ export const CreateEventPage: React.FC = () => {
       header_style: formData.theme_config.headerStyle || 'standard',
       hero_divider_style: formData.theme_config.heroDividerStyle || 'wave',
       expiration_days: requireExpiration ? formData.expires_in_days : undefined,
-      allow_user_uploads: formData.allow_user_uploads,
-      upload_category_id: formData.upload_category_id,
-      guest_name_mode: formData.guest_name_mode,
       show_credits_to_guests: formData.show_credits_to_guests,
       css_template_id: formData.css_template_id,
       photo_cap: formData.photo_cap > 0 ? formData.photo_cap : null,
@@ -1243,58 +1225,13 @@ export const CreateEventPage: React.FC = () => {
               </select>
             </div>
 
-            {/* User Upload Settings */}
+            {/* Guest uploads and uploader names were removed in P3 (spec
+                5.12); the photo credit switch stays. */}
             <div className="pt-4 border-t border-line">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={formData.allow_user_uploads}
-                  onChange={(e) => setFormData({ ...formData, allow_user_uploads: e.target.checked })}
-                  className="rounded border-line-strong text-accent focus:ring-primary-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-body">
-                    {t('events.allowUserUploads')}
-                  </span>
-                  <p className="text-xs text-muted mt-0.5">
-                    {t('events.allowUserUploadsDescription')}
-                  </p>
-                </div>
-              </label>
-
-              {formData.allow_user_uploads && categories && categories.length > 0 && (
-                <div className="mt-4 ml-7">
-                  <label className="block text-sm font-medium text-body mb-2">
-                    {t('events.uploadCategory')}
-                  </label>
-                  <select
-                    value={formData.upload_category_id || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      upload_category_id: e.target.value ? Number(e.target.value) : null
-                    })}
-                    className="w-full px-3 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-primary-500 bg-panel text-heading"
-                  >
-                    <option value="">{t('events.selectCategory')}</option>
-                    {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-muted">
-                    {t('events.uploadCategoryHelp')}
-                  </p>
-                </div>
-              )}
-
-              <UploaderNameSettings
-                className="mt-4 ml-7"
-                idPrefix="create-uploader-names"
-                mode={formData.guest_name_mode}
-                onModeChange={(guest_name_mode) => setFormData(prev => ({ ...prev, guest_name_mode }))}
-                showToGuests={formData.show_credits_to_guests}
-                onShowToGuestsChange={(show_credits_to_guests) => setFormData(prev => ({ ...prev, show_credits_to_guests }))}
+              <CreditVisibilitySetting
+                idPrefix="create-credits"
+                checked={formData.show_credits_to_guests}
+                onChange={(show_credits_to_guests) => setFormData(prev => ({ ...prev, show_credits_to_guests }))}
               />
             </div>
           </div>

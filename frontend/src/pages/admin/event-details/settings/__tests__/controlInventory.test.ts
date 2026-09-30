@@ -18,8 +18,8 @@ const FILES: Record<SectionId, string> = {
 const VIA_COMPONENT: Record<string, string> = {
   'event.__theme': 'EventThemeSection', 'event.css_template_id': 'EventThemeSection',
   'event.client_access_enabled': 'ClientAccessCard', 'event.client_password': 'ClientAccessCard',
-  'event.customer_accounts': 'CustomerAccountPicker', 'event.guest_name_mode': 'UploaderNameSettings',
-  'event.show_credits_to_guests': 'UploaderNameSettings', 'event.hero_photo_id': 'HeroPhotoSelector',
+  'event.customer_accounts': 'CustomerAccountPicker', 'event.show_credits_to_guests': 'CreditVisibilitySetting',
+  'event.hero_photo_id': 'HeroPhotoSelector',
 };
 
 describe('control inventory', () => {
@@ -44,6 +44,13 @@ describe('control inventory', () => {
       else if (part === 'feedback') expect(src, key).toMatch(/<FeedbackSettings\b/);
       else if (part === 'quota') expect(src, key).toMatch(/<DownloadQuotaCard\b/);
       else expect(src, key).toMatch(/<DownloadResolutionCard\b/);
+    }
+  });
+
+  it('carries none of the removed guest upload and reveal fields', () => {
+    const keys = Object.keys(eventFormValues({ id: 1 } as never));
+    for (const removed of ['allow_user_uploads', 'upload_category_id', 'guest_name_mode', 'reveal_mode', 'reveal_at']) {
+      expect(keys).not.toContain(removed);
     }
   });
 

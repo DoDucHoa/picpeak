@@ -1,4 +1,3 @@
-import type { GuestNameMode } from '../../../types';
 import type { ThemeConfig } from '../../../types/theme.types';
 
 export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads' | 'settings';
@@ -8,13 +7,7 @@ export type EditFormState = {
   color_theme: string;
   css_template_id: number | null;
   expires_at: string;
-  allow_user_uploads: boolean;
-  // Reveal mode (#838): reveal_at is a datetime-local input string ('' = none)
-  reveal_mode: boolean;
-  reveal_at: string;
-  upload_category_id: number | null;
-  // Uploader names (#1561)
-  guest_name_mode: GuestNameMode;
+  // Photo credits (#1561)
   show_credits_to_guests: boolean;
   hero_photo_id: number | null;
   customer_name: string;
@@ -69,11 +62,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   color_theme: '',
   css_template_id: null,
   expires_at: '',
-  allow_user_uploads: false,
-  reveal_mode: false,
-  reveal_at: '',
-  upload_category_id: null,
-  guest_name_mode: 'off',
   show_credits_to_guests: false,
   hero_photo_id: null,
   customer_name: '',

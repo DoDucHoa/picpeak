@@ -20,10 +20,7 @@ export const SECTION_FIELDS: Record<SectionId, string[]> = {
     '__theme', 'css_template_id', 'hero_photo_id', 'og_image_share_enabled', 'hero_image_anchor', 'hero_logo_visible',
     'hero_logo_size', 'hero_logo_position', 'login_logo_visible', 'promo_mode', 'promo_markdown', 'info_mode', 'info_markdown',
   ].map((f) => `event.${f}`),
-  guests: [
-    ...['allow_user_uploads', 'upload_category_id', 'guest_name_mode', 'show_credits_to_guests', 'reveal_mode', 'reveal_at'].map((f) => `event.${f}`),
-    ...FEEDBACK,
-  ],
+  guests: ['event.show_credits_to_guests', ...FEEDBACK],
   downloads: [
     'event.allow_downloads', 'quota.quota_enabled', 'quota.auto_approve', 'quota.free_limit', 'quota.price_per_photo',
     'resolution.download_standard_resolution', 'resolution.download_resolution_picker_enabled', 'resolution.download_allow_original',

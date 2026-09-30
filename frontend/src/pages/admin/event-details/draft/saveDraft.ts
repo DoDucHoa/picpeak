@@ -1,11 +1,10 @@
 import { changesFor, sameValue, type DraftPart, type DraftState } from './eventDraft';
 import type { EditFormState, ThemeDraft } from '../types';
 
-const REVEAL = ['allow_user_uploads', 'reveal_mode', 'reveal_at'];
 const SOURCE = ['source_mode', 'external_path', 'external_watch'];
 const PROMO = ['promo_mode', 'promo_markdown'];
 const INFO = ['info_mode', 'info_markdown'];
-const GROUPED = new Set([...REVEAL, ...SOURCE, ...PROMO, ...INFO]);
+const GROUPED = new Set([...SOURCE, ...PROMO, ...INFO]);
 
 function themePayload(theme: ThemeDraft, server: ThemeDraft): Record<string, unknown> {
   const strip = (c: ThemeDraft['config']) => {
@@ -48,12 +47,6 @@ export function buildEventPayload(
       case '__theme': Object.assign(out, themePayload(theme, serverTheme)); break;
       default: out[key] = (form as unknown as Record<string, unknown>)[key];
     }
-  }
-  if (any(REVEAL)) {
-    out.allow_user_uploads = form.allow_user_uploads;
-    out.reveal_mode = form.allow_user_uploads && form.reveal_mode;
-    out.reveal_at = form.allow_user_uploads && form.reveal_mode && form.reveal_at
-      ? new Date(form.reveal_at).toISOString() : null;
   }
   if (any(SOURCE)) {
     const path = form.external_path?.trim() || '';

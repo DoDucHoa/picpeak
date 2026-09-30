@@ -2433,7 +2433,11 @@
       "lockedPermission": "Gesperrt: benötigt die Berechtigung {{permission}}",
       "lockedArchived": "Diese Veranstaltung ist archiviert. Ihre Einstellungen sind schreibgeschützt."
     },
-    "changePasswordLink": "Passwort ändern"
+    "changePasswordLink": "Passwort ändern",
+    "credits": {
+      "showToGuests": "Bildnachweise für Gäste anzeigen",
+      "showToGuestsHelp": "Gäste sehen den Namen des Fotografen, der in jedem Foto gespeichert ist. Du siehst ihn immer."
+    }
   },
   "settings": {
     "title": "Systemeinstellungen",

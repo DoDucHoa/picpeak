@@ -1906,7 +1906,11 @@
       "lockedPermission": "Locked: needs the {{permission}} permission",
       "lockedArchived": "This event is archived. Its settings are read-only."
     },
-    "changePasswordLink": "Change password"
+    "changePasswordLink": "Change password",
+    "credits": {
+      "showToGuests": "Show photo credits to guests",
+      "showToGuestsHelp": "Guests see the photographer's name stored in each photo. You always see it."
+    }
   },
   "settings": {
     "title": "System Settings",

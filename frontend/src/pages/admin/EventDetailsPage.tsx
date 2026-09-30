@@ -329,18 +329,6 @@ const EventDetailsPageContent: React.FC = () => {
   };
 
   // Archive mutation
-  // Reveal now (#838)
-  const revealMutation = useMutation({
-    mutationFn: () => eventsService.revealEvent(Number(id)),
-    onSuccess: () => {
-      toast.success(t('events.revealedToast', 'Gallery revealed — guests can see the photos now'));
-      refetchEvent();
-    },
-    onError: () => {
-      toast.error(t('events.revealError', 'Failed to reveal the gallery'));
-    },
-  });
-
   const archiveMutation = useMutation({
     mutationFn: () => eventsService.archiveEvent(parseInt(id!)),
     onSuccess: () => {
@@ -511,7 +499,6 @@ const EventDetailsPageContent: React.FC = () => {
           categories={categories}
           phoneFieldEnabled={phoneFieldEnabled}
           daysUntilExpiration={daysUntilExpiration}
-          onRevealNow={() => revealMutation.mutate()}
           refetchEvent={refetchEvent}
           setActiveTab={setActiveTab}
           openSettings={(sectionId) => {
