@@ -1,7 +1,5 @@
 import { useGalleryFiltering, resolveMediaType } from './hooks/useGalleryFiltering';
-import { useGalleryUpload } from './hooks/useGalleryUpload';
 import { useGallerySelection } from './hooks/useGallerySelection';
-import { UploadProcessingNotice } from './UploadProcessingNotice';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
@@ -32,9 +30,8 @@ import { CountdownTimer } from './CountdownTimer';
 import { GalleryLayout } from './GalleryLayout';
 import { GallerySidebar } from './GallerySidebar';
 import { PhotoFilterBar } from './PhotoFilterBar';
-import { UserPhotoUpload } from './UserPhotoUpload';
 import { CreditFilterChips } from './CreditFilterChips';
-import { creditGroups, uploaderRequiresEmail } from '../../utils/photoCredits';
+import { creditGroups } from '../../utils/photoCredits';
 import { GuestNamePromptModal } from './GuestNamePromptModal';
 import { GuestRecoveryModal } from './GuestRecoveryModal';
 import { PeopleStrip } from './PeopleStrip';
@@ -51,7 +48,7 @@ import type { QuotaExceededPayload } from '../../services/downloadQuota.service'
 import type { FilterType, FeedbackFilterType } from './GalleryFilter';
 import { analyticsService } from '../../services/analytics.service';
 import { useDevToolsProtection } from '../../hooks/useDevToolsProtection';
-import { Upload, Menu, Eye, EyeOff, Shield, X, Download, ChevronLeft, ShoppingBag } from 'lucide-react';
+import { Menu, Eye, EyeOff, Shield, X, Download, ChevronLeft, ShoppingBag } from 'lucide-react';
 import { galleryService } from '../../services/gallery.service';
 import { feedbackService, type ColorLabel } from '../../services/feedback.service';
 import { useWatermarkSettings } from '../../hooks/useWatermarkSettings';
@@ -71,8 +68,6 @@ interface GalleryViewProps {
     welcome_message?: string;
     color_theme?: string;
     expires_at: string | null;
-    allow_user_uploads?: boolean;
-    upload_category_id?: number | null;
     hero_photo_id?: number | null;
     allow_downloads?: boolean;
     // Banner overrides come from /gallery/:slug/info (the /photos response
@@ -135,7 +130,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
   const [sortDesc, setSortDesc] = useState(true);
   const [defaultSortApplied, setDefaultSortApplied] = useState(false);
   const [brandingSettings, setBrandingSettings] = useState<any>(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -235,28 +229,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
       setDefaultSortApplied(true);
     }
   }, [data?.event?.default_photo_sort, defaultSortApplied]);
-
-  // Reveal mode (#838): an already-open view must follow reveal-state
-  // changes in BOTH directions — hidden→visible at reveal_at (or manual
-  // "Reveal now"), and visible→hidden on a re-hide. Refetch right at
-  // reveal_at plus a 60s poll while the mode is armed; there is no push
-  // channel.
-  const hiddenUntilReveal = data?.hidden_until_reveal === true;
-  const revealArmed = (data?.event as { reveal_armed?: boolean } | undefined)?.reveal_armed === true;
-  const revealAtMs = data?.reveal_at ? new Date(data.reveal_at).getTime() : null;
-  useEffect(() => {
-    if (!hiddenUntilReveal && !revealArmed) return undefined;
-    const timers: Array<ReturnType<typeof setTimeout>> = [];
-    if (revealAtMs && revealAtMs > Date.now()) {
-      timers.push(setTimeout(() => { refetch(); }, Math.min(revealAtMs - Date.now() + 1000, 2 ** 31 - 1)));
-    }
-    const interval = setInterval(() => { refetch(); }, 60_000);
-    return () => { timers.forEach(clearTimeout); clearInterval(interval); };
-  }, [hiddenUntilReveal, revealArmed, revealAtMs, refetch]);
-
-  const { uploadProcessing, handleUploadComplete } = useGalleryUpload(slug, refetch, () => setShowUploadModal(false));
-
-  const uploadProcessingNotice = <UploadProcessingNotice processing={uploadProcessing} />;
 
   // Get individual protection settings from event
   const disableRightClick = data?.event?.disable_right_click === true;
@@ -432,15 +404,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     },
     enabled: !!event.id,
   });
-
-  // Uploader names (#1561): the upload dialog's name step, from the /photos
-  // payload.
-  const uploaderNameProps = {
-    slug,
-    nameMode: data?.event?.guest_name_mode ?? 'off',
-    creditsVisible: data?.event?.credits_visible === true,
-    requireEmail: uploaderRequiresEmail(feedbackSettings),
-  } as const;
 
   // People in this gallery (#1074).
   //
@@ -1124,87 +1087,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
     // empty filter row discussion #317 complained about.
     && scopedPhotos.length > 0;
 
-  // Reveal mode (#838): the server returned the event shell with no photos —
-  // render the upload-only view for EVERY layout. Enforcement is server-side
-  // (the photo endpoints refuse plain guests); this is the friendly face.
-  if (hiddenUntilReveal) {
-    const uploadsOn = Boolean(data?.event?.allow_user_uploads || event?.allow_user_uploads);
-    return (
-      <GalleryLayout
-        event={{
-          ...event,
-          // The reveal-hidden view still renders the chrome, so BOTH
-          // banners resolve here too. The context `event` comes from the
-          // gallery login response and carries no banner fields, which would
-          // silently downgrade a per-event 'off' to 'inherit' and show the
-          // global banner on a gallery the admin muted (#440 promo / #932 info).
-          promo_mode: (data?.event as { promo_mode?: 'inherit' | 'custom' | 'off' })?.promo_mode,
-          promo_markdown: (data?.event as { promo_markdown?: string | null })?.promo_markdown,
-          info_mode: (data?.event as { info_mode?: 'inherit' | 'custom' | 'off' })?.info_mode,
-          info_markdown: (data?.event as { info_markdown?: string | null })?.info_markdown,
-        }}
-        brandingSettings={brandingSettings}
-      >
-        <div className="max-w-xl mx-auto text-center py-16 px-4">
-          <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-surface flex items-center justify-center">
-            <EyeOff className="w-8 h-8 text-muted-theme" />
-          </div>
-          <h2 className="text-2xl font-semibold mb-3" style={{ color: 'var(--color-text, #171717)' }}>
-            {t('gallery.revealPendingTitle', 'The photos are still a surprise')}
-          </h2>
-          <p className="text-muted-theme mb-2">
-            {t('gallery.revealPendingMessage', 'The host will reveal the gallery later — check back soon!')}
-          </p>
-          {data.reveal_at && (
-            <p className="text-sm text-muted-theme mb-6">
-              {t('gallery.revealScheduledFor', 'Reveal scheduled for {{date}}', {
-                date: new Date(data.reveal_at).toLocaleString(),
-              })}
-            </p>
-          )}
-          {uploadsOn && (
-            <div className="mt-6">
-              <p className="text-sm text-muted-theme mb-3">
-                {t('gallery.revealUploadHint', 'You can already add your own photos to the collection:')}
-              </p>
-              <Button
-                variant="primary"
-                size="lg"
-                leftIcon={<Upload className="w-5 h-5" />}
-                onClick={() => setShowUploadModal(true)}
-              >
-                {t('upload.uploadPhotos', 'Upload Photos')}
-              </Button>
-            </div>
-          )}
-        </div>
-        {showUploadModal && uploadsOn && (
-          <UserPhotoUpload
-            eventId={data?.event?.id || event?.id}
-            categoryId={data?.event?.upload_category_id || event?.upload_category_id}
-            {...uploaderNameProps}
-            onUploadComplete={() => setShowUploadModal(false)}
-            onClose={() => setShowUploadModal(false)}
-          />
-        )}
-
-        {/* Download size picker (#858) — "download all", or a selection. */}
-        {(showResolutionPicker || resolutionPickerIds) && (
-          <DownloadResolutionModal
-            slug={slug}
-            choices={downloadChoices}
-            standardResolution={data?.event?.download_resolution?.standard}
-            photoIds={resolutionPickerIds || undefined}
-            onClose={() => {
-              setShowResolutionPicker(false);
-              setResolutionPickerIds(null);
-            }}
-          />
-        )}
-      </GalleryLayout>
-    );
-  }
-
   // Full-page layouts (gallery-premium, gallery-story) have their own integrated UI
   // Skip all wrapper elements (header, footer, sidebar, filters) for these layouts
   const isFullPageLayout = theme.galleryLayout === 'gallery-premium' || theme.galleryLayout === 'gallery-story';
@@ -1409,18 +1291,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
           showOriginalFilename={showOriginalFilename}
         />
 
-        {/* Upload Modal for full-page layouts */}
-        {showUploadModal && (data?.event?.allow_user_uploads || event?.allow_user_uploads) && (
-          <UserPhotoUpload
-            eventId={data?.event?.id || event?.id}
-            categoryId={data?.event?.upload_category_id || event?.upload_category_id}
-            {...uploaderNameProps}
-            onUploadComplete={handleUploadComplete}
-            onClose={() => setShowUploadModal(false)}
-          />
-        )}
-        {uploadProcessingNotice}
-
         {/* Download size picker (#858) — "download all", or a selection. */}
         {(showResolutionPicker || resolutionPickerIds) && (
           <DownloadResolutionModal
@@ -1477,8 +1347,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
           downloadAllTotal={data?.photos?.length || 0}
           isMobile={isMobile}
           galleryLayout={theme.galleryLayout}
-          allowUploads={data?.event?.allow_user_uploads || event?.allow_user_uploads || false}
-          onUploadClick={() => setShowUploadModal(true)}
           feedbackEnabled={feedbackEnabled}
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
@@ -1579,24 +1447,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
           if (daysUntilExpiration !== null && daysUntilExpiration <= 1 && daysUntilExpiration > 0 && event.expires_at) {
             items.push(
               <CountdownTimer key="countdown" expiresAt={event.expires_at} className="mr-2" />
-            );
-          }
-          
-          // Upload button - always show when uploads are allowed (regardless of layout/theme loading state)
-          const allowUploads = data?.event?.allow_user_uploads || event?.allow_user_uploads;
-          if (allowUploads) {
-            items.push(
-              <Button
-                key="upload-button"
-                variant="outline"
-                size="sm"
-                leftIcon={<Upload className="w-4 h-4" />}
-                onClick={() => setShowUploadModal(true)}
-                className={!showSidebar ? 'flex-1 sm:flex-initial' : ''}
-              >
-                <span className="hidden sm:inline">{t('upload.uploadPhotos')}</span>
-                <span className="sm:hidden">{t('common.upload')}</span>
-              </Button>
             );
           }
           
@@ -1858,18 +1708,6 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ slug, event, requiresP
             showOriginalFilename={showOriginalFilename}
           />
         </div>
-
-        {/* Upload Modal */}
-        {showUploadModal && (data?.event?.allow_user_uploads || event?.allow_user_uploads) && (
-          <UserPhotoUpload
-            eventId={data?.event?.id || event?.id}
-            categoryId={data?.event?.upload_category_id || event?.upload_category_id}
-            {...uploaderNameProps}
-            onUploadComplete={handleUploadComplete}
-            onClose={() => setShowUploadModal(false)}
-          />
-        )}
-        {uploadProcessingNotice}
 
         {/* Download size picker (#858) — "download all", or a selection. */}
         {(showResolutionPicker || resolutionPickerIds) && (

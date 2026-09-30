@@ -434,7 +434,6 @@ export const GalleryPage: React.FC = () => {
           event_date: galleryInfo.event_date,
           color_theme: galleryInfo.color_theme,
           expires_at: galleryInfo.expires_at,
-          allow_user_uploads: galleryInfo.allow_user_uploads,
           allow_downloads: galleryInfo.allow_downloads,
         }}
       />
