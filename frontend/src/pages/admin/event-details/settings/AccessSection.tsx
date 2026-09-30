@@ -6,7 +6,7 @@ import { eventsService } from '../../../../services/events.service';
 import { normalizeRequirePassword } from '../../../../utils/accessControl';
 import { nextEventPassword } from '../../../../utils/passwordGenerator';
 import { ClientAccessCard } from '../ClientAccessCard';
-import { StoredPasswordLine } from './StoredPasswordLine';
+import { StoredPasswordLine, passwordVersion } from './StoredPasswordLine';
 import { useEventSettings } from './EventSettingsContext';
 
 /**
@@ -73,7 +73,7 @@ export const AccessSection: React.FC = () => {
 
         {editForm.require_password && (
           <div className="space-y-2">
-            {savedOn && <StoredPasswordLine eventId={event.id} kind="gallery" stored={status?.password_stored === true} />}
+            {savedOn && <StoredPasswordLine eventId={event.id} kind="gallery" stored={status?.password_stored === true} version={passwordVersion(event)} />}
             <Input
               type="text"
               label={savedOn

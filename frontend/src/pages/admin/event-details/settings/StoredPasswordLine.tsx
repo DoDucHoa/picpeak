@@ -1,16 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { eventsService } from '../../../../services/events.service';
+
+/**
+ * Changes whenever the saved event, or either password, changes: a save,
+ * a publish or a send with a new password. The line keys its reveal on it.
+ */
+export function passwordVersion(event: object): string {
+  const e = event as { updated_at?: unknown; gallery_password_changed_at?: unknown; client_password_changed_at?: unknown };
+  return [e.updated_at, e.gallery_password_changed_at, e.client_password_changed_at].map((v) => String(v ?? '')).join('|');
+}
 
 /**
  * The saved password, as far as it can be shown (spec 5.4): a stored copy is
  * revealed on request, and each reveal is logged by the server; without one
  * the line says it is set but not viewable.
  */
-export const StoredPasswordLine: React.FC<{ eventId: number; kind: 'gallery' | 'client'; stored: boolean }> = ({ eventId, kind, stored }) => {
+export const StoredPasswordLine: React.FC<{
+  eventId: number;
+  kind: 'gallery' | 'client';
+  stored: boolean;
+  /** From passwordVersion(event): a new value hides a revealed password. */
+  version?: string;
+}> = ({ eventId, kind, stored, version }) => {
   const { t } = useTranslation();
   const [value, setValue] = useState<string | null>(null);
+  // A revealed password must not outlive the password it showed.
+  useEffect(() => { setValue(null); }, [version, stored]);
   const reveal = async () => {
     try {
       const res = await eventsService.getGalleryPassword(eventId);

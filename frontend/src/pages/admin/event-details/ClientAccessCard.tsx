@@ -8,7 +8,7 @@ import { Button, Card } from '../../../components/common';
 import { eventsService } from '../../../services/events.service';
 import { nextEventPassword } from '../../../utils/passwordGenerator';
 import type { EditFormState } from './types';
-import { StoredPasswordLine } from './settings/StoredPasswordLine';
+import { StoredPasswordLine, passwordVersion } from './settings/StoredPasswordLine';
 
 interface ClientAccessCardProps {
   event: Event;
@@ -163,7 +163,7 @@ const ClientAccessSettings: React.FC<{
               </p>
             )}
             {hasPassword && (
-              <StoredPasswordLine eventId={event.id} kind="client" stored={status?.client_password_stored === true} />
+              <StoredPasswordLine eventId={event.id} kind="client" stored={status?.client_password_stored === true} version={passwordVersion(event)} />
             )}
             <label className="block text-sm font-medium text-body mb-1">
               {hasPassword
