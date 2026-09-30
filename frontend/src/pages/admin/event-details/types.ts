@@ -24,10 +24,6 @@ export type EditFormState = {
   allow_downloads: boolean;
   // Hero logo settings. null = inherit the global branding toggle (#756).
   hero_logo_visible: boolean | null;
-  hero_logo_size: 'small' | 'medium' | 'large' | 'xlarge' | null;
-  hero_logo_position: 'top' | 'center' | 'bottom';
-  // #894: null = default (show); false hides the logo on the password page.
-  login_logo_visible: boolean | null;
   // Hero image anchor position (#162) – keyword or "X% Y%" focal point
   hero_image_anchor: string;
   // Photo cap
@@ -78,9 +74,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   allow_downloads: true,
   // Hero logo settings — null = inherit global branding toggle (#756)
   hero_logo_visible: null,
-  hero_logo_size: null,
-  hero_logo_position: 'top',
-  login_logo_visible: null,
   // Hero image anchor position (#162)
   hero_image_anchor: 'center',
   // Photo cap

@@ -154,39 +154,6 @@ export const AppearanceSection: React.FC = () => {
   
               {editForm.hero_logo_visible !== false && (
                 <>
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-body mb-1">
-                      {t('events.heroLogoSize', 'Logo Size')}
-                    </label>
-                    <select
-                      // '' = inherit the global branding logo size (#756).
-                      value={editForm.hero_logo_size ?? ''}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, hero_logo_size: e.target.value === '' ? null : e.target.value as 'small' | 'medium' | 'large' | 'xlarge' }))}
-                      className="w-full sm:w-48 px-3 py-2 border border-line-strong bg-panel text-heading rounded-md shadow-sm focus:ring-primary-500 focus:border-accent-dark text-sm"
-                    >
-                      <option value="">{t('events.heroLogoInherit', 'Use branding default')}</option>
-                      <option value="small">{t('events.heroLogoSizeSmall', 'Small')}</option>
-                      <option value="medium">{t('events.heroLogoSizeMedium', 'Medium')}</option>
-                      <option value="large">{t('events.heroLogoSizeLarge', 'Large')}</option>
-                      <option value="xlarge">{t('events.heroLogoSizeXLarge', 'Extra Large')}</option>
-                    </select>
-                  </div>
-  
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-body mb-1">
-                      {t('events.heroLogoPosition', 'Logo Position')}
-                    </label>
-                    <select
-                      value={editForm.hero_logo_position}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, hero_logo_position: e.target.value as 'top' | 'center' | 'bottom' }))}
-                      className="w-full sm:w-48 px-3 py-2 border border-line-strong bg-panel text-heading rounded-md shadow-sm focus:ring-primary-500 focus:border-accent-dark text-sm"
-                    >
-                      <option value="top">{t('events.heroLogoPositionTop', 'Top (above title)')}</option>
-                      <option value="center">{t('events.heroLogoPositionCenter', 'Center (between title and dates)')}</option>
-                      <option value="bottom">{t('events.heroLogoPositionBottom', 'Bottom (below dates)')}</option>
-                    </select>
-                  </div>
-  
                   {/* Custom Event Logo Upload */}
                   <div className="ml-6 mt-3 pt-3 border-t border-line">
                     <label className="block text-sm font-medium text-body mb-2">
@@ -257,28 +224,8 @@ export const AppearanceSection: React.FC = () => {
                 </>
               )}
   
-              <div>
-                <label className="block text-sm font-medium text-body mb-1 flex items-center gap-1">
-                  <Image className="w-4 h-4 text-muted" />
-                  {t('events.loginLogoVisible', 'Display logo on password page')}
-                </label>
-                <select
-                  // #894: two-state, null keeps the default (show), false
-                  // hides the branding logo on this gallery's password page.
-                  value={editForm.login_logo_visible === false ? 'hide' : 'show'}
-                  onChange={(e) => setEditForm(prev => ({
-                    ...prev,
-                    login_logo_visible: e.target.value === 'hide' ? false : null
-                  }))}
-                  className="w-full sm:w-64 px-3 py-2 border border-line-strong bg-panel text-heading rounded-md shadow-sm focus:ring-primary-500 focus:border-accent-dark text-sm"
-                >
-                  <option value="show">{t('events.loginLogoShow', 'Show (default)')}</option>
-                  <option value="hide">{t('events.loginLogoHide', 'Hide')}</option>
-                </select>
-              </div>
-  
               <p className="text-xs text-muted mt-2">
-                {t('events.heroLogoInfo', 'These settings apply when the gallery uses the Hero layout. You can hide the logo or customize its size and position.')}
+                {t('events.heroLogoInfoGlobal', "The logo's size and position come from Branding and apply to every gallery.")}
               </p>
             </div>
           </div>

@@ -2437,7 +2437,8 @@
     "credits": {
       "showToGuests": "Bildnachweise für Gäste anzeigen",
       "showToGuestsHelp": "Gäste sehen den Namen des Fotografen, der in jedem Foto gespeichert ist. Du siehst ihn immer."
-    }
+    },
+    "heroLogoInfoGlobal": "Größe und Position des Logos kommen aus dem Branding und gelten für jede Galerie."
   },
   "settings": {
     "title": "Systemeinstellungen",
@@ -3861,7 +3862,11 @@
         "FONT_BITMAP_ONLY": "Die Lizenz dieser Schrift erlaubt nur das Einbetten von Bitmaps, nicht der Umrisse, die PDFs benötigen."
       },
       "legacyFailed": "Die vor diesem Update eingestellte Schrift konnte nicht übernommen werden: {{reason}}"
-    }
+    },
+    "heroLogoPosition": "Logoposition im Hero-Bereich",
+    "heroLogoPositionHelp": "Gilt für jede Galerie mit Hero-Kopfbereich.",
+    "galleryPasswordLogo": "Logo auf der Passwortseite der Galerie anzeigen",
+    "galleryPasswordLogoHelp": "Gilt für jede passwortgeschützte Galerie und für die Seite für den Kundenzugang."
   },
   "admin": {
     "title": "Admin-Panel",

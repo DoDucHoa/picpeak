@@ -177,12 +177,6 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
                       <Image className="w-3 h-3 mr-1" />
                       {t('events.heroLogoVisibleLabel', 'Logo visible')}
                     </span>
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">
-                      {t('events.heroLogoSizeLabel', 'Size')}: {event.hero_logo_size || 'medium'}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">
-                      {t('events.heroLogoPositionLabel', 'Position')}: {event.hero_logo_position || 'top'}
-                    </span>
                   </>
                 ) : (
                   <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-inset text-body rounded">

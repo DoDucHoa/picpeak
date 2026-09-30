@@ -1910,7 +1910,8 @@
     "credits": {
       "showToGuests": "Show photo credits to guests",
       "showToGuestsHelp": "Guests see the photographer's name stored in each photo. You always see it."
-    }
+    },
+    "heroLogoInfoGlobal": "The logo's size and position come from Branding and apply to every gallery."
   },
   "settings": {
     "title": "System Settings",
@@ -3368,7 +3369,11 @@
         "FONT_BITMAP_ONLY": "This font's licence only allows embedding bitmaps, not the outlines PDFs need."
       },
       "legacyFailed": "The font set before this update could not be moved: {{reason}}"
-    }
+    },
+    "heroLogoPosition": "Logo position in the hero",
+    "heroLogoPositionHelp": "Applies to every gallery with a hero header.",
+    "galleryPasswordLogo": "Show the logo on the gallery password page",
+    "galleryPasswordLogoHelp": "Applies to every password-protected gallery and to the client access page."
   },
   "admin": {
     "title": "Admin Panel",

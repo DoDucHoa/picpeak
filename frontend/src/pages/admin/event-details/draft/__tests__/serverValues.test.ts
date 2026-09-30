@@ -17,12 +17,10 @@ describe('eventFormValues', () => {
   it('keeps NULL hero logo fields as inherit', () => {
     const v = eventFormValues(legacy);
     expect(v.hero_logo_visible).toBeNull();
-    expect(v.hero_logo_size).toBeNull();
   });
   it('folds SQLite 0/1 into booleans', () => {
     const v = eventFormValues(legacy);
     expect(v.external_watch).toBe(false);
-    expect(v.login_logo_visible).toBe(false);
     expect(v.client_access_enabled).toBe(false);
   });
   it('never carries a password', () => {

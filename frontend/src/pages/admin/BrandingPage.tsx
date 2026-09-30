@@ -26,6 +26,8 @@ const INITIAL_BRANDING: BrandingSettings = {
   support_email: '',
   watermark_enabled: false,
   watermark_downloads_enabled: false,
+  hero_logo_position: 'top',
+  gallery_password_logo_visible: true,
   watermark_position: 'bottom-right',
   watermark_opacity: 50,
   watermark_size: 15,
@@ -944,6 +946,44 @@ export const BrandingPage: React.FC = () => {
                     </span>
                     <p className="text-xs text-soft">
                       {t('branding.showLogoInHeroHelp', 'Display the logo in hero sections (for non-grid layouts)')}
+                    </p>
+                  </div>
+                </label>
+
+                {/* Hero logo position and the password page logo apply to every
+                    gallery since P3 (spec 5.10); events no longer set them. */}
+                <div>
+                  <label htmlFor="branding-hero-logo-position" className="block text-sm font-medium text-heading mb-1">
+                    {t('branding.heroLogoPosition', 'Logo position in the hero')}
+                  </label>
+                  <select
+                    id="branding-hero-logo-position"
+                    value={brandingSettings.hero_logo_position || 'top'}
+                    onChange={(e) => handleBrandingChange('hero_logo_position', e.target.value)}
+                    className="w-full px-3 py-2 border border-line-strong rounded-lg focus:ring-2 focus:ring-primary-500 bg-panel text-heading"
+                  >
+                    <option value="top">{t('events.heroLogoPositionTop')}</option>
+                    <option value="center">{t('events.heroLogoPositionCenter')}</option>
+                    <option value="bottom">{t('events.heroLogoPositionBottom')}</option>
+                  </select>
+                  <p className="text-xs text-soft mt-1">
+                    {t('branding.heroLogoPositionHelp', 'Applies to every gallery with a hero header.')}
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={brandingSettings.gallery_password_logo_visible !== false}
+                    onChange={(e) => handleBrandingChange('gallery_password_logo_visible', e.target.checked)}
+                    className="rounded border-line-strong text-accent focus:ring-primary-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-heading">
+                      {t('branding.galleryPasswordLogo', 'Show the logo on the gallery password page')}
+                    </span>
+                    <p className="text-xs text-soft">
+                      {t('branding.galleryPasswordLogoHelp', 'Applies to every password-protected gallery and to the client access page.')}
                     </p>
                   </div>
                 </label>

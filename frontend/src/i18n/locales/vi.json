@@ -1909,7 +1909,8 @@
     "credits": {
       "showToGuests": "Hiện tên tác giả ảnh cho khách",
       "showToGuestsHelp": "Khách thấy tên nhiếp ảnh gia được lưu trong từng ảnh. Bạn luôn thấy tên này."
-    }
+    },
+    "heroLogoInfoGlobal": "Kích thước và vị trí logo lấy từ phần Branding và áp dụng cho mọi gallery."
   },
   "settings": {
     "title": "Cài đặt hệ thống",
@@ -3367,7 +3368,11 @@
         "FONT_BITMAP_ONLY": "Giấy phép của phông chữ này chỉ cho phép nhúng dạng bitmap, không cho phép nhúng đường nét mà PDF cần."
       },
       "legacyFailed": "Không thể chuyển phông chữ đã đặt trước bản cập nhật này: {{reason}}"
-    }
+    },
+    "heroLogoPosition": "Vị trí logo trong phần hero",
+    "heroLogoPositionHelp": "Áp dụng cho mọi gallery có phần đầu dạng hero.",
+    "galleryPasswordLogo": "Hiện logo trên trang nhập mật khẩu của gallery",
+    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng."
   },
   "admin": {
     "title": "Bảng quản trị",
