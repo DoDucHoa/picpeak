@@ -1963,6 +1963,11 @@
       "turnOffTitle": "Bỏ mật khẩu?",
       "turnOffMessage": "Gallery này đã công khai. Không có mật khẩu thì ai có đường dẫn cũng xem được ảnh.",
       "turnOffConfirm": "Bỏ mật khẩu"
+    },
+    "mailPassword": {
+      "storedNote": "Email sẽ kèm mật khẩu gallery đã lưu.",
+      "useDifferent": "Dùng mật khẩu khác",
+      "useStored": "Dùng mật khẩu đã lưu"
     }
   },
   "settings": {

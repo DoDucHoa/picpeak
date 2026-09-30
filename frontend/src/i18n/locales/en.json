@@ -1965,6 +1965,11 @@
       "turnOffTitle": "Remove the password?",
       "turnOffMessage": "This gallery is published. Without a password, anyone with the link can see the photos.",
       "turnOffConfirm": "Remove password"
+    },
+    "mailPassword": {
+      "storedNote": "The email includes the stored gallery password.",
+      "useDifferent": "Use a different password",
+      "useStored": "Use the stored password"
     }
   },
   "settings": {

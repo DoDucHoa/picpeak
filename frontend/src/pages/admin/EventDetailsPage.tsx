@@ -217,6 +217,13 @@ const EventDetailsPageContent: React.FC = () => {
   }, [showMediaFilter, photoFilters.media_type]);
 
   const { data: publicSettings } = usePublicSettings();
+  // Whether a copy of the gallery password is stored: then publish and send
+  // leave it to the server (P4). Same key as the share card and Access.
+  const { data: passwordStatus } = useQuery({
+    queryKey: ['admin-event-password-status', event?.id],
+    queryFn: () => eventsService.getGalleryPasswordStatus(event!.id),
+    enabled: !!event,
+  });
   const phoneFieldEnabled = publicSettings?.event_phone_field_enabled === true;
 
   // Fetch categories for the event
@@ -610,6 +617,7 @@ const EventDetailsPageContent: React.FC = () => {
           gallery_created email carries the real plaintext, not the sentinel. */}
       {showPublishDialog && (
         <PublishGalleryDialog
+          storedPassword={passwordStatus?.password_stored === true}
           eventName={event.event_name}
           requirePassword={!isGalleryPublic(event.require_password)}
           customerEmail={event.customer_email}
@@ -629,6 +637,7 @@ const EventDetailsPageContent: React.FC = () => {
           never collected one. */}
       {showSendEmailDialog && (
         <SendGalleryEmailDialog
+          storedPassword={passwordStatus?.password_stored === true}
           eventName={event.event_name}
           recipient={event.customer_email}
           // Only the inline-email path carries the password. With no

@@ -2492,6 +2492,11 @@
       "turnOffTitle": "Passwort entfernen?",
       "turnOffMessage": "Diese Galerie ist veröffentlicht. Ohne Passwort kann jeder mit dem Link die Fotos sehen.",
       "turnOffConfirm": "Passwort entfernen"
+    },
+    "mailPassword": {
+      "storedNote": "Die E-Mail enthält das gespeicherte Galerie-Passwort.",
+      "useDifferent": "Anderes Passwort verwenden",
+      "useStored": "Gespeichertes Passwort verwenden"
     }
   },
   "settings": {
