@@ -34,7 +34,6 @@ test('admin can create event via UI @smoke', async ({ page }) => {
   // calendar button carries the same label, so check the textbox has a value.
   await expect(page.getByRole('textbox', { name: 'Event Date' })).not.toHaveValue('');
   await page.getByLabel(/Customer Email/i).fill(hostEmail);
-  await page.getByLabel(/Admin Email/i).fill(ADMIN_EMAIL);
   await page.getByLabel(/Gallery Password/i).fill('UiPlay123!');
   await page.getByLabel(/Confirm Password/i).fill('UiPlay123!');
 

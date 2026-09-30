@@ -119,7 +119,6 @@ export interface AnalyticsSettings {
 export interface EventSettings {
   event_require_customer_name: boolean;
   event_require_customer_email: boolean;
-  event_require_admin_email: boolean;
   event_require_event_date: boolean;
   event_require_expiration: boolean;
   event_default_require_password: boolean;
@@ -233,7 +232,6 @@ export function useSettingsState() {
   const [eventSettings, setEventSettings] = useState<EventSettings>({
     event_require_customer_name: true,
     event_require_customer_email: true,
-    event_require_admin_email: true,
     event_require_event_date: true,
     event_require_expiration: true,
     event_default_require_password: true,
@@ -390,7 +388,6 @@ export function useSettingsState() {
       const eventLoaded: EventSettings = {
         event_require_customer_name: toBoolean(settings.event_require_customer_name, true),
         event_require_customer_email: toBoolean(settings.event_require_customer_email, true),
-        event_require_admin_email: toBoolean(settings.event_require_admin_email, true),
         event_require_event_date: toBoolean(settings.event_require_event_date, true),
         event_require_expiration: toBoolean(settings.event_require_expiration, true),
         event_default_require_password: toBoolean(settings.event_default_require_password, true),

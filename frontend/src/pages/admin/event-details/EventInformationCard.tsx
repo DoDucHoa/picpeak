@@ -63,16 +63,11 @@ export const EventInformationCard: React.FC<EventInformationCardProps> = ({
             </dd>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-sm font-medium text-muted">{t('events.hostEmail')}</dt>
+          {/* No admin address here: one notification email in Settings >
+              General decides where admin mail goes (P3, spec 5.11). */}
+          <div>
+            <dt className="text-sm font-medium text-muted">{t('events.hostEmail')}</dt>
             <dd className="mt-1 text-sm text-heading">{event.customer_email}</dd>
-            </div>
-
-            <div>
-              <dt className="text-sm font-medium text-muted">{t('events.adminEmail')}</dt>
-              <dd className="mt-1 text-sm text-heading">{event.admin_email}</dd>
-            </div>
           </div>
 
           {phoneFieldEnabled && (

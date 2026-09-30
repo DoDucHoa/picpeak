@@ -21,7 +21,6 @@ const getEventFieldRequirements = async () => {
       .whereIn('setting_key', [
         'event_require_customer_name',
         'event_require_customer_email',
-        'event_require_admin_email',
         'event_require_event_date',
         'event_require_expiration'
       ])
@@ -30,7 +29,6 @@ const getEventFieldRequirements = async () => {
     const requirements = {
       require_customer_name: true,
       require_customer_email: true,
-      require_admin_email: true,
       require_event_date: true,
       require_expiration: true
     };
@@ -46,7 +44,6 @@ const getEventFieldRequirements = async () => {
       }
       if (s.setting_key === 'event_require_customer_name') requirements.require_customer_name = value;
       if (s.setting_key === 'event_require_customer_email') requirements.require_customer_email = value;
-      if (s.setting_key === 'event_require_admin_email') requirements.require_admin_email = value;
       if (s.setting_key === 'event_require_event_date') requirements.require_event_date = value;
       if (s.setting_key === 'event_require_expiration') requirements.require_expiration = value;
     });
@@ -57,7 +54,6 @@ const getEventFieldRequirements = async () => {
     return {
       require_customer_name: true,
       require_customer_email: true,
-      require_admin_email: true,
       require_event_date: true,
       require_expiration: true
     };

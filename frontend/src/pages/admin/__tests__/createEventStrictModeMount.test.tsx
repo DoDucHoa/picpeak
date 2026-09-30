@@ -59,7 +59,6 @@ vi.mock('../../../hooks/usePublicSettings', () => ({
     data: {
       event_require_customer_name: false,
       event_require_customer_email: false,
-      event_require_admin_email: false,
       event_require_event_date: false,
       event_require_expiration: false,
       event_default_require_password: false,

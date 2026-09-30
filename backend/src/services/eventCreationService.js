@@ -131,9 +131,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   if (fieldRequirements.require_customer_email && !customerEmail) {
     validationErrors.push({ path: 'customer_email', msg: 'Customer email is required' });
   }
-  if (fieldRequirements.require_admin_email && !admin_email) {
-    validationErrors.push({ path: 'admin_email', msg: 'Admin email is required' });
-  }
   if (fieldRequirements.require_event_date && !event_date) {
     validationErrors.push({ path: 'event_date', msg: 'Event date is required' });
   }

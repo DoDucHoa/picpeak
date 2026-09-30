@@ -105,31 +105,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             <label className="flex items-start gap-3">
               <input
                 type="checkbox"
-                checked={eventSettings.event_require_admin_email}
-                onChange={(e) => setEventSettings(prev => ({ ...prev, event_require_admin_email: e.target.checked }))}
-                className="mt-1 w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <div>
-                <span className="text-sm font-medium text-body">
-                  {t('settings.events.requireAdminEmail', 'Require admin email')}
-                </span>
-                <p className="text-xs text-muted mt-1">
-                  {t('settings.events.requireAdminEmailHelp', 'Admin email must be provided for new events')}
-                </p>
-                {!eventSettings.event_require_admin_email && (
-                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {t('settings.events.adminEmailWarning', 'Required for receiving event notifications')}
-                  </p>
-                )}
-              </div>
-            </label>
-          </div>
-
-          <div>
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
                 checked={eventSettings.event_require_event_date}
                 onChange={(e) => setEventSettings(prev => ({ ...prev, event_require_event_date: e.target.checked }))}
                 className="mt-1 w-4 h-4 text-primary-600 rounded focus:ring-primary-500"

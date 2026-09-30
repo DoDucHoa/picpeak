@@ -77,6 +77,11 @@ describe('create paths', () => {
     expect((await db('events').where({ id: created.id }).first()).admin_email).toBe('ops@example.com');
   });
 
+  it('succeeds with no admin email and no global address', async () => {
+    const created = await createEvent({ ...base, event_name: 'Global C' }, { actor: { id: adminId } });
+    expect((await db('events').where({ id: created.id }).first()).admin_email).toBeNull();
+  });
+
   it('keeps the typed address when no global address is set', async () => {
     const created = await createEvent({ ...base, event_name: 'Global B', admin_email: 'typed@example.com' }, { actor: { id: adminId } });
     expect((await db('events').where({ id: created.id }).first()).admin_email).toBe('typed@example.com');
