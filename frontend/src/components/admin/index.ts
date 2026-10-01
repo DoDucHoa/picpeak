@@ -35,6 +35,7 @@ export { BackupConfiguration } from './BackupConfiguration';
 export { BackupHistory } from './BackupHistory';
 export { RestoreWizard } from './RestoreWizard';
 export { FeedbackSettings } from './FeedbackSettings';
+export { IdentityModeField } from './IdentityModeField';
 export { FeedbackModerationPanel } from './FeedbackModerationPanel';
 export { WordFilterManager } from './WordFilterManager';
 export { EventRenameDialog } from './EventRenameDialog';

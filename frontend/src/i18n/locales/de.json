@@ -2449,7 +2449,9 @@
       "full": "Volles Feedback",
       "fullHelp": "Favoriten, Likes, Bewertungen, Kommentare und Reaktionen.",
       "custom": "Eigene Auswahl",
-      "customHelp": "Die einzelnen Schalter unter den erweiterten Optionen entscheiden."
+      "customHelp": "Die einzelnen Schalter unter den erweiterten Optionen entscheiden.",
+      "customFromSettings": "Eigene Auswahl (aus den Einstellungen)",
+      "customFromSettingsHelp": "Die Feedback-Schalter aus Einstellungen > Events."
     },
     "expiry": {
       "label": "Galerie läuft ab",

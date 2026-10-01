@@ -1922,7 +1922,9 @@
       "full": "Full feedback",
       "fullHelp": "Favourites, likes, ratings, comments and reactions.",
       "custom": "Custom",
-      "customHelp": "The individual switches under advanced options decide."
+      "customHelp": "The individual switches under advanced options decide.",
+      "customFromSettings": "Custom (from Settings)",
+      "customFromSettingsHelp": "The feedback switches set in Settings > Events."
     },
     "expiry": {
       "label": "Gallery expires",

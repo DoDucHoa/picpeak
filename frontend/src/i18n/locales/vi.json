@@ -1921,7 +1921,9 @@
       "full": "Phản hồi đầy đủ",
       "fullHelp": "Yêu thích, thích, chấm điểm, bình luận và biểu cảm.",
       "custom": "Tuỳ chỉnh",
-      "customHelp": "Các công tắc riêng trong phần tuỳ chọn nâng cao quyết định."
+      "customHelp": "Các công tắc riêng trong phần tuỳ chọn nâng cao quyết định.",
+      "customFromSettings": "Tuỳ chỉnh (theo Cài đặt)",
+      "customFromSettingsHelp": "Các công tắc phản hồi đặt trong Cài đặt > Sự kiện."
     },
     "expiry": {
       "label": "Gallery hết hạn",

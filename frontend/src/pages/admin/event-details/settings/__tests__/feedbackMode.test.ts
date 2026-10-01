@@ -47,4 +47,10 @@ describe('feedback mode (spec 5.7)', () => {
   it('offers no Custom when neither the saved nor the current toggles need it', () => {
     expect(offeredModes(base, picks)).toEqual(['off', 'picks', 'full']);
   });
+
+  it('keeps every other field of the object it is given (the create screen passes a subset)', () => {
+    const subset = { feedback_enabled: false, allow_favorites: true, allow_likes: true, allow_ratings: true, allow_comments: true, allow_reactions: true, identity_mode: 'guest' as const };
+    const next = applyFeedbackMode(subset, subset, 'picks');
+    expect(next).toEqual({ ...subset, feedback_enabled: true, allow_likes: false, allow_ratings: false, allow_comments: false, allow_reactions: false });
+  });
 });

@@ -9,18 +9,25 @@ const LABEL: Record<FeedbackMode, [string, string, string, string]> = {
   custom: ['events.feedbackMode.custom', 'Custom', 'events.feedbackMode.customHelp', 'The individual switches under advanced options decide.'],
 };
 
+const FROM_SETTINGS: [string, string, string, string] = [
+  'events.feedbackMode.customFromSettings', 'Custom (from Settings)',
+  'events.feedbackMode.customFromSettingsHelp', 'The feedback switches set in Settings > Events.',
+];
+
 /** The feedback mode (spec 5.7): one choice instead of the individual toggles. */
 export const FeedbackModeSelector: React.FC<{
   mode: FeedbackMode;
   offered: FeedbackMode[];
   onSelect: (mode: FeedbackMode) => void;
-}> = ({ mode, offered, onSelect }) => {
+  /** Create (spec 5.7): the Custom toggles are the Settings defaults. */
+  fromSettings?: boolean;
+}> = ({ mode, offered, onSelect, fromSettings = false }) => {
   const { t } = useTranslation();
   const name = useId();
   return (
     <div role="radiogroup" aria-label={t('events.feedbackMode.label', 'Guest feedback')} className="space-y-2">
       {offered.map((m) => {
-        const [key, fallback, helpKey, helpFallback] = LABEL[m];
+        const [key, fallback, helpKey, helpFallback] = m === 'custom' && fromSettings ? FROM_SETTINGS : LABEL[m];
         return (
           <label key={m} className="flex items-start gap-2 cursor-pointer">
             <input type="radio" name={name} className="mt-1" checked={mode === m} onChange={() => onSelect(m)} />

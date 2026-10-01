@@ -36,7 +36,7 @@ export function offeredModes(current: Partial<FeedbackSettings>, saved: Partial<
  * brings back the saved toggles. Color labels, identity, caps and the privacy
  * switches are never changed by a mode.
  */
-export function applyFeedbackMode(current: FeedbackSettings, saved: Partial<FeedbackSettings>, mode: FeedbackMode): FeedbackSettings {
+export function applyFeedbackMode<T extends Partial<FeedbackSettings>>(current: T, saved: Partial<FeedbackSettings>, mode: FeedbackMode): T {
   if (mode === 'off') return { ...current, feedback_enabled: false };
   const types = mode === 'picks' ? PICKS : mode === 'full' ? FULL : typesOf(saved);
   return { ...current, feedback_enabled: true, ...types };
