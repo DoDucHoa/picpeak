@@ -85,8 +85,25 @@ colours: its palette is fixed (white, near black text `#1a1a1a`, orange accent
 | Download all / multi-select | Existing `download-all` and `download-selected`, through the download gate and quota |
 | Share | Copy the gallery link, using the Web Share API where present |
 
+The pick tab counts the viewer's own picks, so `/photos` gains a per-viewer
+`is_favorited` flag computed exactly like `is_liked` (guest id when a verified
+guest token is present, else the IP and user agent identifier, hidden rows
+excluded, not gated on `show_feedback_to_guests`).
+
+Like and pick update the photos cache in place (`setQueryData`) instead of
+invalidating it: invalidating refetches every page of a large album on each
+tap.
+
 A tab, button or rail icon whose feedback switch is off for the event is not
-rendered. Rating, reactions and colour labels are not part of the design; their
+rendered.
+
+From the old header and footer, three things survive: the logout control
+(a toolbar icon, shown under the same rule as today: password gallery, client
+PIN session or customer portal session), the info and promo markdown (rendered
+as plain text blocks below the grid when set), and the gallery hero logo (top
+left of the cover, when `hero_logo_visible`). The social links footer, the
+company tagline row and the countdown timer go; the expiry notice covers the
+countdown's job. Rating, reactions and colour labels are not part of the design; their
 data stays in the backend and the admin still sees them.
 
 ## Architecture
@@ -138,10 +155,16 @@ context-menu block move into `ClientGallery`.
    the first paint. Overscan of about one viewport. Only visible tiles plus the
    overscan exist in the DOM, whatever the album size.
 2. **Virtualised list view.** Same virtualiser, fixed 150px rows.
-3. **Right sized thumbnails.** `srcset` over the existing thumbnail widths
-   (300, 600, 900) with `sizes` derived from the column width, through
-   `thumbnailUrlForTile`. `decoding="async"`. The first row gets
-   `fetchpriority="high"`, everything else `loading="lazy"`.
+3. **Right sized, uncropped tile images.** Thumbnails are square crops
+   (`thumbnail_fit` is seeded to `cover`), so a masonry tile at the photo's own
+   ratio cannot use them. Tiles use the preview rendition (`slideshow_url`,
+   aspect preserved) at the smallest of 640 or 1280 px that covers the measured
+   column width times the device pixel ratio, through a new `tilePreviewUrl`
+   helper beside `thumbnailUrlForTile`, with the same data-saver downshift. One
+   URL per tile, not a `srcset`: `AuthenticatedImage` fetches its `src` with the
+   gallery bearer token, and a `srcset` would make the browser issue its own
+   unauthenticated request. Videos keep `thumbnail_url`. The first row is
+   fetched at `queuePriority="high"`, the rest at `normal`.
 4. **Placeholder colour.** Tiles show a neutral `#f2f2f2` box until the image
    decodes, then fade in with opacity only (no layout animation).
 5. **Viewer mounts three slides.** YARL renders the current slide and its two
