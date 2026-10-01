@@ -419,10 +419,13 @@ In `adminSettings.js` above the router:
 ```js
 // Gallery theming is gone; theme_config now carries brand styling only,
 // which the admin, the customer portal and the public site still read.
+// Must match BRAND_KEYS in migration 263 exactly.
 const BRAND_THEME_KEYS = [
-  'primaryColor', 'accentColor', 'backgroundColor', 'textColor',
-  'fontFamily', 'headingFontFamily', 'borderRadius', 'fontSize',
-  'shadowStyle', 'forceColorMode', 'logoUrl',
+  'primaryColor', 'accentColor', 'accentDarkColor', 'backgroundColor',
+  'surfaceColor', 'elevatedColor', 'surfaceBorderColor', 'textColor',
+  'mutedTextColor', 'colorMode', 'forceColorMode',
+  'fontFamily', 'headingFontFamily', 'fontSize',
+  'borderRadius', 'buttonStyle', 'shadowStyle', 'logoUrl',
 ];
 function brandThemeOnly(body) {
   const kept = {};
@@ -1836,7 +1839,7 @@ git commit -m "feat(gallery): serve the new client gallery and remove the themab
 - Test: `frontend/src/contexts/__tests__/ThemeContext.brandOnly.test.tsx`
 
 **Interfaces:**
-- Produces: `interface BrandTheme { primaryColor?: string; accentColor?: string; backgroundColor?: string; textColor?: string; fontFamily?: string; headingFontFamily?: string; borderRadius?: 'none' | 'sm' | 'md' | 'lg'; fontSize?: 'small' | 'normal' | 'large'; shadowStyle?: 'none' | 'subtle' | 'normal' | 'dramatic'; forceColorMode?: 'light' | 'dark' | 'auto'; logoUrl?: string }`. `useTheme()` returns `{ theme: BrandTheme; setTheme: (t: BrandTheme) => void }`. `ThemeConfig` becomes a deprecated alias of `BrandTheme` only if removing the name breaks more than the files listed in Task 14; otherwise remove it. Copy the literal unions above from the current `ThemeConfig` (read it first; keep whatever values it allows today).
+- Produces: `interface BrandTheme { primaryColor?: string; accentColor?: string; accentDarkColor?: string; backgroundColor?: string; surfaceColor?: string; elevatedColor?: string; surfaceBorderColor?: string; textColor?: string; mutedTextColor?: string; colorMode?: ...; fontFamily?: string; headingFontFamily?: string; fontSize?: ...; borderRadius?: ...; buttonStyle?: ...; shadowStyle?: ...; logoUrl?: string }` (the 17 keys of BRAND_KEYS in migration 263 minus forceColorMode, which is a separate setting). `useTheme()` returns `{ theme: BrandTheme; setTheme: (t: BrandTheme) => void }`. `ThemeConfig` becomes a deprecated alias of `BrandTheme` only if removing the name breaks more than the files listed in Task 14; otherwise remove it. Copy the literal unions above from the current `ThemeConfig` (read it first; keep whatever values it allows today).
 
 - [ ] **Step 1: Failing test**
 
