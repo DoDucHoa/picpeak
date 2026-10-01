@@ -291,6 +291,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     applyTheme(theme);
   }, [theme, applyTheme]);
 
+  // Earlier versions saved the last theme as `gallery-theme` and cached each
+  // gallery's background as `gallery-theme-bg-<slug>`. Nothing reads them any
+  // more, so clear them out once per visit. Best-effort: storage may throw.
+  useEffect(() => {
+    try {
+      const stale: string[] = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && (key === 'gallery-theme' || key.startsWith('gallery-theme-bg-'))) stale.push(key);
+      }
+      stale.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      /* ignore: a blocked storage just keeps the dead keys */
+    }
+  }, []);
+
   // Listen for system color scheme changes when colorMode is 'auto'
   useEffect(() => {
     if (theme.colorMode !== 'auto') return;

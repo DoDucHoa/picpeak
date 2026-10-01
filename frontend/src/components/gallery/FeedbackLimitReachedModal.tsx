@@ -71,7 +71,9 @@ export const FeedbackLimitReachedModal: React.FC<FeedbackLimitReachedModalProps>
       role="dialog"
       aria-modal="true"
       aria-labelledby="feedback-limit-title"
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60"
+      // cg-tokens: portalled to <body>, outside the client gallery root, so it
+      // carries the gallery's fixed tokens itself instead of the brand's.
+      className="cg-tokens fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60"
       onClick={(e) => {
         // Backdrop click only — don't dismiss when clicking inside the card.
         if (e.target === e.currentTarget) onClose();

@@ -66,6 +66,25 @@ describe('ThemeContext keeps brand tokens only', () => {
     expect(localStorage.getItem('gallery-theme')).toBeNull();
   });
 
+  it('removes the gallery theme keys earlier versions left behind', () => {
+    localStorage.setItem('gallery-theme', '{"name":"default","config":{}}');
+    localStorage.setItem('gallery-theme-bg-summer-party', '#0d0d0d');
+    localStorage.setItem('gallery-theme-bg-winter-ball', '#ffffff');
+    localStorage.setItem('picpeak-language', 'de');
+    render(<ThemeProvider><div /></ThemeProvider>);
+    expect(storedKeys()).toEqual(['picpeak-language']);
+  });
+
+  it('still renders when storage throws', () => {
+    const spy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    localStorage.setItem('gallery-theme', '{}');
+    expect(() => render(<ThemeProvider><div /></ThemeProvider>)).not.toThrow();
+    expect(spy).toHaveBeenCalledWith('gallery-theme');
+    spy.mockRestore();
+  });
+
   it('exposes only the theme and its setter', () => {
     let keys: string[] = [];
     const Probe = () => {

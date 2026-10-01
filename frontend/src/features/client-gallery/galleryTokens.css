@@ -7,8 +7,11 @@
 
 /* Fixed client gallery look (spec 2026-10-01). Scoped so brand tokens on
    :root, which style the admin and the portal, never reach the gallery and
-   the gallery never leaks into them. */
-.client-gallery {
+   the gallery never leaks into them.
+   .cg-tokens carries the variables only, without painting anything, for
+   gallery content portalled to <body> outside the gallery root (the
+   feedback limit modal). .client-gallery includes it and paints the page. */
+.client-gallery, .cg-tokens {
   --cg-bg: #ffffff;
   --cg-text: #1a1a1a;
   --cg-muted: #6b6b6b;
@@ -41,11 +44,17 @@
   --border-radius: 0.5rem;
   --font-size-base: 16px;
   --shadow-default: 0 4px 6px rgba(0,0,0,0.1);
+}
+.client-gallery {
   background: var(--cg-bg);
   color: var(--cg-text);
   font-family: var(--cg-font);
+  font-size: var(--font-size-base);
   min-height: 100vh;
 }
+/* A dark brand on <body> must not show around the gallery, for instance
+   during overscroll. */
+body:has(.client-gallery) { background: #ffffff; }
 .client-gallery * { font-family: inherit; }
 .client-gallery .cg-title { font-family: var(--cg-title-font); }
 
