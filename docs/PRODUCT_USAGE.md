@@ -231,8 +231,9 @@ any externally copied content and follow the documented backup/log policies.
 Used flags represent successful allowlisted admin capability calls since
 consent to the current schema (v1: joining; v2/v3/v4: joining or explicit upgrade),
 not visitor behavior or counts. OAuth marks successful admin SSO;
-applied CSS is observed during report generation. Gallery layouts are controlled
-enums extracted from event themes without IDs or counts. Other signals use the
+applied CSS is observed during report generation. Gallery layouts are a controlled
+enum: every gallery uses the single fixed masonry design, so the signal is
+`masonry` when any gallery exists and empty otherwise, without IDs or counts. Other signals use the
 explicit rules in `middleware/productUsage.js`, `usage/capabilityRules.js`,
 `usage/capabilityEvidence.js`, `usage/expandedSnapshot.js` and `usage/UsageService.js`.
 
