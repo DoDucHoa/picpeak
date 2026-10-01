@@ -83,7 +83,7 @@
       },
       "custom_css": {
         "name": "CSS po meri",
-        "configured": "CSS po meri je nastavljen globalno ali uporabljen prek galerije/teme/predloge; besedilo CSS se ne pošilja.",
+        "configured": "CSS po meri je nastavljen globalno ali za javno spletno mesto; besedilo CSS se ne pošilja.",
         "used": "Po soglasju je bila zaznana uporaba CSS, brez opazovanja obiskovalcev."
       },
       "oauth": {

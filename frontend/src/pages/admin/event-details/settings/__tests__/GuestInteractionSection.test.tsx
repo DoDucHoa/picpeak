@@ -23,9 +23,9 @@ function renderSection(overrides: {
       event: { id: 1 } as never, editForm: { show_credits_to_guests: false } as never, setEditForm: overrides.setEditForm ?? vi.fn(),
       feedbackSettings: feedbackSettings as never, setFeedbackSettings: overrides.setFeedbackSettings ?? vi.fn(),
       savedFeedbackSettings: (overrides.savedFeedbackSettings ?? feedbackSettings) as never,
-      theme: { config: {} as never, preset: 'default' }, setTheme: vi.fn(), draft: { state: {} } as never,
+      draft: { state: {} } as never,
       readOnly: false, lockReason: null, expert: overrides.expert ?? false, setExpert: vi.fn(), refetchEvent: vi.fn(),
-      heroPhotos: [], cssTemplates: [], phoneFieldEnabled: false,
+      heroPhotos: [], phoneFieldEnabled: false,
     } as never}><GuestInteractionSection /></EventSettingsContext.Provider>,
   );
 }

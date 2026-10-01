@@ -1,26 +1,10 @@
-import { changesFor, sameValue, type DraftPart, type DraftState } from './eventDraft';
-import type { EditFormState, ThemeDraft } from '../types';
+import { changesFor, type DraftPart, type DraftState } from './eventDraft';
+import type { EditFormState } from '../types';
 
 const SOURCE = ['source_mode', 'external_path', 'external_watch'];
 const PROMO = ['promo_mode', 'promo_markdown'];
 const INFO = ['info_mode', 'info_markdown'];
 const GROUPED = new Set([...SOURCE, ...PROMO, ...INFO]);
-
-function themePayload(theme: ThemeDraft, server: ThemeDraft): Record<string, unknown> {
-  const strip = (c: ThemeDraft['config']) => {
-    const { headerStyle: _h, heroDividerStyle: _d, ...rest } = c as Record<string, unknown>;
-    return rest;
-  };
-  const out: Record<string, unknown> = {};
-  if (theme.preset !== server.preset || !sameValue(strip(theme.config), strip(server.config))) {
-    out.color_theme = theme.preset === 'custom' ? JSON.stringify(theme.config) : theme.preset;
-  }
-  const c = theme.config as { headerStyle?: string; heroDividerStyle?: string };
-  const s = server.config as { headerStyle?: string; heroDividerStyle?: string };
-  if ((c.headerStyle || 'standard') !== (s.headerStyle || 'standard')) out.header_style = c.headerStyle || 'standard';
-  if ((c.heroDividerStyle || 'wave') !== (s.heroDividerStyle || 'wave')) out.hero_divider_style = c.heroDividerStyle || 'wave';
-  return out;
-}
 
 /**
  * The event PUT body: only the changed fields (spec 5.2), with the same
@@ -28,7 +12,7 @@ function themePayload(theme: ThemeDraft, server: ThemeDraft): Record<string, unk
  * together are sent together when any one of them changed.
  */
 export function buildEventPayload(
-  changed: Set<string>, form: EditFormState, theme: ThemeDraft, serverTheme: ThemeDraft,
+  changed: Set<string>, form: EditFormState,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const any = (group: string[]) => group.some((k) => changed.has(k));
@@ -43,7 +27,6 @@ export function buildEventPayload(
       case 'customer_phone': out.customer_phone = form.customer_phone.trim() || null; break;
       case 'expires_at': out.expires_at = form.expires_at || null; break;
       case 'photo_cap': out.photo_cap = form.photo_cap > 0 ? form.photo_cap : null; break;
-      case '__theme': Object.assign(out, themePayload(theme, serverTheme)); break;
       default: out[key] = (form as unknown as Record<string, unknown>)[key];
     }
   }

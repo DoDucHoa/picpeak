@@ -32,7 +32,6 @@ interface CreateEventData {
   require_password?: boolean;
   password?: string;
   welcome_message?: string;
-  color_theme?: string;
   expiration_days?: number;
   // Uploader names (#1561); omitted = the Event Defaults value.
   guest_name_mode?: GuestNameMode;
@@ -69,7 +68,6 @@ interface UpdateEventData {
   client_password?: string;
   regenerate_client_token?: boolean;
   welcome_message?: string;
-  color_theme?: string;
   expires_at?: string;
   is_active?: boolean;
   guest_name_mode?: GuestNameMode;

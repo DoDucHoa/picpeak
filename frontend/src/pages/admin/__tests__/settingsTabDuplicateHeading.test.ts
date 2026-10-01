@@ -38,20 +38,18 @@ const SHELL_HEADING_TABS = [
   { tab: 'accounting', labelKey: 'settings.accounting.title', file: 'features/settings/tabs/AccountingTab.tsx' },
   { tab: 'whatsapp', labelKey: 'settings.whatsapp.title', file: 'features/settings/tabs/WhatsAppTab.tsx' },
   { tab: 'moderation', labelKey: 'settings.moderation.title', file: 'components/admin/WordFilterManager.tsx' },
-  { tab: 'styling', labelKey: 'settings.styling.title', file: 'components/admin/CssTemplateEditor.tsx' },
   { tab: 'slideshow', labelKey: 'settings.slideshow.title', file: 'pages/admin/SlideshowSettingsPage.tsx' },
   { tab: 'businessProfile', labelKey: 'settings.businessProfile.title', file: 'pages/admin/settings/SettingsBusinessProfilePage.tsx' },
   { tab: 'crm', labelKey: 'settings.crm.title', file: 'pages/admin/settings/CrmSettingsPage.tsx' },
 ];
 
 /**
- * The three tabs whose own title merely paraphrased the nav label ("Word
+ * The tabs whose own title merely paraphrased the nav label ("Word
  * Filters" under "Moderation") rather than repeating it verbatim, so the
  * label comparison above can't catch a regression on them.
  */
 const PARAPHRASED_TITLE_KEYS = [
   { file: 'components/admin/WordFilterManager.tsx', key: 'settings.moderation.wordFilters' },
-  { file: 'components/admin/CssTemplateEditor.tsx', key: 'cssTemplates.title' },
   { file: 'pages/admin/settings/CrmSettingsPage.tsx', key: 'crmSettings.title' },
 ];
 

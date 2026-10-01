@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Palette, Upload } from 'lucide-react';
+import { Palette, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, ErrorBoundary, Loading, MarkdownContent } from '../../components/common';
-import { ThemeCustomizerEnhanced, GalleryPreview } from '../../components/admin';
+import { ColorCustomizationCard } from '../../components/admin/theme-customizer/ColorCustomizationCard';
+import { TypographyStyleCard } from '../../components/admin/theme-customizer/TypographyStyleCard';
 import { useTheme } from '../../contexts/ThemeContext';
-import { type ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
+import type { BrandTheme } from '../../types/theme.types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { settingsService, type BrandingSettings } from '../../services/settings.service';
+import { fontsService, type FontDefinition } from '../../services/fonts.service';
 import { businessProfileService } from '../../services/businessProfile.service';
 import { useTranslation } from 'react-i18next';
 import { buildResourceUrl } from '../../utils/url';
@@ -64,13 +66,11 @@ export const BrandingPage: React.FC = () => {
   const { flags } = useFeatureFlags();
   const [brandingSettings, setBrandingSettings] = useState<BrandingSettings>(INITIAL_BRANDING);
 
-  const [currentTheme, setCurrentTheme] = useState<ThemeConfig>(theme);
-  const [currentThemeName, setCurrentThemeName] = useState('default');
+  const [currentTheme, setCurrentTheme] = useState<BrandTheme>(theme);
   // What the server last sent for everything handleSave writes, so the save
   // bar can tell dirty from clean and Discard can put the draft back.
   const [loadedBranding, setLoadedBranding] = useState<BrandingSettings>(INITIAL_BRANDING);
-  const [loadedTheme, setLoadedTheme] = useState<ThemeConfig>(theme);
-  const [loadedThemeName, setLoadedThemeName] = useState('default');
+  const [loadedTheme, setLoadedTheme] = useState<BrandTheme>(theme);
   const [loadedPdfFontFamily, setLoadedPdfFontFamily] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   // PDF body font selection (migration 121). Lives on this page so the
@@ -100,6 +100,14 @@ export const BrandingPage: React.FC = () => {
   const { data: businessProfileSnapshot } = useQuery({
     queryKey: ['business-profile-snapshot'],
     queryFn: () => businessProfileService.get(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // The self-hosted font families the backend scanner found, for the body
+  // and heading font dropdowns. Fonts rarely change without a restart.
+  const { data: availableFonts } = useQuery<FontDefinition[]>({
+    queryKey: ['fonts'],
+    queryFn: () => fontsService.list(),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -146,7 +154,7 @@ export const BrandingPage: React.FC = () => {
   // Initialize theme from database
   useEffect(() => {
     if (themeSettings) {
-      const formatted = settingsService.formatThemeSettings(themeSettings) as ThemeConfig;
+      const formatted = settingsService.formatThemeSettings(themeSettings);
 
       if (formatted && Object.keys(formatted).length > 0) {
         // Use the theme's logo URL as stored in the theme config
@@ -158,22 +166,6 @@ export const BrandingPage: React.FC = () => {
         if (formatted.logoUrl) {
           setBrandingSettings(prev => ({ ...prev, logo_url: formatted.logoUrl }));
           setLoadedBranding(prev => ({ ...prev, logo_url: formatted.logoUrl }));
-        }
-
-        // Try to identify which preset this matches. Compare only on the
-        // fields the preset itself defines so saved themes carrying extras
-        // like a `logoUrl` (preserved through preset changes — see
-        // handlePresetChange) still match the original preset shape.
-        for (const [key, preset] of Object.entries(GALLERY_THEME_PRESETS)) {
-          const keys = Object.keys(preset.config);
-          const matches = keys.every((k) =>
-            JSON.stringify((preset.config as any)[k]) === JSON.stringify((formatted as any)[k])
-          );
-          if (matches) {
-            setCurrentThemeName(key);
-            setLoadedThemeName(key);
-            break;
-          }
         }
       }
     }
@@ -205,44 +197,51 @@ export const BrandingPage: React.FC = () => {
     });
   };
 
-  const handleThemeChange = (newTheme: ThemeConfig) => {
-    // Preset configs don't carry a logoUrl or customCss, so a preset change
-    // inside the customizer arrives here with those fields undefined. Keep
-    // the existing values instead of wiping the persisted ones on save
-    // (#317 for logoUrl, #645 for customCss).
-    const mergedTheme: ThemeConfig = {
-      ...newTheme,
-      logoUrl: newTheme.logoUrl ?? currentTheme.logoUrl,
-      customCss: newTheme.customCss ?? currentTheme.customCss
-    };
-    setCurrentTheme(mergedTheme);
-    if (newTheme.logoUrl !== undefined && newTheme.logoUrl !== currentTheme.logoUrl) {
-      setBrandingSettings(prev => ({ ...prev, logo_url: newTheme.logoUrl || '' }));
-    }
+  const applyThemeDraft = (next: BrandTheme) => {
+    setCurrentTheme(next);
     if (isPreviewMode) {
-      setTheme(mergedTheme);
+      setTheme(next);
     }
   };
 
-  const handlePresetChange = (presetName: string) => {
-    setCurrentThemeName(presetName);
-    // Get the preset theme config
-    const preset = GALLERY_THEME_PRESETS[presetName];
-    if (preset) {
-      // Preserve the existing logo + custom CSS when switching presets
-      // (#317 for logo, #645 for customCss). Presets define a look; they
-      // shouldn't silently drop the admin's persisted styling extras.
-      setCurrentTheme(prev => ({
-        ...preset.config,
-        logoUrl: prev.logoUrl,
-        customCss: prev.customCss
-      }));
-      if (isPreviewMode) {
-        setTheme({
-          ...preset.config,
-          logoUrl: currentTheme.logoUrl,
-        });
-      }
+  const handleThemeFieldChange = (key: keyof BrandTheme, value: string) => {
+    const next: BrandTheme = { ...currentTheme, [key]: value };
+    // Legacy alias: keep primaryColor in lockstep with accentDarkColor so
+    // any consumer that still reads --color-primary or primaryColor does
+    // not drift after the 8-token migration.
+    if (key === 'accentDarkColor') {
+      next.primaryColor = value;
+    }
+    applyThemeDraft(next);
+  };
+
+  // Switching to dark fills dark surfaces and text while the palette is
+  // still the light default, and back again, so the page stays readable.
+  const handleColorModeSelect = (mode: 'light' | 'dark' | 'auto') => {
+    if (mode === 'dark' && (!currentTheme.backgroundColor || currentTheme.backgroundColor === '#fafafa' || currentTheme.backgroundColor === '#ffffff')) {
+      applyThemeDraft({
+        ...currentTheme,
+        colorMode: mode,
+        backgroundColor: '#0f0f0f',
+        surfaceColor: '#1a1a1a',
+        elevatedColor: '#242424',
+        surfaceBorderColor: '#2e2e2e',
+        textColor: '#e5e5e5',
+        mutedTextColor: '#a3a3a3',
+      });
+    } else if (mode === 'light' && currentTheme.colorMode === 'dark') {
+      applyThemeDraft({
+        ...currentTheme,
+        colorMode: mode,
+        backgroundColor: '#fafafa',
+        surfaceColor: '#ffffff',
+        elevatedColor: '#f5f5f5',
+        surfaceBorderColor: '#e5e5e5',
+        textColor: '#171717',
+        mutedTextColor: '#737373',
+      });
+    } else {
+      applyThemeDraft({ ...currentTheme, colorMode: mode });
     }
   };
 
@@ -285,7 +284,7 @@ export const BrandingPage: React.FC = () => {
         let themeStored = false;
         if (themeSettings) {
           try {
-            const storedTheme: ThemeConfig = { ...loadedTheme, logoUrl };
+            const storedTheme: BrandTheme = { ...loadedTheme, logoUrl };
             await settingsService.updateTheme(storedTheme);
             themeStored = true;
           } catch (themeError) {
@@ -410,7 +409,6 @@ export const BrandingPage: React.FC = () => {
       setBrandingSettings(updatedBrandingSettings);
       setLoadedBranding(updatedBrandingSettings);
       setLoadedTheme(currentTheme);
-      setLoadedThemeName(currentThemeName);
       setLoadedPdfFontFamily(pdfFontFamily);
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -420,30 +418,15 @@ export const BrandingPage: React.FC = () => {
   // Everything handleSave writes. The upload endpoints store their URL on
   // the spot, so the upload handlers move the snapshot along with the draft
   // and an upload alone does not read as dirty.
-  const isDirty = JSON.stringify([brandingSettings, currentTheme, currentThemeName, pdfFontFamily])
-    !== JSON.stringify([loadedBranding, loadedTheme, loadedThemeName, loadedPdfFontFamily]);
+  const isDirty = JSON.stringify([brandingSettings, currentTheme, pdfFontFamily])
+    !== JSON.stringify([loadedBranding, loadedTheme, loadedPdfFontFamily]);
 
   const handleDiscard = () => {
     setBrandingSettings(loadedBranding);
     setCurrentTheme(loadedTheme);
-    setCurrentThemeName(loadedThemeName);
     setPdfFontFamily(loadedPdfFontFamily);
     if (isPreviewMode) {
       setTheme(loadedTheme);
-    }
-  };
-
-  const handlePreview = () => {
-    const previewWindow = window.open('/gallery/preview', '_blank');
-    if (previewWindow) {
-      // Send theme data to preview window
-      setTimeout(() => {
-        previewWindow.postMessage({
-          type: 'THEME_PREVIEW',
-          theme: currentTheme,
-          branding: brandingSettings
-        }, window.location.origin);
-      }, 1000);
     }
   };
 
@@ -463,17 +446,6 @@ export const BrandingPage: React.FC = () => {
           icon={Palette}
           title={t('branding.title')}
           description={t('branding.subtitle')}
-          actions={(
-            <>
-              <Button
-                variant="outline"
-                leftIcon={<Eye className="w-4 h-4" />}
-                onClick={handlePreview}
-              >
-                {t('branding.preview')}
-              </Button>
-            </>
-          )}
         />
 
         {/* Company Branding */}
@@ -1237,19 +1209,23 @@ export const BrandingPage: React.FC = () => {
         </Card>
 
         {/* Customer dashboard branding (#354). Sits between "Company
-            Information" and "Gallery Theme" so it stays adjacent to the
+            Information" and the brand style so it stays adjacent to the
             other brand-visibility controls. Self-hides when the
             customerPortal feature flag is off. */}
         <div className="mb-6">
           <CustomerDashboardBrandingSection />
         </div>
 
-        {/* Theme Customization */}
+        {/* Brand style: the admin, the customer portal and the public pages.
+            Client galleries keep their own fixed look and read none of it. */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-heading mb-1 flex items-center gap-2">
             <Palette className="w-5 h-5" />
-            {t('branding.galleryTheme')}
+            {t('branding.brandStyle', 'Brand style')}
           </h2>
+          <p className="text-sm text-muted mb-4">
+            {t('branding.brandStyleHelp', 'Colours, fonts and shapes for the admin, the customer portal and the public pages. Client galleries keep their own fixed look.')}
+          </p>
           <div className="mb-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -1261,64 +1237,31 @@ export const BrandingPage: React.FC = () => {
               <span className="text-sm text-body">{t('branding.applyLivePreview')}</span>
             </label>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left side - Theme Customizer.
-                The PDF typography card is injected via the
-                customizer's `slotBeforeCustomCss` so it sits
-                immediately after the web Typography & Style section
-                and before the (often bulky) Custom CSS editor —
-                keeps all typography choices visually grouped.
-                Hidden when no PDF-producing feature is on; persisted
-                via the top-level Save button (handleSave). */}
-            <div>
-              <ThemeCustomizerEnhanced
-                value={currentTheme}
-                onChange={handleThemeChange}
-                presetName={currentThemeName}
-                onPresetChange={handlePresetChange}
-                showGalleryLayouts={true}
-                hideActions={true}
-                forceColorMode={brandingSettings.force_color_mode ?? null}
-                onForceColorModeChange={handleForceColorModeChange}
-                slotBeforeCustomCss={
-                  (flags.quotes || flags.bills || flags.taxReport)
-                    ? <PdfTypographyCard value={pdfFontFamily} onChange={setPdfFontFamily} />
-                    : null
-                }
-              />
-            </div>
-
-            {/* Right side - Gallery Preview */}
-            <div className="lg:sticky lg:top-4 lg:h-fit">
-              <Card className="p-4">
-                <h3 className="text-sm font-medium text-body mb-3">
-                  {t('branding.livePreview')}
-                </h3>
-                <GalleryPreview
-                  theme={currentTheme}
-                  branding={{ ...brandingSettings, logo_url_dark: logoDarkUrl }}
-                  className="shadow-lg"
-                />
-              </Card>
-            </div>
+          {/* The PDF typography card sits right after the web typography,
+              so every typography choice stays together. Hidden when no
+              PDF-producing feature is on; persisted via the top-level Save
+              button (handleSave). */}
+          <div className="space-y-6">
+            <ColorCustomizationCard
+              localTheme={currentTheme}
+              handleChange={handleThemeFieldChange}
+              handleColorModeSelect={handleColorModeSelect}
+              forceColorMode={brandingSettings.force_color_mode ?? null}
+              onForceColorModeChange={handleForceColorModeChange}
+            />
+            <TypographyStyleCard
+              localTheme={currentTheme}
+              handleChange={handleThemeFieldChange}
+              availableFonts={availableFonts}
+            />
+            {(flags.quotes || flags.bills || flags.taxReport) && (
+              <PdfTypographyCard value={pdfFontFamily} onChange={setPdfFontFamily} />
+            )}
           </div>
         </div>
 
         {(flags.quotes || flags.bills || flags.taxReport || flags.contracts) && <PdfThemeCard />}
         {(flags.quotes || flags.bills || flags.taxReport || flags.contracts) && <PdfFontsCard />}
-
-        {/* Event-Specific Themes Info */}
-        <Card padding="md" className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
-          <div className="flex items-start gap-3">
-            <Palette className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-medium text-blue-900 dark:text-blue-200">{t('branding.eventSpecificThemes')}</h3>
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                {t('branding.eventThemesInfo')}
-              </p>
-            </div>
-          </div>
-        </Card>
 
         <SettingsSaveBar
           isDirty={isDirty}

@@ -20,7 +20,7 @@ import { PhotoSourceFields } from '../event-details/settings/PhotoSourceFields';
 import { applyFeedbackMode, feedbackMode, offeredModes } from '../event-details/settings/feedbackMode';
 import { EventTypeTiles } from './EventTypeTiles';
 import {
-  brandingThemeOf, buildCreatePayload, createDefaults, createRequirements, generatedPassword,
+  buildCreatePayload, createDefaults, createRequirements, generatedPassword,
   initialCreateForm, validateCreateForm, type CreateErrorField, type CreateForm, type CreateType,
 } from './createForm';
 
@@ -115,11 +115,7 @@ export const CreateEventForm: React.FC<{ publicSettings: Settings; adminSettings
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     isSubmittingRef.current = true;
-    createMutation.mutate(buildCreatePayload(form, {
-      phoneFieldEnabled,
-      themePreset: type?.themePreset,
-      brandingTheme: brandingThemeOf(publicSettings),
-    }) as unknown as Parameters<typeof eventsService.createEvent>[0]);
+    createMutation.mutate(buildCreatePayload(form, { phoneFieldEnabled }) as unknown as Parameters<typeof eventsService.createEvent>[0]);
   };
 
   const checkbox = 'mt-1 w-4 h-4 text-accent border-line-strong rounded focus:ring-primary-500';

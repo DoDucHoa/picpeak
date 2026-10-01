@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,8 +17,8 @@ vi.mock('react-i18next', async () => ({
 }));
 vi.mock('../../../../../hooks/useActiveEventTypes', () => ({
   useActiveEventTypes: () => ({ data: [
-    { slug_prefix: 'wedding', name: 'Wedding', emoji: '', theme_preset: 'elegantWedding', is_active: true },
-    { slug_prefix: 'birthday', name: 'Birthday', emoji: '', theme_preset: 'birthdayFun', is_active: true },
+    { slug_prefix: 'wedding', name: 'Wedding', emoji: '', is_active: true },
+    { slug_prefix: 'birthday', name: 'Birthday', emoji: '', is_active: true },
   ] }),
 }));
 vi.mock('../../../../../hooks/usePublicSettings', () => ({ usePublicSettings: () => ({ data: {} }) }));
@@ -26,22 +26,20 @@ vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ Custom
 
 import { EventSettingsContext } from '../EventSettingsContext';
 import { DetailsSection } from '../DetailsSection';
-import { GALLERY_THEME_PRESETS } from '../../../../../types/legacyGalleryTheme.types';
 
 const form = {
   customer_name: 'Anna', customer_email: 'a@example.com', customer_phone: '', customer_accounts: [],
   expires_at: '2030-01-01', welcome_message: '', event_date: '2026-05-29', event_type: 'wedding',
 };
 
-function renderSection(over: { event?: object; editForm?: object; setEditForm?: ReturnType<typeof vi.fn>; setTheme?: ReturnType<typeof vi.fn>; draft?: object } = {}) {
+function renderSection(over: { event?: object; editForm?: object; setEditForm?: ReturnType<typeof vi.fn>; draft?: object } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}><ConfirmDialogProvider>
       <EventSettingsContext.Provider value={{
-        event: { id: 1, color_theme: null, ...over.event } as never,
+        event: { id: 1, ...over.event } as never,
         editForm: { ...form, ...over.editForm } as never, setEditForm: over.setEditForm ?? vi.fn(),
-        theme: { config: {} as never, preset: 'custom' }, setTheme: over.setTheme ?? vi.fn(),
         draft: (over.draft ?? { state: {} }) as never, readOnly: false, lockReason: null, expert: true, setExpert: vi.fn(),
-        refetchEvent: vi.fn(), heroPhotos: [], cssTemplates: [], phoneFieldEnabled: false,
+        refetchEvent: vi.fn(), heroPhotos: [], phoneFieldEnabled: false,
       } as never}><DetailsSection /></EventSettingsContext.Provider>
     </ConfirmDialogProvider></QueryClientProvider>,
   );
@@ -58,8 +56,11 @@ it('writes a new event type into the draft', async () => {
   const setEditForm = vi.fn();
   renderSection({ setEditForm });
   await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
+  // The type changes nothing else: no look follows it any more.
+  expect(setEditForm).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('dialog')).toBeNull();
   const update = setEditForm.mock.calls[0][0];
-  expect(update(form)).toMatchObject({ event_type: 'birthday' });
+  expect(update(form)).toEqual({ ...form, event_type: 'birthday' });
 });
 
 it('uses the one welcome message editor', () => {
@@ -70,36 +71,4 @@ it('uses the one welcome message editor', () => {
 it('offers Never for the expiry on edit', () => {
   renderSection();
   expect(screen.getByRole('button', { name: 'Never' })).toBeInTheDocument();
-});
-
-const customTheme = JSON.stringify({ ...GALLERY_THEME_PRESETS.default.config, primaryColor: '#123456' });
-
-it('applies the new type theme to an inherited theme without asking', async () => {
-  const setTheme = vi.fn();
-  renderSection({ setTheme });
-  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
-  expect(screen.queryByRole('dialog')).toBeNull();
-  expect(setTheme.mock.calls[0][0]({})).toEqual({ config: GALLERY_THEME_PRESETS.birthdayFun.config, preset: 'birthdayFun' });
-});
-
-it('asks before replacing a customised theme, and keeps it on Keep', async () => {
-  const setTheme = vi.fn();
-  renderSection({ setTheme, event: { color_theme: customTheme } });
-  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
-  await userEvent.click(await screen.findByRole('button', { name: 'Keep my theme' }));
-  expect(setTheme).not.toHaveBeenCalled();
-});
-
-it('replaces a customised theme when confirmed', async () => {
-  const setTheme = vi.fn();
-  renderSection({ setTheme, event: { color_theme: customTheme } });
-  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
-  await userEvent.click(await screen.findByRole('button', { name: 'Apply theme' }));
-  await waitFor(() => expect(setTheme).toHaveBeenCalledTimes(1));
-});
-
-it('counts a theme changed in this draft by its draft preset', async () => {
-  renderSection({ draft: { state: { 'event.__theme': { base: null, value: { config: {}, preset: 'custom' } } } } });
-  await userEvent.selectOptions(screen.getByLabelText('Event type'), 'birthday');
-  expect(await screen.findByRole('dialog')).toBeInTheDocument();
 });

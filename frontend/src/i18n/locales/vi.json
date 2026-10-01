@@ -83,7 +83,7 @@
       },
       "custom_css": {
         "name": "CSS tùy chỉnh",
-        "configured": "CSS tùy chỉnh được cấu hình ở phạm vi toàn hệ thống hoặc áp dụng qua bộ sưu tập/giao diện/mẫu; nội dung CSS không được gửi đi.",
+        "configured": "CSS tùy chỉnh được cấu hình ở phạm vi toàn hệ thống hoặc cho trang công khai; nội dung CSS không được gửi đi.",
         "used": "Ghi nhận việc áp dụng CSS sau khi đồng ý, không quan sát khách xem ảnh."
       },
       "oauth": {
@@ -3418,6 +3418,8 @@
     "watermarkSize": "Kích thước watermark",
     "theme": "Giao diện",
     "galleryTheme": "Giao diện bộ sưu tập ảnh",
+    "brandStyle": "Phong cách thương hiệu",
+    "brandStyleHelp": "Màu sắc, phông chữ và hình dạng cho trang quản trị, cổng khách hàng và các trang công khai. Bộ sưu tập ảnh của khách giữ giao diện cố định riêng.",
     "colors": "Màu sắc",
     "accentColor": "Màu nhấn",
     "backgroundColor": "Màu nền",

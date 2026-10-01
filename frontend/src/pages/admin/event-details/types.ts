@@ -1,11 +1,7 @@
-import type { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
-
 export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads' | 'settings';
 
 export type EditFormState = {
   welcome_message: string;
-  color_theme: string;
-  css_template_id: number | null;
   expires_at: string;
   // Event date and type, edited in Settings > Details (spec 5.1, 5.9).
   event_date: string;
@@ -52,13 +48,8 @@ export type EditFormState = {
   client_password: string;
 };
 
-/** The theme picker's state in the draft: the look and the preset it came from. */
-export interface ThemeDraft { config: ThemeConfig; preset: string }
-
 export const INITIAL_EDIT_FORM: EditFormState = {
   welcome_message: '',
-  color_theme: '',
-  css_template_id: null,
   expires_at: '',
   event_date: '',
   event_type: '',

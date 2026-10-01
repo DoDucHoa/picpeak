@@ -59,10 +59,6 @@ vi.mock('../../../components/admin/CustomerDashboardBrandingCard', () => ({
 vi.mock('../../../components/admin/PdfTypographyCard', () => ({
   PdfTypographyCard: () => null,
 }));
-vi.mock('../../../components/admin', async () => {
-  const actual = await vi.importActual<any>('../../../components/admin');
-  return { ...actual, GalleryPreview: () => null };
-});
 
 import { BrandingPage } from '../BrandingPage';
 import { ThemeProvider } from '../../../contexts/ThemeContext';

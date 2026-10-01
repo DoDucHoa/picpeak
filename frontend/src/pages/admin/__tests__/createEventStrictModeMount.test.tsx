@@ -44,9 +44,6 @@ vi.mock('../../../services/categories.service', () => ({
 vi.mock('../../../services/settings.service', () => ({
   settingsService: { getAllSettings: vi.fn(async () => ({})) },
 }));
-vi.mock('../../../services/cssTemplates.service', () => ({
-  cssTemplatesService: { getEnabledTemplates: vi.fn(async () => []) },
-}));
 vi.mock('../../../services/eventTypes.service', () => ({
   eventTypesService: { getEventTypes: vi.fn(async () => []) },
 }));
@@ -80,8 +77,6 @@ vi.mock('../../../components/admin', async () => {
   const actual = await vi.importActual<any>('../../../components/admin');
   return {
     ...actual,
-    ThemeCustomizerEnhanced: () => null,
-    GalleryPreview: () => null,
     WelcomeMessageEditor: () => null,
     FeedbackSettings: () => null,
   };

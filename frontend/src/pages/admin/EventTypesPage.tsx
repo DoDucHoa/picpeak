@@ -17,7 +17,6 @@ import {
 import { Button, Input, Card, Loading } from '../../components/common';
 import { useModal, useMutationWithToast } from '../../hooks';
 import { eventTypesService, EventType, CreateEventTypeData, UpdateEventTypeData } from '../../services/eventTypes.service';
-import { GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { SectionPageHeader } from '../../components/admin/SectionPageHeader';
 
 // Common emoji options for event types
@@ -167,9 +166,6 @@ export const EventTypesPage: React.FC = () => {
                   {t('eventTypes.table.slugPrefix', 'URL Prefix')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase">
-                  {t('eventTypes.table.theme', 'Default Theme')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase">
                   {t('eventTypes.table.status', 'Status')}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
@@ -180,7 +176,7 @@ export const EventTypesPage: React.FC = () => {
             <tbody className="bg-panel divide-y divide-line">
               {filteredTypes.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={5}className="px-4 py-8 text-center text-muted">
                     {searchTerm
                       ? t('eventTypes.noResults', 'No event types found')
                       : t('eventTypes.empty', 'No event types yet')}
@@ -209,9 +205,6 @@ export const EventTypesPage: React.FC = () => {
                       <code className="px-2 py-1 bg-inset text-heading rounded text-sm">
                         {type.slug_prefix}
                       </code>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-body">
-                      {GALLERY_THEME_PRESETS[type.theme_preset]?.name || type.theme_preset || '-'}
                     </td>
                     <td className="px-4 py-4">
                       {type.is_active ? (
@@ -315,7 +308,6 @@ const EventTypeModal: React.FC<EventTypeModalProps> = ({
     name: eventType?.name || '',
     slug_prefix: eventType?.slug_prefix || '',
     emoji: eventType?.emoji || '📷',
-    theme_preset: eventType?.theme_preset || 'default'
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof CreateEventTypeData, string>>>({});
@@ -345,7 +337,6 @@ const EventTypeModal: React.FC<EventTypeModalProps> = ({
       if (form.name !== eventType?.name) updates.name = form.name;
       if (form.slug_prefix !== eventType?.slug_prefix) updates.slug_prefix = form.slug_prefix;
       if (form.emoji !== eventType?.emoji) updates.emoji = form.emoji;
-      if (form.theme_preset !== eventType?.theme_preset) updates.theme_preset = form.theme_preset;
       onSubmit(updates);
     } else {
       onSubmit(form);
@@ -429,24 +420,6 @@ const EventTypeModal: React.FC<EventTypeModalProps> = ({
                     </button>
                   ))}
                 </div>
-              </div>
-
-              {/* Theme Preset */}
-              <div>
-                <label className="block text-sm font-medium text-body mb-2">
-                  {t('eventTypes.form.themePreset', 'Default Theme')}
-                </label>
-                <select
-                  value={form.theme_preset}
-                  onChange={(e) => setForm({ ...form, theme_preset: e.target.value })}
-                  className="w-full px-3 py-2 border border-line-strong bg-panel text-heading rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent-dark"
-                >
-                  {Object.entries(GALLERY_THEME_PRESETS).map(([key, preset]) => (
-                    <option key={key} value={key}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Active toggle for editing */}

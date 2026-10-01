@@ -83,7 +83,7 @@
       },
       "custom_css": {
         "name": "Custom CSS",
-        "configured": "Custom CSS is configured globally or applied through a gallery/theme/template; CSS text is not sent.",
+        "configured": "Custom CSS is configured globally or for the public site; CSS text is not sent.",
         "used": "Applied CSS observed after consent, without observing visitors."
       },
       "oauth": {
@@ -3426,6 +3426,8 @@
     "watermarkSize": "Watermark Size",
     "theme": "Theme",
     "galleryTheme": "Gallery Theme",
+    "brandStyle": "Brand style",
+    "brandStyleHelp": "Colours, fonts and shapes for the admin, the customer portal and the public pages. Client galleries keep their own fixed look.",
     "colors": "Colors",
     "accentColor": "Accent Color",
     "backgroundColor": "Background Color",

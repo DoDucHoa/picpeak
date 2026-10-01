@@ -83,7 +83,7 @@
       },
       "custom_css": {
         "name": "Eigenes CSS",
-        "configured": "Eigenes CSS ist global oder über Galerie/Theme/Vorlage eingerichtet; CSS-Inhalte werden nicht gesendet.",
+        "configured": "Eigenes CSS ist global oder für die öffentliche Website eingerichtet; CSS-Inhalte werden nicht gesendet.",
         "used": "Angewendetes CSS nach Zustimmung festgestellt, ohne Besucher zu beobachten."
       },
       "oauth": {
@@ -3895,6 +3895,8 @@
     "watermarkSize": "Wasserzeichen-Größe",
     "theme": "Theme",
     "galleryTheme": "Galerie-Theme",
+    "brandStyle": "Markenstil",
+    "brandStyleHelp": "Farben, Schriften und Formen für den Adminbereich, das Kundenportal und die öffentlichen Seiten. Kundengalerien behalten ihr eigenes festes Design.",
     "colors": "Farben",
     "accentColor": "Akzentfarbe",
     "backgroundColor": "Hintergrundfarbe",

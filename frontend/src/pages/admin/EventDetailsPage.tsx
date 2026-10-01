@@ -13,11 +13,9 @@ import { isGalleryPublic } from '../../utils/accessControl';
 import { splitMediaCount } from '../../utils/mediaCounts';
 import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters } from '../../services/photos.service';
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
-import { cssTemplatesService } from '../../services/cssTemplates.service';
-import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { safeParseDate, eventHasGuests } from './event-details/utils';
-import { INITIAL_EDIT_FORM, type EventDetailsTab, type ThemeDraft } from './event-details/types';
-import { eventFormValues, themeValue } from './event-details/draft/serverValues';
+import { INITIAL_EDIT_FORM, type EventDetailsTab } from './event-details/types';
+import { eventFormValues } from './event-details/draft/serverValues';
 import { useDraftObject, useEventDraft } from './event-details/draft/useEventDraft';
 import { buildEventPayload, runSave, validateDraft } from './event-details/draft/saveDraft';
 import { changesFor, isChangedElsewhere, type DraftPart } from './event-details/draft/eventDraft';
@@ -183,13 +181,6 @@ const EventDetailsPageContent: React.FC = () => {
     enabled: !!id && activeTab === 'settings',
   });
 
-  // CSS templates for the Appearance section, loaded with the Settings tab.
-  const { data: cssTemplates = [] } = useQuery({
-    queryKey: ['css-templates-enabled'],
-    queryFn: () => cssTemplatesService.getEnabledTemplates(),
-    enabled: activeTab === 'settings',
-  });
-
   // Fetch filter summary for feedback filters
   const { data: filterSummary } = useQuery({
     queryKey: ['admin-event-filter-summary', id],
@@ -237,18 +228,6 @@ const EventDetailsPageContent: React.FC = () => {
   const [editForm, setEditForm] = useDraftObject(draft, 'event', serverForm);
   const serverFeedback = useMemo(() => (eventFeedbackSettings ?? {}) as FeedbackSettingsType, [eventFeedbackSettings]);
   const [feedbackSettings, setFeedbackSettings] = useDraftObject(draft, 'feedback', serverFeedback);
-  const serverTheme = useMemo<ThemeDraft>(
-    () => (event
-      ? themeValue(event, publicSettings?.theme_config as ThemeConfig | undefined)
-      : { config: GALLERY_THEME_PRESETS.default.config, preset: 'default' }),
-    [event, publicSettings?.theme_config],
-  );
-  const theme = (draft.state['event.__theme']?.value as ThemeDraft | undefined) ?? serverTheme;
-  const { update: updateDraft } = draft;
-  const setTheme = useCallback(
-    (fn: (current: ThemeDraft) => ThemeDraft) => updateDraft('event', '__theme', (cur) => fn(cur as ThemeDraft), serverTheme),
-    [updateDraft, serverTheme],
-  );
   const [expert, setExpert] = useExpertMode();
   const { hasPermission } = usePermissions();
   // Archived, or no events.edit: Settings is read-only (spec 5.2). A draft
@@ -265,7 +244,7 @@ const EventDetailsPageContent: React.FC = () => {
   // Read-only setters: a disabled fieldset stops form controls, not a
   // clickable image like the focal point picker, so nothing may write.
   const noop = useCallback(() => undefined, []);
-  const lockedDraft = useMemo(() => ({ ...draft, set: noop, update: noop }), [draft, noop]);
+  const lockedDraft = useMemo(() => ({ ...draft, set: noop }), [draft, noop]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const section = (searchParams.get('section') as SectionId | null) ?? 'details';
@@ -276,7 +255,7 @@ const EventDetailsPageContent: React.FC = () => {
   };
   const sectionLabel = useSectionLabel();
   const changedElsewhereSections = useMemo(() => {
-    const server: Record<string, unknown> = { 'event.__theme': serverTheme };
+    const server: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(serverForm)) server[`event.${k}`] = v;
     for (const [k, v] of Object.entries(serverFeedback)) server[`feedback.${k}`] = v;
     const ids = new Set<SectionId>();
@@ -287,7 +266,7 @@ const EventDetailsPageContent: React.FC = () => {
       }
     }
     return [...ids].map(sectionLabel);
-  }, [draft.state, serverForm, serverFeedback, serverTheme, sectionLabel]);
+  }, [draft.state, serverForm, serverFeedback, sectionLabel]);
 
   const PART_LABEL: Record<DraftPart, [string, string]> = {
     event: ['events.saveBar.partEvent', 'event details'],
@@ -307,7 +286,7 @@ const EventDetailsPageContent: React.FC = () => {
     }
     setIsSaving(true);
     setSaveError(null);
-    const result = await runSave(draft.state, () => buildEventPayload(changed, editForm, theme, serverTheme), {
+    const result = await runSave(draft.state, () => buildEventPayload(changed, editForm), {
       updateEvent: (payload) => eventsService.updateEvent(event.id, payload),
       updateFeedback: (payload) => feedbackService.updateEventFeedbackSettings(String(event.id), payload),
       updateQuota: (payload) => api.put(`/admin/events/${event.id}/download-quota`, payload),
@@ -568,11 +547,9 @@ const EventDetailsPageContent: React.FC = () => {
           feedbackSettings,
           setFeedbackSettings: settingsLock === null ? setFeedbackSettings : noop,
           savedFeedbackSettings: serverFeedback,
-          theme,
-          setTheme: settingsLock === null ? setTheme : noop,
           draft: settingsLock === null ? draft : lockedDraft,
           readOnly: settingsLock !== null, lockReason: settingsLock, expert, setExpert, refetchEvent,
-          categories, phoneFieldEnabled, heroPhotos, cssTemplates,
+          categories, phoneFieldEnabled, heroPhotos,
         }}>
           <EventSettingsTab section={section} onSection={setSection} />
         </EventSettingsContext.Provider>

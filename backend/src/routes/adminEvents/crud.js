@@ -1272,10 +1272,6 @@ module.exports = (router) => {
         // accepts the fields and ignores them, so old clients keep working and
         // the columns keep their values.
         'reveal_mode', 'reveal_at', 'allow_user_uploads', 'upload_category_id',
-        // Gallery theming is removed and migration 263 dropped these columns.
-        // An older admin client still posts them, so they are ignored here
-        // rather than reaching the UPDATE as unknown columns.
-        'color_theme', 'css_template_id', 'header_style', 'hero_divider_style',
       ];
       // Only canonical keys reach the UPDATE. SQLite resolves quoted
       // identifiers case-insensitively, so `{ "Event_Name": ... }` lands on

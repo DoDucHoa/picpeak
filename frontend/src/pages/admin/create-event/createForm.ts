@@ -1,5 +1,4 @@
 import { format as formatDate } from 'date-fns';
-import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 import type { FeedbackSettings } from '../../../services/feedback.service';
 import { nextEventPassword } from '../../../utils/passwordGenerator';
 import { expiryFromToday } from '../event-details/settings/ExpiryField';
@@ -28,7 +27,7 @@ export interface CreateForm extends PhotoSourceValues {
   feedback: CreateFeedback;
 }
 
-export interface CreateType { slug: string; name: string; emoji: string; themePreset: string }
+export interface CreateType { slug: string; name: string; emoji: string }
 
 export interface CreateDefaults {
   type: CreateType | null;
@@ -140,37 +139,8 @@ export function validateCreateForm(form: CreateForm, req: CreateRequirements): P
   return errors;
 }
 
-/** Branding's theme from public settings, which may carry it as an object or a JSON string. */
-export function brandingThemeOf(publicSettings: Settings): Partial<ThemeConfig> | null {
-  const raw = publicSettings?.theme_config;
-  if (raw && typeof raw === 'object') return raw as Partial<ThemeConfig>;
-  if (typeof raw === 'string' && raw.startsWith('{')) {
-    try { return JSON.parse(raw) as Partial<ThemeConfig>; } catch { return null; }
-  }
-  return null;
-}
-
-/**
- * The theme a new event stores (spec 5.5): nothing, so it follows Branding
- * live, unless the type has a preset other than 'default', whose name is
- * stored. The server always writes the header and divider style columns and
- * the gallery reads them first, so they come from that preset, else from
- * Branding's theme, as the old create page did.
- */
-export function createThemeFields(themePreset: string | undefined, brandingTheme: Partial<ThemeConfig> | null | undefined) {
-  const preset = themePreset && themePreset !== 'default' ? GALLERY_THEME_PRESETS[themePreset] : undefined;
-  const source: Partial<ThemeConfig> = preset ? preset.config : brandingTheme ?? {};
-  return {
-    ...(preset ? { color_theme: themePreset } : {}),
-    ...(source.headerStyle ? { header_style: source.headerStyle } : {}),
-    ...(source.heroDividerStyle ? { hero_divider_style: source.heroDividerStyle } : {}),
-  };
-}
-
 export interface PayloadContext {
   phoneFieldEnabled: boolean;
-  themePreset: string | undefined;
-  brandingTheme: Partial<ThemeConfig> | null;
 }
 
 /** The create request. Fields not on the screen are left to the server's defaults. */
@@ -192,7 +162,6 @@ export function buildCreatePayload(form: CreateForm, ctx: PayloadContext): Recor
     // A date, or null for Never (spec 5.8); expiration_days is never sent.
     expires_at: form.expires_at || null,
     welcome_message: form.welcome_message,
-    ...createThemeFields(ctx.themePreset, ctx.brandingTheme),
     source_mode: form.source_mode,
     ...(form.source_mode === 'reference'
       ? { external_path: form.external_path.trim(), external_watch: form.external_watch }

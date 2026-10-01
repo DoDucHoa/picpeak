@@ -2,13 +2,13 @@ import React from 'react';
 import { Type } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../common';
-import { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
+import type { BrandTheme } from '../../../types/theme.types';
 import type { FontDefinition } from '../../../services/fonts.service';
 import { buildFontFamilyValue, resolveFontDropdownValue } from './fontUtils';
 
 interface TypographyStyleCardProps {
-  localTheme: ThemeConfig;
-  handleChange: (key: keyof ThemeConfig, newValue: any) => void;
+  localTheme: BrandTheme;
+  handleChange: (key: keyof BrandTheme, newValue: string) => void;
   availableFonts?: FontDefinition[];
 }
 
@@ -114,7 +114,7 @@ export const TypographyStyleCard: React.FC<TypographyStyleCardProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Shadow Style & Background Pattern */}
+        {/* Row 2: Shadow Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-body mb-2">
@@ -129,22 +129,6 @@ export const TypographyStyleCard: React.FC<TypographyStyleCardProps> = ({
               <option value="subtle">{t('branding.shadowOptions.subtle')}</option>
               <option value="normal">{t('branding.shadowOptions.normal')}</option>
               <option value="dramatic">{t('branding.shadowOptions.dramatic')}</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-body mb-2">
-              {t('branding.backgroundPattern')}
-            </label>
-            <select
-              value={localTheme.backgroundPattern || 'none'}
-              onChange={(e) => handleChange('backgroundPattern', e.target.value)}
-              className="w-full px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading"
-            >
-              <option value="none">{t('branding.backgroundOptions.none')}</option>
-              <option value="dots">{t('branding.backgroundOptions.dots')}</option>
-              <option value="grid">{t('branding.backgroundOptions.grid')}</option>
-              <option value="waves">{t('branding.backgroundOptions.waves')}</option>
             </select>
           </div>
         </div>

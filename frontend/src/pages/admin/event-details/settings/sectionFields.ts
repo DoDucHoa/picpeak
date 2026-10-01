@@ -17,7 +17,7 @@ export const SECTION_FIELDS: Record<SectionId, string[]> = {
   details: ['event_date', 'event_type', 'customer_name', 'customer_email', 'customer_phone', 'customer_accounts', 'expires_at', 'welcome_message'].map((f) => `event.${f}`),
   access: ['require_password', 'new_password', 'client_access_enabled', 'client_password'].map((f) => `event.${f}`),
   appearance: [
-    '__theme', 'css_template_id', 'hero_photo_id', 'og_image_share_enabled', 'hero_image_anchor', 'hero_logo_visible',
+    'hero_photo_id', 'og_image_share_enabled', 'hero_image_anchor', 'hero_logo_visible',
     'promo_mode', 'promo_markdown', 'info_mode', 'info_markdown',
   ].map((f) => `event.${f}`),
   guests: ['event.show_credits_to_guests', ...FEEDBACK],
@@ -29,8 +29,8 @@ export const SECTION_FIELDS: Record<SectionId, string[]> = {
   extra: [],
 };
 
-/** In the form state but edited nowhere: no UI (protection_level) or replaced by the theme draft (color_theme). */
-export const NOT_EDITABLE = ['event.protection_level', 'event.color_theme'];
+/** In the form state but edited nowhere: no UI (protection_level). */
+export const NOT_EDITABLE = ['event.protection_level'];
 
 export function sectionOf(key: string): SectionId | null {
   return SECTION_ORDER.find((id) => SECTION_FIELDS[id].includes(key)) ?? null;

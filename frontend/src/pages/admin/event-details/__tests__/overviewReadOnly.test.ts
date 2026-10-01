@@ -18,9 +18,9 @@ describe('event page without edit mode', () => {
   it('the summary card writes nothing', () => {
     expect(read('EventInformationCard.tsx')).not.toMatch(/setEditForm|editForm\./);
   });
-  it('the Overview no longer renders the flagged cards or the theme section', () => {
+  it('the Overview no longer renders the flagged cards', () => {
     const src = read('OverviewTab.tsx');
-    for (const name of ['SlideshowSettingsCard', 'EventReminderOverrideCard', 'FaceRecognitionCard', 'EventThemeSection', 'DownloadResolutionCard']) {
+    for (const name of ['SlideshowSettingsCard', 'EventReminderOverrideCard', 'FaceRecognitionCard', 'DownloadResolutionCard']) {
       expect(src).not.toMatch(new RegExp(`<${name}\\b`));
     }
   });

@@ -14,7 +14,6 @@ export interface Event {
   customer_phone?: string | null;
   admin_email: string;
   welcome_message?: string;
-  color_theme?: string;
   share_link: string;
   created_at: string;
   expires_at: string | null;
@@ -74,13 +73,8 @@ export interface Event {
   // photo gets surfaced via WhatsApp share until they consciously
   // flip it on.
   og_image_share_enabled?: boolean;
-  // Header style settings (decoupled from layout)
-  header_style?: 'hero' | 'standard' | 'minimal' | 'none';
-  hero_divider_style?: 'wave' | 'straight' | 'angle' | 'curve' | 'none';
   // Hero image anchor position (#162) – keyword or "X% Y%" focal point
   hero_image_anchor?: string;
-  // CSS Template
-  css_template_id?: number | null;
   // Photo cap
   photo_cap?: number | null;
   // Draft mode
@@ -125,7 +119,6 @@ export interface GalleryInfo {
   is_active: boolean;
   is_expired: boolean;
   requires_password?: boolean;
-  color_theme?: string;
   default_photo_sort?: string;
   allow_downloads?: boolean;
   allow_user_uploads?: boolean;
@@ -298,7 +291,6 @@ export interface GalleryData {
       choices: DownloadResolutionChoice[];
     };
     welcome_message?: string;
-    color_theme?: string;
     expires_at: string | null;
     allow_user_uploads?: boolean;
     upload_category_id?: number | null;
@@ -323,9 +315,6 @@ export interface GalleryData {
     // Resolved server-side (#894): false only when the admin hid the
     // logo on this gallery's password page.
     login_logo_visible?: boolean;
-    // Header style settings (decoupled from layout)
-    header_style?: 'hero' | 'standard' | 'minimal' | 'none';
-    hero_divider_style?: 'wave' | 'straight' | 'angle' | 'curve' | 'none';
     // Hero image anchor position (#162) – keyword or "X% Y%" focal point
     hero_image_anchor?: string;
     // Default photo sort order
@@ -424,7 +413,6 @@ export interface GalleryAuthResponse {
     event_type: string;
     event_date: string;
     welcome_message?: string;
-    color_theme?: string;
     expires_at: string;
     allow_user_uploads?: boolean;
     upload_category_id?: number | null;

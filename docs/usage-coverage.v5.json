@@ -57,12 +57,6 @@
       ],
       "reason": "Configuration boolean only; no actual download/selection behavior or resolution values."
     },
-    "styling": {
-      "signals": [
-        "custom_css"
-      ],
-      "reason": "Presence/application only plus controlled gallery-layout enums, never CSS/theme values."
-    },
     "email": {
       "signals": [
         "smtp",

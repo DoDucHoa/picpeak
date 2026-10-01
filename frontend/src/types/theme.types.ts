@@ -18,8 +18,8 @@ export interface BrandTheme {
   //   accentColor        links, icons, focus rings, hover
   //   accentDarkColor    primary CTA fill, filled states
   //
-  // primaryColor is retained as a legacy alias and migrated to accentDarkColor
-  // by frontend/src/utils/themeMigration.ts. Do not surface it in new UI.
+  // primaryColor is retained as a legacy alias; the Branding page keeps it
+  // equal to accentDarkColor. Do not surface it in new UI.
   primaryColor?: string;
   accentColor?: string;
   accentDarkColor?: string;

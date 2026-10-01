@@ -1,5 +1,6 @@
 import { api } from '../config/api';
 import type { SlideshowGlobalDefaults } from './slideshow.service';
+import type { BrandTheme } from '../types/theme.types';
 
 export interface BrandingSettings {
   company_name: string;
@@ -65,17 +66,6 @@ export interface BrandingSettings {
   // from the read mapper loads empty and the next save wipes it (see
   // the note on the footer/promo block there).
   info_markdown?: string;
-}
-
-export interface ThemeSettings {
-  name?: string;
-  primaryColor?: string;
-  accentColor?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  fontFamily?: string;
-  borderRadius?: 'none' | 'sm' | 'md' | 'lg';
-  customCss?: string;
 }
 
 export interface PasswordComplexitySettings {
@@ -312,8 +302,8 @@ export const settingsService = {
     return response.data.watermarkLogoUrl;
   },
 
-  // Update theme settings
-  async updateTheme(settings: ThemeSettings): Promise<void> {
+  // Update the brand theme; the server keeps the brand keys only.
+  async updateTheme(settings: BrandTheme): Promise<void> {
     await api.put('/admin/settings/theme', settings);
   },
 
@@ -426,7 +416,7 @@ export const settingsService = {
   },
 
   // Format theme settings from raw data
-  formatThemeSettings(rawSettings: Record<string, any>): ThemeSettings {
+  formatThemeSettings(rawSettings: Record<string, any>): BrandTheme {
     return rawSettings.theme_config || {};
   },
 

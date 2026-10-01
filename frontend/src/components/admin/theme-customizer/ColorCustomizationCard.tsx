@@ -1,34 +1,28 @@
 import React from 'react';
-import { Palette, RotateCcw, Info } from 'lucide-react';
+import { Palette, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Card } from '../../common';
-import { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
+import { Card } from '../../common';
+import type { BrandTheme } from '../../../types/theme.types';
 import { ColorPickerRow } from './ColorPickerRow';
 
 interface ColorCustomizationCardProps {
-  localTheme: ThemeConfig;
-  handleChange: (key: keyof ThemeConfig, newValue: any) => void;
+  localTheme: BrandTheme;
+  handleChange: (key: keyof BrandTheme, newValue: string) => void;
   handleColorModeSelect: (mode: 'light' | 'dark' | 'auto') => void;
-  forcedColorActive: boolean;
-  isBrandingContext: boolean;
-  hideGalleryColors: boolean;
-  forceColorMode?: 'dark' | 'light' | null;
-  onForceColorModeChange?: (mode: 'dark' | 'light' | null) => void;
-  onSyncFromBranding?: () => void;
+  forceColorMode: 'dark' | 'light' | null;
+  onForceColorModeChange: (mode: 'dark' | 'light' | null) => void;
 }
 
+/** The brand palette, the colour mode and the instance-wide colour mode lock, on the Branding page. */
 export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
   localTheme,
   handleChange,
   handleColorModeSelect,
-  forcedColorActive,
-  isBrandingContext,
-  hideGalleryColors,
   forceColorMode,
   onForceColorModeChange,
-  onSyncFromBranding
 }) => {
   const { t } = useTranslation();
+  const forcedColorActive = forceColorMode !== null;
 
   return (
     <Card className="p-6">
@@ -37,29 +31,13 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
           <Palette className="w-5 h-5" />
           {t('branding.colors')}
         </h3>
-        {/* "Sync from Branding" — caller-supplied so the customizer
-            doesn't have to know how to resolve the Branding theme.
-            Used in event create/edit to reset palette to site colours. */}
-        {onSyncFromBranding && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<RotateCcw className="w-4 h-4" />}
-            onClick={onSyncFromBranding}
-          >
-            {t('branding.syncFromBranding', 'Sync from Branding')}
-          </Button>
-        )}
       </div>
 
       {/* Color Mode Selector */}
       <div className="mb-6">
         {forcedColorActive && (
           <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-            {isBrandingContext
-              ? t('branding.forcedModeBrandingHint', 'Light/dark is locked site-wide by the Force control below — the per-theme mode picker is hidden because it would have no effect.')
-              : t('branding.forcedModeGalleryNote', 'A site-wide color lock is active, so this gallery follows the locked light/dark mode. Color and light/dark options are hidden here and can’t be overridden per gallery.')}
+            {t('branding.forcedModeBrandingHint', 'Light/dark is locked site-wide by the Force control below — the per-theme mode picker is hidden because it would have no effect.')}
           </div>
         )}
         {!forcedColorActive && (<>
@@ -92,52 +70,48 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
         {/*
          * Force color mode (instance-wide). Lives next to the per-theme
          * Color Mode picker so the admin can find both controls in one
-         * place. The data flows through props from BrandingPage which
-         * persists it to branding settings; only renders when the
-         * onForceColorModeChange handler is provided (i.e. only on the
-         * Branding admin page, not in event-level theme editors).
+         * place. The data flows through props from BrandingPage, which
+         * persists it to branding settings.
          */}
-        {onForceColorModeChange && (
-          <div className="mt-5 pt-5 border-t border-line">
-            <h4 className="block text-sm font-medium text-body mb-1">
-              {t('branding.forceColorMode', 'Force color mode')}
-            </h4>
-            <p className="text-xs text-muted mb-3">
-              {t(
-                'branding.forceColorModeHelp',
-                'Lock the entire admin and public site to dark or light. The user-facing dark/light toggle is hidden whenever a lock is active. Per-event themes that try to override the colour mode are also forced to follow.'
-              )}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { value: null, label: t('branding.forceColorModeNone', 'No force (user choice)') },
-                { value: 'dark', label: t('branding.forceColorModeDark', 'Force dark') },
-                { value: 'light', label: t('branding.forceColorModeLight', 'Force light') },
-              ] as const).map(({ value, label }) => {
-                const active = (forceColorMode ?? null) === value;
-                return (
-                  <button
-                    type="button"
-                    key={String(value)}
-                    onClick={() => onForceColorModeChange(value)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                      active
-                        ? 'border-accent-dark bg-accent-dark text-white'
-                        : 'border-line-strong text-soft hover:bg-hover-soft'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="mt-5 pt-5 border-t border-line">
+          <h4 className="block text-sm font-medium text-body mb-1">
+            {t('branding.forceColorMode', 'Force color mode')}
+          </h4>
+          <p className="text-xs text-muted mb-3">
+            {t(
+              'branding.forceColorModeHelp',
+              'Lock the entire admin and public site to dark or light. The user-facing dark/light toggle is hidden whenever a lock is active. Per-event themes that try to override the colour mode are also forced to follow.'
+            )}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { value: null, label: t('branding.forceColorModeNone', 'No force (user choice)') },
+              { value: 'dark', label: t('branding.forceColorModeDark', 'Force dark') },
+              { value: 'light', label: t('branding.forceColorModeLight', 'Force light') },
+            ] as const).map(({ value, label }) => {
+              const active = (forceColorMode ?? null) === value;
+              return (
+                <button
+                  type="button"
+                  key={String(value)}
+                  onClick={() => onForceColorModeChange(value)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    active
+                      ? 'border-accent-dark bg-accent-dark text-white'
+                      : 'border-line-strong text-soft hover:bg-hover-soft'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
 
       {/*
        * 8-token CI palette pickers, grouped by role.
-       * Each token writes directly to the same field name on ThemeConfig
+       * Each token writes directly to the same field name on BrandTheme
        * (kebab → camel mapping happens via handleChange's first arg).
        * Translation keys fall back to inline strings — German/English
        * coverage only (per user language profile); other locales will
@@ -151,7 +125,6 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
        * same height so the four Surfaces and the two Accent rows align
        * cleanly side-by-side.
        */}
-      {!hideGalleryColors && (
       <div className="space-y-6">
         {/* Surfaces */}
         <div>
@@ -201,7 +174,7 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
                 help={help}
                 value={(localTheme as Record<string, string | undefined>)[key] || fallback}
                 fallback={fallback}
-                onChange={(v) => handleChange(key as keyof ThemeConfig, v)}
+                onChange={(v) => handleChange(key as keyof BrandTheme, v)}
               />
             ))}
           </div>
@@ -243,7 +216,7 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
                 help={help}
                 value={(localTheme as Record<string, string | undefined>)[key] || fallback}
                 fallback={fallback}
-                onChange={(v) => handleChange(key as keyof ThemeConfig, v)}
+                onChange={(v) => handleChange(key as keyof BrandTheme, v)}
               />
             ))}
           </div>
@@ -291,7 +264,7 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
                 help={help}
                 value={(localTheme as Record<string, string | undefined>)[key] || fallback}
                 fallback={fallback}
-                onChange={(v) => handleChange(key as keyof ThemeConfig, v)}
+                onChange={(v) => handleChange(key as keyof BrandTheme, v)}
               />
             ))}
           </div>
@@ -299,7 +272,6 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
               handleChange() — no dedicated picker. */}
         </div>
       </div>
-      )}
     </Card>
   );
 };

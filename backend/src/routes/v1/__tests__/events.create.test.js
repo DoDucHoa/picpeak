@@ -84,12 +84,11 @@ it.each(['admin', 'v1', 'legacy'])('%s stores the default hero logo position wha
   const row = await db('events').where({ id: created.id }).first();
   expect(row.hero_logo_position).toBe('top');
 });
-it('ignores the removed gallery theme fields on the admin PUT', async () => {
+it('saves an admin PUT on an event row that has no gallery theme columns', async () => {
   const created = await create('admin', {});
   const response = await request(app).put(`/admin/${created.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ welcome_message: 'Still saved', color_theme: 'modernMasonry', css_template_id: 1,
-      header_style: 'hero', hero_divider_style: 'wave' });
+    .send({ welcome_message: 'Still saved' });
   expect(response.status).toBe(200);
   const row = await db('events').where({ id: created.id }).first();
   expect(row.welcome_message).toBe('Still saved');

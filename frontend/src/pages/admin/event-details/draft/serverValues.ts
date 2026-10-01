@@ -1,9 +1,8 @@
 import { format } from 'date-fns';
 import type { Event } from '../../../../types';
 import type { CustomerGroup } from '../../../../services/customerAdmin.service';
-import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../../types/legacyGalleryTheme.types';
 import { normalizeRequirePassword } from '../../../../utils/accessControl';
-import type { EditFormState, ThemeDraft } from '../types';
+import type { EditFormState } from '../types';
 import { safeParseDate } from '../utils';
 
 /**
@@ -17,8 +16,6 @@ export function eventFormValues(event: Event): EditFormState {
   const eventDate = safeParseDate(event.event_date);
   return {
     welcome_message: event.welcome_message || '',
-    color_theme: event.color_theme || '',
-    css_template_id: event.css_template_id || null,
     expires_at: expiresAtDate ? format(expiresAtDate, 'yyyy-MM-dd') : '',
     // Seeded like expires_at, so a Postgres timestamp reads as its day.
     event_date: eventDate ? format(eventDate, 'yyyy-MM-dd') : '',
@@ -63,41 +60,5 @@ export function eventFormValues(event: Event): EditFormState {
     // Client access (#1271), read the way ClientAccessCard reads it.
     client_access_enabled: !!(event as { client_access_enabled?: unknown }).client_access_enabled,
     client_password: '',
-  };
-}
-
-/** The theme picker's state for a saved event (old handleStartEdit, theme half). */
-export function themeValue(event: Event, brandingTheme: ThemeConfig | undefined): ThemeDraft {
-  let config: ThemeConfig = GALLERY_THEME_PRESETS.default.config;
-  let preset = 'default';
-  if (event.color_theme) {
-    try {
-      if (event.color_theme.startsWith('{')) {
-        config = JSON.parse(event.color_theme);
-        const match = Object.entries(GALLERY_THEME_PRESETS)
-          .find(([, p]) => JSON.stringify(p.config) === JSON.stringify(config));
-        preset = match ? match[0] : 'custom';
-      } else if (GALLERY_THEME_PRESETS[event.color_theme]) {
-        config = GALLERY_THEME_PRESETS[event.color_theme].config;
-        preset = event.color_theme;
-      }
-    } catch {
-      config = GALLERY_THEME_PRESETS.default.config;
-      preset = 'default';
-    }
-  } else if (brandingTheme) {
-    // NULL = inherit Branding; shown as a custom look (#550 follow-up).
-    config = brandingTheme;
-    preset = 'custom';
-  }
-  // The header style card edits the stored columns, so show those.
-  const stored = event as { header_style?: string | null; hero_divider_style?: string | null };
-  return {
-    config: {
-      ...config,
-      ...(stored.header_style ? { headerStyle: stored.header_style } : {}),
-      ...(stored.hero_divider_style ? { heroDividerStyle: stored.hero_divider_style } : {}),
-    } as ThemeConfig,
-    preset,
   };
 }

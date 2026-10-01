@@ -10,8 +10,6 @@ export interface EventType {
   name: string;
   slug_prefix: string;
   emoji: string;
-  theme_preset: string;
-  theme_config: string | null;
   display_order: number;
   is_system: boolean;
   is_active: boolean;
@@ -23,8 +21,6 @@ export interface CreateEventTypeData {
   name: string;
   slug_prefix: string;
   emoji?: string;
-  theme_preset?: string;
-  theme_config?: Record<string, unknown>;
   display_order?: number;
 }
 
@@ -32,8 +28,6 @@ export interface UpdateEventTypeData {
   name?: string;
   slug_prefix?: string;
   emoji?: string;
-  theme_preset?: string;
-  theme_config?: Record<string, unknown>;
   display_order?: number;
   is_active?: boolean;
 }
