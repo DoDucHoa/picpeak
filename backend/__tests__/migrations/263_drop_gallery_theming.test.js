@@ -6,14 +6,34 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'migration-263-secret-at-least-32-chars';
 
-const { bootCrmDb } = require('../integration/helpers/crmDb');
+const knex = require('knex');
+const { randomUUID } = require('crypto');
 const migration = require('../../migrations/core/263_drop_gallery_theming');
 
-let db; let cleanup;
-beforeAll(async () => { ({ db, cleanup } = await bootCrmDb()); }, 120000);
-afterAll(async () => { await cleanup(); });
+// SQLite by default; PICPEAK_PG_TEST_URL runs it on Postgres in a scratch schema.
+const pgUrl = process.env.PICPEAK_PG_TEST_URL;
+let db; let cleanup; let owner; let schema;
+beforeAll(async () => {
+  if (pgUrl) {
+    schema = `gallery_theming_${randomUUID().replace(/-/g, '')}`;
+    owner = knex({ client: 'pg', connection: pgUrl });
+    await owner.schema.createSchema(schema);
+    process.env.DATABASE_CLIENT = 'pg';
+    jest.doMock('../../knexfile', () => ({ client: 'pg', connection: pgUrl, searchPath: [schema] }));
+  }
+  const { bootCrmDb } = require('../integration/helpers/crmDb');
+  ({ db, cleanup } = await bootCrmDb());
+}, 120000);
+afterAll(async () => {
+  if (cleanup) await cleanup();
+  if (owner) { await owner.schema.dropSchema(schema, true); await owner.destroy(); }
+});
 
-const themeRow = () => db('app_settings').where({ setting_key: 'theme_config' }).first();
+// SQLite hands setting_value back as text, Postgres (a json column) as an object.
+const themeConfig = async () => {
+  const { setting_value: value } = await db('app_settings').where({ setting_key: 'theme_config' }).first();
+  return typeof value === 'string' ? JSON.parse(value) : value;
+};
 
 it('drops the gallery theme columns from events', async () => {
   for (const column of ['color_theme', 'css_template_id', 'header_style', 'hero_divider_style']) {
@@ -52,13 +72,13 @@ it('keeps brand keys and strips gallery keys from theme_config', async () => {
 
   await migration.up(db);
 
-  expect(JSON.parse((await themeRow()).setting_value)).toEqual(BRAND);
+  expect(await themeConfig()).toEqual(BRAND);
 });
 
 it('converges when run again', async () => {
-  const before = (await themeRow()).setting_value;
+  const before = await themeConfig();
   await expect(migration.up(db)).resolves.not.toThrow();
-  expect((await themeRow()).setting_value).toBe(before);
+  expect(await themeConfig()).toEqual(before);
 });
 
 it('handles a setting_value that is already a parsed object', async () => {
@@ -88,10 +108,15 @@ it('leaves an unparseable theme_config untouched and warns', async () => {
   warn.mockRestore();
 });
 
-it('down recreates empty columns and the table', async () => {
+it('down recreates empty columns and the table, and up again keeps the brand keys', async () => {
   await migration.down(db);
   expect(await db.schema.hasColumn('events', 'color_theme')).toBe(true);
   expect(await db.schema.hasColumn('event_types', 'theme_config')).toBe(true);
   expect(await db.schema.hasTable('css_templates')).toBe(true);
+  expect(await themeConfig()).toEqual(BRAND);
+
   await migration.up(db);
+  expect(await db.schema.hasColumn('events', 'color_theme')).toBe(false);
+  expect(await db.schema.hasTable('css_templates')).toBe(false);
+  expect(await themeConfig()).toEqual(BRAND);
 });
