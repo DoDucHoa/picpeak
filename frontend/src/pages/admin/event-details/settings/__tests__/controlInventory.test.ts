@@ -20,6 +20,9 @@ const VIA_COMPONENT: Record<string, string> = {
   'event.client_access_enabled': 'ClientAccessCard', 'event.client_password': 'ClientAccessCard',
   'event.customer_accounts': 'CustomerAccountPicker', 'event.show_credits_to_guests': 'CreditVisibilitySetting',
   'event.hero_photo_id': 'HeroPhotoSelector',
+  'event.customer_name': 'CustomerFields', 'event.customer_email': 'CustomerFields', 'event.customer_phone': 'CustomerFields',
+  'event.source_mode': 'PhotoSourceFields', 'event.external_path': 'PhotoSourceFields', 'event.external_watch': 'PhotoSourceFields',
+  'event.photo_cap': 'PhotoSourceFields', 'event.default_photo_sort': 'PhotoSourceFields',
 };
 
 describe('control inventory', () => {

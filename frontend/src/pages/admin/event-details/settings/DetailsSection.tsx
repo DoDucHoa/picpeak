@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Input, LocalizedDateInput, useConfirm } from '../../../../components/common';
+import { Card, LocalizedDateInput, useConfirm } from '../../../../components/common';
 import { WelcomeMessageEditor } from '../../../../components/admin';
 import { CustomerAccountPicker } from '../../../../components/admin/CustomerAccountPicker';
 import { useActiveEventTypes } from '../../../../hooks/useActiveEventTypes';
@@ -8,6 +8,7 @@ import { GALLERY_THEME_PRESETS } from '../../../../types/theme.types';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
 import { ExpiryField } from './ExpiryField';
+import { CustomerFields } from './CustomerFields';
 import { storedThemeKind } from './storedThemeKind';
 
 /**
@@ -73,43 +74,11 @@ export const DetailsSection: React.FC = () => {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-body mb-1">
-            {t('events.hostName')}
-          </label>
-          <Input
-            type="text"
-            value={editForm.customer_name}
-            onChange={(e) => setEditForm(prev => ({ ...prev, customer_name: e.target.value }))}
-            placeholder={t('events.hostNamePlaceholder')}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-body mb-1">
-            {t('events.hostEmail')}
-          </label>
-          <Input
-            type="email"
-            value={editForm.customer_email}
-            onChange={(e) => setEditForm(prev => ({ ...prev, customer_email: e.target.value }))}
-            placeholder={t('events.hostEmailPlaceholder')}
-          />
-        </div>
-
-        {phoneFieldEnabled && (
-          <div>
-            <label className="block text-sm font-medium text-body mb-1">
-              {t('events.customerPhone', 'Customer Phone')} ({t('common.optional')})
-            </label>
-            <Input
-              type="tel"
-              value={editForm.customer_phone}
-              onChange={(e) => setEditForm(prev => ({ ...prev, customer_phone: e.target.value }))}
-              placeholder={t('events.customerPhonePlaceholder', '+1 555 555 1234')}
-            />
-          </div>
-        )}
+        <CustomerFields
+          values={editForm}
+          phoneFieldEnabled={phoneFieldEnabled}
+          onChange={(field, value) => setEditForm(prev => ({ ...prev, [field]: value }))}
+        />
 
         {/* Customer accounts (#354). Picker self-hides when the
             customerPortal feature flag is off. */}
