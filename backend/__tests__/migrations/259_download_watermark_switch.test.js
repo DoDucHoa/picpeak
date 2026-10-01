@@ -2,7 +2,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'migration-257-secret-at-least-32-chars';
 
 const { bootCrmDb } = require('../integration/helpers/crmDb');
-const migration = require('../../migrations/core/257_download_watermark_switch');
+const migration = require('../../migrations/core/259_download_watermark_switch');
 
 let db; let cleanup;
 beforeAll(async () => { ({ db, cleanup } = await bootCrmDb()); }, 120000);

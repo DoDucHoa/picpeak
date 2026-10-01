@@ -5,6 +5,85 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.153.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.152.0-beta.0...v3.153.0-beta.0) (2026-10-01)
+
+
+### Features
+
+* **admin:** count and filter videos, and import them from external folders ([#1738](https://github.com/PicPeak/picpeak/issues/1738)) ([b81352f](https://github.com/PicPeak/picpeak/commit/b81352fe1946b2b2120eed2634547af6eb571df8))
+
+
+### Bug Fixes
+
+* **admin:** stop the branding theme greying out the product usage tab ([#1742](https://github.com/PicPeak/picpeak/issues/1742)) ([8704fb9](https://github.com/PicPeak/picpeak/commit/8704fb943d16d04905c8a7f32cb57620f213dc89))
+* **admin:** type the warnWriteNotes translator as TFunction ([#1746](https://github.com/PicPeak/picpeak/issues/1746)) ([6edea1e](https://github.com/PicPeak/picpeak/commit/6edea1ea622b91cd34172ddf588cb09fd93d4a39))
+* **gallery:** cut the hero rendition at the event's focal point ([#1744](https://github.com/PicPeak/picpeak/issues/1744)) ([2c38498](https://github.com/PicPeak/picpeak/commit/2c38498959e00dfb1ddeadf883e17438dc7e64b1))
+* **gallery:** fetch the lightbox slide on screen ahead of its neighbours ([#1736](https://github.com/PicPeak/picpeak/issues/1736)) ([c9ffe05](https://github.com/PicPeak/picpeak/commit/c9ffe05aae536100fcd8a8b9dd4b6a773ac47295))
+
+## [3.152.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.151.2-beta.0...v3.152.0-beta.0) (2026-10-01)
+
+
+### Features
+
+* **transfers:** split PicTransfer into send and request, and give uploads their own type policy ([#1735](https://github.com/PicPeak/picpeak/issues/1735)) ([4d55ed6](https://github.com/PicPeak/picpeak/commit/4d55ed6ea55dd55a6f6cf14995abd078abe57c3d))
+
+
+### Bug Fixes
+
+* **admin:** remove a back arrow that led out of the admin, and give editors a named exit ([#1730](https://github.com/PicPeak/picpeak/issues/1730)) ([bd9f9da](https://github.com/PicPeak/picpeak/commit/bd9f9da5e5b861e91c32e2a7d0fc0a0dfa2a6cfd))
+* **gallery:** sort and search by the original camera filename ([#1702](https://github.com/PicPeak/picpeak/issues/1702)) ([d27830f](https://github.com/PicPeak/picpeak/commit/d27830fb74800897d589ecca966da58d7745ecb3))
+
+## [3.151.2-beta.0](https://github.com/PicPeak/picpeak/compare/v3.151.1-beta.0...v3.151.2-beta.0) (2026-09-30)
+
+
+### Bug Fixes
+
+* **deps:** close the four open Trivy findings on the backend image ([#1726](https://github.com/PicPeak/picpeak/issues/1726)) ([bb3c720](https://github.com/PicPeak/picpeak/commit/bb3c72056aa209771aac76ac1e6f1d70e92ebf4d))
+* **security:** close the findings of the 2026-09-29 security review and Codex audit ([#1728](https://github.com/PicPeak/picpeak/issues/1728)) ([3c29ce0](https://github.com/PicPeak/picpeak/commit/3c29ce086373a82e73638077ac86f492823a34c4))
+
+## [3.151.1-beta.0](https://github.com/PicPeak/picpeak/compare/v3.151.0-beta.0...v3.151.1-beta.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* **admin:** keep the sidebar brand row while a section is open ([#1722](https://github.com/PicPeak/picpeak/issues/1722)) ([b692a53](https://github.com/PicPeak/picpeak/commit/b692a5391d3bef6172b249870c7a2376ae330545))
+
+## [3.151.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.150.0-beta.0...v3.151.0-beta.0) (2026-09-29)
+
+
+### Features
+
+* **admin:** eight sidebar entries, language in Settings, search across the admin ([#1718](https://github.com/PicPeak/picpeak/issues/1718)) ([7606b0a](https://github.com/PicPeak/picpeak/commit/7606b0a80187d5dc269849b0a839b470f86e6e8e))
+
+## [3.150.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.149.0-beta.0...v3.150.0-beta.0) (2026-09-29)
+
+
+### Features
+
+* **events:** sort the events list by any column it shows, filter by type ([#1717](https://github.com/PicPeak/picpeak/issues/1717)) ([01094d9](https://github.com/PicPeak/picpeak/commit/01094d94930127feed7098c45de88e6f39c892dd))
+
+## [3.149.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.148.2-beta.0...v3.149.0-beta.0) (2026-09-28)
+
+
+### Features
+
+* **gallery-story:** selection mode with download selected and favourite selected ([#1719](https://github.com/PicPeak/picpeak/issues/1719)) ([0275048](https://github.com/PicPeak/picpeak/commit/0275048b6ce0614ab6fcbe6845dd7fefcc5de909))
+
+## [3.148.2-beta.0](https://github.com/PicPeak/picpeak/compare/v3.148.1-beta.0...v3.148.2-beta.0) (2026-09-28)
+
+
+### Bug Fixes
+
+* **backup:** individual backup run delete route the History table already called ([#1714](https://github.com/PicPeak/picpeak/issues/1714)) ([c294880](https://github.com/PicPeak/picpeak/commit/c294880216200ed5f3eb53584ef461bb5e4c3589))
+* **gallery-story:** legible hero title, natural aspect grid option, Download All in the nav ([#1713](https://github.com/PicPeak/picpeak/issues/1713)) ([d1bffd3](https://github.com/PicPeak/picpeak/commit/d1bffd3de56acf8ac799607a5f9f7ea356f11a0e))
+
+## [3.148.1-beta.0](https://github.com/PicPeak/picpeak/compare/v3.148.0-beta.0...v3.148.1-beta.0) (2026-09-28)
+
+
+### Bug Fixes
+
+* **documents:** two follow-ups to [#1658](https://github.com/PicPeak/picpeak/issues/1658) — the VAT note is an invoice statement, and a reference stays in the meta block ([#1690](https://github.com/PicPeak/picpeak/issues/1690)) ([7766804](https://github.com/PicPeak/picpeak/commit/7766804899768341b78a65d5d795cef4283407b6))
+
 ## [3.148.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.147.0-beta.0...v3.148.0-beta.0) (2026-09-28)
 
 

@@ -6,7 +6,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'migration-259-secret-at-least-32-chars';
 
 const { bootCrmDb } = require('../integration/helpers/crmDb');
-const migration = require('../../migrations/core/259_branding_hero_logo_globals');
+const migration = require('../../migrations/core/261_branding_hero_logo_globals');
 
 let db; let cleanup;
 beforeAll(async () => { ({ db, cleanup } = await bootCrmDb()); }, 120000);

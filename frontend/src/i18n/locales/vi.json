@@ -907,7 +907,9 @@
     "clients": "CRM",
     "accounting": "Kế toán",
     "workflows": "Quy trình làm việc",
-    "betaTag": "Beta"
+    "betaTag": "Beta",
+    "automation": "Tự động hóa",
+    "sharing": "Chia sẻ"
   },
   "transfers": {
     "title": "PicTransfer",
@@ -953,7 +955,9 @@
       "status": "Trạng thái",
       "downloads": "Lượt tải xuống",
       "expires": "Hết hạn",
-      "uploads": "Lượt tải lên"
+      "uploads": "Lượt tải lên",
+      "kind": "Loại",
+      "deadline": "Hạn chót"
     },
     "status": {
       "active": "Đang hoạt động",
@@ -979,7 +983,12 @@
       "recipientsCount": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
       "recipientsHint": "Phân tách nhiều địa chỉ bằng dấu phẩy. Mỗi người nhận sẽ có liên kết tải xuống.",
       "recipientsCount_one": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
-      "recipientsCount_other": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống"
+      "recipientsCount_other": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
+      "requestTitlePlaceholder": "vd: Logo và tài liệu thương hiệu của gia đình Smith",
+      "requestMessage": "Bạn cần gì từ khách hàng? (tùy chọn)",
+      "requestMessagePlaceholder": "Hiển thị cho khách hàng trên trang tải lên",
+      "uploadWindowDays": "Nhận tệp tải lên trong (số ngày)",
+      "requestRecipientsHint": "Phân tách nhiều địa chỉ bằng dấu phẩy. Mỗi người nhận sẽ có liên kết tải lên."
     },
     "picker": {
       "title": "Chọn ảnh từ các sự kiện khác",
@@ -1020,8 +1029,51 @@
       "send": "Tải lên {{count}} tệp",
       "failed": "Tải lên thất bại. Vui lòng thử lại.",
       "send_one": "Tải lên {{count}} tệp",
-      "send_other": "Tải lên {{count}} tệp"
-    }
+      "send_other": "Tải lên {{count}} tệp",
+      "typeRejected": "Loại tệp không được chấp nhận: {{names}}",
+      "tooBigNamed": "Quá lớn (tối đa {{mb}} MB): {{names}}",
+      "toomany": "Chỉ có thể tải lên {{count}} tệp đầu tiên mỗi lần.",
+      "someRejected": "Các tệp sau không được chấp nhận: {{names}}",
+      "anyType": "Chấp nhận mọi loại tệp.",
+      "acceptedTypes": "Chấp nhận: {{types}}",
+      "someFailed": "Không thể lưu các tệp sau. Vui lòng thử lại: {{names}}"
+    },
+    "newSend": "Gửi tệp",
+    "newRequest": "Yêu cầu tệp",
+    "emptyTab": "Tab này chưa có mục nào.",
+    "requestCreated": "Đã tạo yêu cầu tệp",
+    "requestCreateFailed": "Không thể tạo yêu cầu tệp",
+    "createRequest": "Tạo yêu cầu",
+    "createRequestAndSend": "Tạo & gửi yêu cầu",
+    "someRejected": "{{count}} tệp không thuộc loại được phép nên đã bị bỏ qua: {{names}}",
+    "uploadBy": "Nhận tệp tải lên đến",
+    "filesReceived": "Tệp đã nhận",
+    "closeRequest": "Đóng yêu cầu",
+    "requestClosed": "Đã đóng yêu cầu",
+    "resend": "Gửi lại",
+    "emailResent": "Đã gửi lại email",
+    "askedOf": "Đã yêu cầu từ",
+    "uploadCode": "Mã tải lên ngắn",
+    "issueCode": "Cấp mã",
+    "rotateCode": "Mã mới",
+    "revokeCode": "Thu hồi",
+    "codeIssued": "Đã cấp mã tải lên",
+    "codeRevoked": "Đã thu hồi mã tải lên",
+    "codeHint": "Tùy chọn: một mã ngắn bạn có thể đọc qua điện thoại. Liên kết đầy đủ ở trên luôn hoạt động.",
+    "unscannedNote": "Các tệp này được lưu đúng như khi nhận và PicPeak không bao giờ mở hay quét chúng. Hãy kiểm tra trước khi sử dụng hoặc chuyển tiếp.",
+    "deleteRequestConfirmTitle": "Xóa yêu cầu tệp?",
+    "deleteRequestConfirmBody": "Thao tác này sẽ xóa liên kết tải lên và xóa vĩnh viễn mọi tệp khách hàng đã gửi.",
+    "tab": {
+      "all": "Tất cả",
+      "sent": "Đã gửi",
+      "requested": "Đã yêu cầu"
+    },
+    "kind": {
+      "send": "Gửi",
+      "request": "Yêu cầu"
+    },
+    "emptyReadOnly": "Chưa có mục nào.",
+    "someDropped": "{{count}} tệp đính kèm không được giữ lại vì yêu cầu tệp chỉ dùng để thu thập tệp: {{names}}"
   },
   "workflows": {
     "title": "Quy trình tự động",
@@ -1386,6 +1438,21 @@
       "photographer": "Nhiếp ảnh gia",
       "uploadedBy": "Tải lên bởi {{name}}",
       "photoBy": "Ảnh chụp bởi {{name}}"
+    },
+    "favoriteSelected_other": "Yêu thích {{count}} ảnh",
+    "unfavoriteSelected_other": "Bỏ {{count}} ảnh yêu thích",
+    "favoritesAdded_other": "Đã thêm {{count}} ảnh vào mục yêu thích",
+    "favoritesRemoved_other": "Đã bỏ {{count}} ảnh khỏi mục yêu thích",
+    "favoriteSelectedError": "Không thể lưu một số ảnh yêu thích",
+    "downloadLimit": {
+      "reached": "Đã đạt giới hạn tải xuống. Vui lòng liên hệ nhiếp ảnh gia để có thêm lượt tải.",
+      "notEnough": "Chỉ còn {{remaining}} lượt tải. Vui lòng chọn ít ảnh hơn hoặc liên hệ nhiếp ảnh gia.",
+      "counter": "Đã dùng {{used}}/{{limit}} lượt tải",
+      "selectionCost": "Dùng {{cost}} trong {{remaining}} lượt tải còn lại của bạn",
+      "selectionTooLarge": "Giới hạn tải xuống: lựa chọn này cần {{cost}} lượt tải, chỉ còn {{remaining}}",
+      "downloadAllBlocked": "Bộ sưu tập ảnh này có nhiều ảnh hơn số lượt tải còn lại của bạn",
+      "previewOnly": "Ảnh tải xuống trong bộ sưu tập này ở kích thước xem trước. Tệp gốc dành cho khách hàng.",
+      "videoClientOnly": "Video này chỉ dành cho khách hàng."
     }
   },
   "categories": {
@@ -1987,7 +2054,40 @@
       "publishAction": "Xuất bản",
       "done": "đã xong",
       "needsPermission": "Cần quyền {{permission}}"
-    }
+    },
+    "media": "Media",
+    "mediaStatistics": "Thống kê media",
+    "videos": "Video",
+    "videoRuntime": "Thời lượng video",
+    "photosCount_other": "{{count}} ảnh",
+    "videosCount_other": "{{count}} video",
+    "manageMedia": "Quản lý media",
+    "downloadLimit": "Giới hạn tải xuống",
+    "downloadLimitHelp": "Số ảnh tối đa khách hàng có thể tải xuống. 0 = không giới hạn",
+    "downloadLimitUsage": "Đã tải {{used}} / {{limit}}",
+    "downloadLimitReset": "Đặt lại",
+    "downloadLimitResetConfirm": "Đặt lại lượt tải của bộ sưu tập ảnh này? Khách hàng sẽ có lại toàn bộ giới hạn, và ảnh đã tải sẽ được tính lại.",
+    "downloadLimitResetDone": "Đã đặt lại lượt tải",
+    "downloadLimitResetFailed": "Không thể đặt lại lượt tải",
+    "sortNameAsc": "A đến Z",
+    "sortNameDesc": "Z đến A",
+    "sortDateNewest": "Mới nhất trước",
+    "sortDateOldest": "Cũ nhất trước",
+    "sortCreatedNewest": "Tạo gần đây",
+    "sortCreatedOldest": "Tạo sớm nhất",
+    "sortPhotosMost": "Nhiều ảnh nhất",
+    "sortPhotosFewest": "Ít ảnh nhất",
+    "sortStatusActive": "Đang hoạt động trước",
+    "sortStatusArchived": "Đã lưu trữ trước",
+    "sortExpiresSoonest": "Sắp hết hạn nhất",
+    "sortExpiresLatest": "Hết hạn muộn nhất",
+    "filterAllTypes": "Tất cả loại",
+    "filterByType": "Lọc theo loại",
+    "sortByName": "Sắp xếp theo tên",
+    "sortByDate": "Sắp xếp theo ngày",
+    "sortByPhotos": "Sắp xếp theo số ảnh",
+    "sortByStatus": "Sắp xếp theo trạng thái",
+    "sortByExpiry": "Sắp xếp theo hạn"
   },
   "settings": {
     "title": "Cài đặt hệ thống",
@@ -2042,7 +2142,10 @@
       "notificationEmail": "Email nhận thông báo",
       "notificationEmailHelp": "PicPeak gửi thư quản trị về gallery tới địa chỉ này, ví dụ khi lưu trữ xong hoặc gallery hết hạn. Khách hàng cũng thấy đây là địa chỉ liên hệ. Để trống thì dùng địa chỉ lưu trong từng sự kiện.",
       "useBusinessEmail": "Dùng {{email}}",
-      "notificationEmailInvalid": "Nhập một địa chỉ email hợp lệ, ví dụ studio@example.com"
+      "notificationEmailInvalid": "Nhập một địa chỉ email hợp lệ, ví dụ studio@example.com",
+      "adminLanguage": "Ngôn ngữ quản trị của bạn",
+      "adminLanguageHelp": "Áp dụng cho khu vực quản trị, chỉ cho bạn trên thiết bị này. Có hiệu lực ngay, không cần lưu.",
+      "customerLanguage": "Ngôn ngữ bộ sưu tập ảnh & khách xem"
     },
     "publicSite": {
       "badge": "Trang chủ công khai",
@@ -2184,7 +2287,8 @@
       "failed": "Thất bại",
       "lastUpdate": "Cập nhật lần cuối",
       "emailProcessorStopped": "Không chạy: email được ghi vào hàng đợi nhưng không có gì gửi chúng đi.",
-      "emailProcessorDegraded": "Đang chạy, nhưng lần xử lý gần nhất không thể gửi: {{error}}"
+      "emailProcessorDegraded": "Đang chạy, nhưng lần xử lý gần nhất không thể gửi: {{error}}",
+      "description": "Dịch vụ, hàng đợi, bộ nhớ lưu trữ và phiên bản: những gì hệ thống này đang chạy lúc này."
     },
     "photoDimensions": {
       "title": "Kích thước ảnh",
@@ -2257,7 +2361,9 @@
       "keybindColors": "Chỉ màu: 1 xanh lá, 2 vàng, 3 đỏ",
       "keybindLightroom": "Lightroom: 1-5 sao, 6-9 màu",
       "keybindMode": "Phím tắt trong lightbox",
-      "keybindModeHelp": "Áp dụng ngay cho mọi gallery, kể cả gallery đã có."
+      "keybindModeHelp": "Áp dụng ngay cho mọi gallery, kể cả gallery đã có.",
+      "defaultDownloadLimit": "Giới hạn tải xuống mặc định",
+      "defaultDownloadLimitHelp": "Điền sẵn cho sự kiện mới: số ảnh khách hàng có thể tải xuống. 0 = không giới hạn."
     },
     "imageSecurity": {
       "title": "Bảo vệ hình ảnh",
@@ -2442,7 +2548,8 @@
       "system": "Hệ thống",
       "appearance": "Nội dung & Giao diện",
       "communication": "Giao tiếp",
-      "crm": "Cài đặt CRM"
+      "crm": "Cài đặt CRM",
+      "people": "Người dùng & quyền truy cập"
     },
     "contracts": {
       "title": "Hợp đồng"
@@ -2726,7 +2833,9 @@
       "documents": {
         "title": "Tài liệu khách hàng",
         "description": "Chia sẻ tài liệu với khách hàng trong cổng khách hàng của họ và nhận tài liệu từ họ. Tệp khách hàng tải lên sẽ chưa khả dụng cho đến khi bạn đánh dấu là sạch trong hồ sơ khách hàng. Mặc định chỉ nhận PDF; thêm loại tệp, giới hạn kích thước và dung lượng lưu trữ tại Cài đặt → CRM."
-      }
+      },
+      "configure": "Cấu hình",
+      "sidebarInSettings": "Không có mục ở thanh bên, nằm trong Cài đặt"
     },
     "customerSurface": {
       "brandingTitle": "Tiêu đề bảng điều khiển khách hàng",
@@ -2904,7 +3013,8 @@
         "logoutFromIdp": "Cũng đăng xuất khỏi nhà cung cấp danh tính",
         "logoutFromIdpHint": "Đăng xuất khỏi PicPeak cũng sẽ kết thúc phiên IdP (đăng xuất khởi tạo từ RP). Chỉ áp dụng cho các phiên đã đăng nhập qua SSO; nếu không bật, đăng xuất khỏi PicPeak sẽ để phiên IdP vẫn hoạt động và lần nhấn SSO tiếp theo sẽ đăng nhập trở lại ngay.",
         "postLogoutRedirectUri": "Post-logout redirect URI (đăng ký giá trị này trên client của IdP, ví dụ Keycloak \"Valid post logout redirect URIs\")"
-      }
+      },
+      "superAdminOnly": "Chỉ super admin mới có thể đổi nhà cung cấp danh tính (issuer URL và client ID). Mọi mục khác trên tab này vẫn chỉnh sửa được."
     },
     "downloads": {
       "title": "Độ phân giải tải xuống",
@@ -2968,6 +3078,269 @@
       "leaveMessage": "Bạn có thay đổi chưa lưu trên trang này. Rời đi bây giờ sẽ hủy các thay đổi đó.",
       "leaveConfirm": "Hủy và rời đi",
       "leaveCancel": "Ở lại"
+    },
+    "health": {
+      "title": "Tình trạng",
+      "description": "Các lỗi chạy nền cần xử lý: email bị kẹt, kiểm tra thất bại và dọn dẹp."
+    },
+    "search": {
+      "placeholder": "Tìm cài đặt…",
+      "label": "Tìm cài đặt",
+      "noResults": "Không có cài đặt nào khớp với “{{query}}”."
+    },
+    "keywords": {
+      "accounting": {
+        "0": "kế toán",
+        "1": "hệ thống tài khoản",
+        "2": "sổ cái",
+        "3": "vat",
+        "4": "thuế",
+        "5": "ghi sổ",
+        "6": "banana"
+      },
+      "analytics": {
+        "0": "phân tích",
+        "1": "theo dõi",
+        "2": "thống kê",
+        "3": "khách truy cập"
+      },
+      "apiTokens": {
+        "0": "api",
+        "1": "token",
+        "2": "khóa api",
+        "3": "tích hợp"
+      },
+      "backup": {
+        "0": "sao lưu",
+        "1": "khôi phục",
+        "2": "xuất",
+        "3": "nhập",
+        "4": "bản chụp",
+        "5": "khôi phục sau sự cố"
+      },
+      "branding": {
+        "0": "thương hiệu",
+        "1": "logo",
+        "2": "favicon",
+        "3": "màu sắc",
+        "4": "màu",
+        "5": "giao diện",
+        "6": "tên công ty"
+      },
+      "businessProfile": {
+        "0": "hồ sơ doanh nghiệp",
+        "1": "bên phát hành",
+        "2": "địa chỉ công ty",
+        "3": "mã số vat",
+        "4": "mã số thuế",
+        "5": "iban",
+        "6": "ngân hàng"
+      },
+      "categories": {
+        "0": "danh mục",
+        "1": "danh mục ảnh",
+        "2": "thẻ"
+      },
+      "cms": {
+        "0": "cms",
+        "1": "trang",
+        "2": "thông tin pháp lý",
+        "3": "impressum",
+        "4": "chính sách quyền riêng tư",
+        "5": "điều khoản",
+        "6": "pháp lý"
+      },
+      "contracts": {
+        "0": "hợp đồng",
+        "1": "khối",
+        "2": "điều khoản",
+        "3": "chữ ký",
+        "4": "mẫu"
+      },
+      "crm": {
+        "0": "crm",
+        "1": "báo giá",
+        "2": "hóa đơn",
+        "3": "đánh số",
+        "4": "mặc định chứng từ"
+      },
+      "downloads": {
+        "0": "tải xuống",
+        "1": "độ phân giải",
+        "2": "kích thước xuất",
+        "3": "tệp gốc"
+      },
+      "email": {
+        "0": "email",
+        "1": "smtp",
+        "2": "imap",
+        "3": "máy chủ thư",
+        "4": "người gửi",
+        "5": "mẫu",
+        "6": "chữ ký"
+      },
+      "eventTypes": {
+        "0": "loại sự kiện",
+        "1": "đám cưới",
+        "2": "chân dung",
+        "3": "phân loại sự kiện"
+      },
+      "events": {
+        "0": "tạo sự kiện",
+        "1": "mặc định",
+        "2": "hết hạn",
+        "3": "giới hạn tải lên"
+      },
+      "features": {
+        "0": "tính năng",
+        "1": "cờ",
+        "2": "bật tắt",
+        "3": "bật",
+        "4": "tắt",
+        "5": "mô-đun"
+      },
+      "general": {
+        "0": "chung",
+        "1": "ngôn ngữ",
+        "2": "múi giờ",
+        "3": "định dạng ngày",
+        "4": "định dạng giờ",
+        "5": "url trang web",
+        "6": "tên miền",
+        "7": "tài khoản",
+        "8": "mật khẩu",
+        "9": "mfa",
+        "10": "2fa"
+      },
+      "health": {
+        "0": "tình trạng hệ thống",
+        "1": "email bị kẹt",
+        "2": "chẩn đoán",
+        "3": "dọn dẹp",
+        "4": "kiểm tra",
+        "5": "khắc phục sự cố"
+      },
+      "imageSecurity": {
+        "0": "bảo vệ ảnh",
+        "1": "watermark",
+        "2": "chuột phải",
+        "3": "chống tải xuống"
+      },
+      "moderation": {
+        "0": "kiểm duyệt",
+        "1": "phản hồi",
+        "2": "bình luận",
+        "3": "báo cáo",
+        "4": "bị gắn cờ"
+      },
+      "security": {
+        "0": "bảo mật",
+        "1": "giới hạn tần suất",
+        "2": "đăng nhập",
+        "3": "khóa tài khoản",
+        "4": "phiên đăng nhập",
+        "5": "chính sách mật khẩu"
+      },
+      "seo": {
+        "0": "seo",
+        "1": "robots",
+        "2": "sitemap",
+        "3": "thẻ meta",
+        "4": "công cụ tìm kiếm",
+        "5": "lập chỉ mục"
+      },
+      "slideshow": {
+        "0": "trình chiếu",
+        "1": "kiosk",
+        "2": "thuyết trình",
+        "3": "hiển thị"
+      },
+      "sso": {
+        "0": "sso",
+        "1": "đăng nhập một lần",
+        "2": "oidc",
+        "3": "saml",
+        "4": "oauth",
+        "5": "nhà cung cấp danh tính"
+      },
+      "status": {
+        "0": "trạng thái hệ thống",
+        "1": "dịch vụ",
+        "2": "hàng đợi",
+        "3": "worker",
+        "4": "ổ đĩa",
+        "5": "phiên bản"
+      },
+      "styling": {
+        "0": "css tùy chỉnh",
+        "1": "css",
+        "2": "stylesheet",
+        "3": "định kiểu"
+      },
+      "thumbnails": {
+        "0": "ảnh thu nhỏ",
+        "1": "kích thước xem trước",
+        "2": "kích thước ảnh"
+      },
+      "usage": {
+        "0": "mức sử dụng",
+        "1": "giấy phép",
+        "2": "license",
+        "3": "gói",
+        "4": "hạn mức"
+      },
+      "users": {
+        "0": "người dùng",
+        "1": "tài khoản",
+        "2": "vai trò",
+        "3": "quyền",
+        "4": "mời",
+        "5": "nhóm",
+        "6": "nhân viên",
+        "7": "quyền truy cập"
+      },
+      "webhooks": {
+        "0": "webhook",
+        "1": "callback",
+        "2": "http hook",
+        "3": "luồng sự kiện"
+      },
+      "whatsapp": {
+        "0": "whatsapp",
+        "1": "nhắn tin",
+        "2": "điện thoại",
+        "3": "business api"
+      },
+      "transfers": {
+        "0": "chuyển tệp",
+        "1": "pictransfer",
+        "2": "tải lên",
+        "3": "loại tệp",
+        "4": "mime",
+        "5": "svg",
+        "6": "danh sách cho phép",
+        "7": "chấp nhận tất cả",
+        "8": "kích thước tệp",
+        "9": "yêu cầu tệp"
+      }
+    },
+    "transfers": {
+      "title": "PicTransfer",
+      "description": "Những loại tệp khách hàng được gửi cho bạn, và kích thước tối đa.",
+      "uploadsTitle": "Khách hàng được gửi gì cho bạn",
+      "uploadsIntro": "Áp dụng cho yêu cầu tệp và tệp bạn đính kèm vào lượt chuyển tệp. Không thay đổi những gì được tải lên bộ sưu tập ảnh.",
+      "acceptAll": "Chấp nhận mọi loại tệp",
+      "acceptAllHint": "Mọi tệp khách hàng chọn đều được chấp nhận. Giới hạn kích thước, số lượng tệp và thời hạn liên kết vẫn được áp dụng.",
+      "acceptAllWarning": "Tệp tải lên được lưu và gửi đi dưới dạng tệp tải xuống nguyên khối. PicPeak không bao giờ mở, hiển thị hay quét chúng, và chúng không bao giờ được phục vụ như nội dung web. Nhưng PicPeak cũng không thể cho bạn biết một tệp có an toàn hay không. Hãy kiểm tra mọi tệp bạn mở hoặc chuyển tiếp.",
+      "allowedTypes": "Loại tệp được phép",
+      "addType": "Thêm loại",
+      "allowedTypesHint": "Một tệp được chấp nhận khi loại của nó khớp và phần mở rộng nằm trong danh sách. Để trống phần mở rộng để chỉ so khớp theo loại.",
+      "noTypes": "Chưa có loại nào. Hãy thêm ít nhất một loại, hoặc bật \"Chấp nhận mọi loại tệp\".",
+      "mime": "Loại tệp",
+      "extensions": "Phần mở rộng",
+      "maxSize": "Kích thước tệp tối đa (MB)",
+      "maxSizeHint": "Áp dụng cho từng tệp, không phải cho mỗi lượt tải lên.",
+      "readOnly": "Chỉ quản trị viên có quyền sửa cài đặt mới thay đổi được những gì khách hàng được gửi."
     }
   },
   "analytics": {
@@ -3453,7 +3826,13 @@
     "heroLogoPosition": "Vị trí logo trong phần hero",
     "heroLogoPositionHelp": "Áp dụng cho mọi gallery có phần đầu dạng hero.",
     "galleryPasswordLogo": "Hiện logo trên trang nhập mật khẩu của gallery",
-    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng."
+    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng.",
+    "storyGridMode": "Khung ảnh",
+    "storyGridModeOptions": {
+      "fixed": "Ô cố định (cắt cho vừa)",
+      "natural": "Tự nhiên (giữ nguyên tỷ lệ khung hình)"
+    },
+    "storyGridModeHint": "Chế độ Tự nhiên sắp xếp các cảnh theo hàng dựa trên kích thước của từng ảnh, nên ảnh dọc được hiển thị trọn vẹn thay vì bị cắt."
   },
   "admin": {
     "title": "Bảng quản trị",
@@ -3696,7 +4075,9 @@
       "apiPhotoDownloaded": "Đã tải xuống ảnh gốc từ {{eventName}} bằng token API #{{token_id}}",
       "apiPhotosDownloaded_one": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
       "apiPhotosDownloaded_other": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
-      "apiPhotosZipDownloaded": "Token API “{{token_name}}” đã tải xuống tệp ZIP gồm {{photo_count}} ảnh gốc từ {{eventName}}"
+      "apiPhotosZipDownloaded": "Token API “{{token_name}}” đã tải xuống tệp ZIP gồm {{photo_count}} ảnh gốc từ {{eventName}}",
+      "backupRunDeleted": "Đã xoá lượt sao lưu {{backup_run_id}} ({{destination}}, tệp: {{artifact}})",
+      "backupRunDeleteFailed": "Xoá lượt sao lưu {{backup_run_id}} thất bại ({{code}})"
     },
     "notificationToasts": {
       "markedAllRead": "Tất cả thông báo đã được đánh dấu là đã đọc",
@@ -4145,7 +4526,8 @@
     "expandSidebar": "Mở rộng thanh bên",
     "collapseSidebar": "Thu gọn thanh bên",
     "viewOnGithub": "Xem PicPeak trên GitHub",
-    "backToMenu": "Quay lại menu"
+    "backToMenu": "Quay lại menu",
+    "totalMedia": "Tổng số media"
   },
   "acceptInvitation": {
     "title": "Chấp nhận lời mời",
@@ -4924,6 +5306,17 @@
         "showing": "Hiển thị {{from}}-{{to}} trên {{total}} bản sao lưu",
         "previous": "Trước",
         "next": "Tiếp"
+      },
+      "deleteConfirm": "Xoá bản sao lưu ngày {{date}}? Bản ghi và manifest của nó sẽ bị xoá; các tệp đã sao lưu mà những lần sao lưu sau còn dùng vẫn được giữ lại. Không thể hoàn tác.",
+      "deleteSuccess": "Đã xoá bản sao lưu",
+      "deleteSuccessArtifactMissing": "Đã xoá bản ghi sao lưu; manifest của nó đã không còn từ trước",
+      "deleteError": "Xoá bản sao lưu thất bại",
+      "deleteErrors": {
+        "BACKUP_NOT_FOUND": "Bản sao lưu này không còn tồn tại",
+        "BACKUP_RUNNING": "Không thể xoá bản sao lưu đang chạy",
+        "ARTIFACT_OUT_OF_SCOPE": "Các tệp của bản sao lưu này nằm ngoài nơi lưu trữ sao lưu đã cấu hình, nên không có gì bị xoá",
+        "ARTIFACT_DELETE_FAILED": "Không xoá được manifest của bản sao lưu, nên bản ghi được giữ lại",
+        "FORBIDDEN": "Bạn không có quyền xoá bản sao lưu"
       }
     },
     "restore": {
@@ -5663,7 +6056,14 @@
     "noPasswordSet": "Chưa đặt mật khẩu khách hàng. Khách chưa mở được trang duyệt ảnh cho tới khi có mật khẩu.",
     "generate": "Tạo",
     "newPasswordKeep": "Mật khẩu khách hàng mới (để trống để giữ mật khẩu hiện tại)",
-    "passwordRequiredOn": "Đặt mật khẩu khách hàng trước khi bật quyền truy cập cho khách hàng."
+    "passwordRequiredOn": "Đặt mật khẩu khách hàng trước khi bật quyền truy cập cho khách hàng.",
+    "pinLabel": "PIN khách hàng",
+    "pinPlaceholder": "Nhập PIN khách hàng của bạn",
+    "enterPin": "Vui lòng nhập PIN khách hàng của bạn",
+    "invalidPin": "PIN không hợp lệ. Vui lòng thử lại.",
+    "pinHelperText": "Khách hàng sẽ dùng PIN này để truy cập trang duyệt ảnh. Tối thiểu 6 ký tự.",
+    "pinUpdated": "Đã cập nhật PIN khách hàng",
+    "setPin": "Đặt PIN"
   },
   "export": {
     "button": "Xuất",
@@ -7395,7 +7795,8 @@
       "noEndDate": "Không có ngày kết thúc",
       "validFromNoEnd": "Từ {{date}}, không có ngày kết thúc",
       "validUntilOnly": "Đến",
-      "examplesHint": "Các mục đã lưu trữ có tên \"Example: …\" minh họa cách từng phần hoạt động. Chỉnh sửa một mục rồi khôi phục để sử dụng."
+      "examplesHint": "Các mục đã lưu trữ có tên \"Example: …\" minh họa cách từng phần hoạt động. Chỉnh sửa một mục rồi khôi phục để sử dụng.",
+      "backToTemplates": "Quay lại danh sách mẫu"
     },
     "promotions": {
       "panelHint": "Mức phần trăm được áp dụng trước, sau đó đến số tiền cố định, và không bao giờ vượt quá tạm tính.",
@@ -9617,6 +10018,28 @@
     },
     "legalNotice": {
       "title": "Thông báo pháp lý"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Trang"
+    },
+    "palette": {
+      "label": "Tìm kiếm trong khu vực quản trị",
+      "placeholder": "Tìm trang và cài đặt…",
+      "noResults": "Không có kết quả nào khớp với “{{query}}”.",
+      "open": "Tìm trang và cài đặt"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Chưa bật tính năng tự động hóa nào",
+      "body": "Bật Quy trình làm việc hoặc email nhắc nhở trong Cài đặt → Tính năng để bắt đầu.",
+      "noAccessTitle": "Không có mục nào bạn có thể mở",
+      "noAccessBody": "Các tính năng này đã được bật, nhưng vai trò của bạn không thể mở trang nào của chúng. Hãy liên hệ quản trị viên để được cấp quyền."
+    },
+    "subnav": {
+      "approvals": "Phê duyệt"
     }
   }
 }

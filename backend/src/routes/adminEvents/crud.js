@@ -25,6 +25,8 @@ const eventTypeService = require('../../services/eventTypeService');
 const { normaliseEventTimeTriple } = require('../../services/eventService');
 const { hasColumnCached } = require('../../utils/schemaCache');
 const { requireEventOwnership, scopeEventsListQuery, withoutForeignEventSecrets, scopeEventsQuery } = require('../../middleware/ownership');
+const { applyEventListSort } = require('./listSort');
+const { VIDEO_COUNT_SQL, VIDEO_DURATION_SQL } = require('../../utils/mediaTypeSql');
 
 const { galleryPasswordColumns, dropCopiesIfStorageOff, readGalleryPassword } = require('../../utils/galleryPasswordVault');
 const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCredentialCutoff');
@@ -346,9 +348,10 @@ module.exports = (router) => {
       const offset = (page - 1) * limit;
       const search = req.query.search || '';
       const status = req.query.status || 'all';
-      const allowedSortBy = ['created_at', 'event_name', 'slug', 'updated_at', 'expires_at', 'capture_date'];
-      const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'created_at';
-      const sortOrder = ['asc', 'desc'].includes(req.query.sortOrder) ? req.query.sortOrder : 'desc';
+      // Lowercased to match the slug normalisation every other slug_prefix
+      // comparison applies (eventTypeService.getEventTypeBySlug and friends);
+      // otherwise a hand-typed ?type=Wedding silently returns an empty list.
+      const eventType = typeof req.query.type === 'string' ? req.query.type.trim().toLowerCase() : '';
 
       // Build query
       let query = db('events');
@@ -366,6 +369,14 @@ module.exports = (router) => {
             .orWhereRaw(likeWithEscape('customer_email'), [pattern])
             .orWhereRaw(likeWithEscape('slug'), [pattern]);
         });
+      }
+
+      // Apply event type filter. The value is the event_types.slug_prefix the
+      // event row stores, so it is compared as-is; a rename cascades to
+      // events.event_type (eventTypeService.updateEventType) and a type in use
+      // cannot be deleted, so a slug shown in the filter always matches rows.
+      if (eventType && eventType !== 'all') {
+        query = query.where('event_type', eventType);
       }
 
       // Apply status filter
@@ -391,30 +402,41 @@ module.exports = (router) => {
       const countQuery = query.clone();
       const [{ count }] = await countQuery.count('* as count');
 
-      // Apply sorting and pagination
-      const events = await query
-        .orderBy(sortBy, sortOrder)
+      // Apply sorting and pagination. Ordering is added after the count clone
+      // above so the count never pays for the photo_count subquery.
+      const events = await applyEventListSort(query, req.query.sortBy, req.query.sortOrder)
         .limit(limit)
         .offset(offset);
 
-      // Get photo counts for each event
+      // Get photo counts for each event. photo_count stays the number of rows
+      // of either type (it is what the list sorts on and what the photo cap
+      // counts); video_count and video_duration say how much of it is video.
       const eventIds = events.map(e => e.id);
       const photoCounts = await db('photos')
         .whereIn('event_id', eventIds)
         .groupBy('event_id')
         .select('event_id')
-        .count('* as count');
+        .count('* as count')
+        .select(db.raw(`${VIDEO_COUNT_SQL} as video_count`))
+        .select(db.raw(`${VIDEO_DURATION_SQL} as video_duration`));
 
-      // Map photo counts to events
-      const photoCountMap = photoCounts.reduce((acc, { event_id, count }) => {
-        acc[event_id] = parseInt(count);
+      // Map photo counts to events. Number(): Postgres hands aggregates back
+      // as strings.
+      const photoCountMap = photoCounts.reduce((acc, { event_id, count, video_count, video_duration }) => {
+        acc[event_id] = {
+          count: parseInt(count),
+          videoCount: Number(video_count) || 0,
+          videoDuration: Number(video_duration) || 0,
+        };
         return acc;
       }, {});
 
       // Add photo counts to events and convert dates
       const eventsWithCounts = events.map(event => ({
         ...event,
-        photo_count: photoCountMap[event.id] || 0,
+        photo_count: photoCountMap[event.id]?.count || 0,
+        video_count: photoCountMap[event.id]?.videoCount || 0,
+        video_duration: photoCountMap[event.id]?.videoDuration || 0,
         // Convert Unix timestamps to ISO strings
         created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
         expires_at: event.expires_at ? new Date(event.expires_at).toISOString() : null,
@@ -448,10 +470,12 @@ module.exports = (router) => {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      // Get photo count
-      const [{ count: photoCount }] = await db('photos')
+      // Get photo count, and how much of it is video
+      const [{ count: photoCount, video_count: videoCount, video_duration: videoDuration }] = await db('photos')
         .where('event_id', id)
-        .count('* as count');
+        .count('* as count')
+        .select(db.raw(`${VIDEO_COUNT_SQL} as video_count`))
+        .select(db.raw(`${VIDEO_DURATION_SQL} as video_duration`));
 
       // Get total size
       const [{ totalSize }] = await db('photos')
@@ -508,6 +532,8 @@ module.exports = (router) => {
       res.json(withoutForeignEventSecrets(mapEventForApi({
         ...event,
         photo_count: parseInt(photoCount) || 0,
+        video_count: Number(videoCount) || 0,
+        video_duration: Number(videoDuration) || 0,
         total_size: parseInt(totalSize) || 0,
         total_views: parseInt(totalViews) || 0,
         total_downloads: parseInt(totalDownloads) || 0,

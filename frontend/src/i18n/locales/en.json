@@ -907,16 +907,18 @@
     "accounting": "Accounting",
     "workflows": "Workflows",
     "betaTag": "Beta",
-    "downloadOrders": "Download orders"
+    "downloadOrders": "Download orders",
+    "automation": "Automation",
+    "sharing": "Sharing"
   },
   "transfers": {
     "title": "PicTransfer",
-    "subtitle": "Send original files from any event as a download link.",
+    "subtitle": "Send files to a client, or ask a client to send files to you.",
     "new": "New transfer",
     "create": "Create transfer",
     "created": "Transfer created",
     "createFailed": "Could not create transfer",
-    "empty": "No transfers yet. Create one to share files.",
+    "empty": "Nothing here yet. Send files to a client, or ask them to send you some.",
     "untitled": "Untitled transfer",
     "linkCopied": "Link copied to clipboard",
     "copyFailed": "Could not copy link",
@@ -930,7 +932,7 @@
     "filesAdded": "Files added",
     "deleted": "Transfer deleted",
     "deleteConfirmTitle": "Delete transfer?",
-    "deleteConfirmBody": "This removes the link and any client uploads. Source event photos are not affected.",
+    "deleteConfirmBody": "This removes the link. Source event photos are not affected.",
     "addImages": "Add images",
     "clientUpload": "Client upload",
     "disableUploads": "Disable",
@@ -953,7 +955,9 @@
       "status": "Status",
       "downloads": "Downloads",
       "expires": "Expires",
-      "uploads": "Uploads"
+      "uploads": "Uploads",
+      "kind": "Type",
+      "deadline": "Deadline"
     },
     "status": {
       "active": "Active",
@@ -979,7 +983,12 @@
       "recipientsCount": "{{count}} recipient(s) — each gets the download link",
       "recipientsHint": "Separate multiple addresses with commas. Each recipient gets the download link.",
       "recipientsCount_one": "{{count}} recipient(s) — each gets the download link",
-      "recipientsCount_other": "{{count}} recipient(s) — each gets the download link"
+      "recipientsCount_other": "{{count}} recipient(s) — each gets the download link",
+      "requestTitlePlaceholder": "e.g. Logo and brand assets for the Smiths",
+      "requestMessage": "What do you need from them? (optional)",
+      "requestMessagePlaceholder": "Shown to the client on the upload page",
+      "uploadWindowDays": "Accept uploads for (days)",
+      "requestRecipientsHint": "Separate multiple addresses with commas. Each one gets the upload link."
     },
     "picker": {
       "title": "Select images from other events",
@@ -1020,8 +1029,51 @@
       "send": "Upload {{count}} files",
       "failed": "Upload failed. Please try again.",
       "send_one": "Upload {{count}} files",
-      "send_other": "Upload {{count}} files"
-    }
+      "send_other": "Upload {{count}} files",
+      "typeRejected": "Not an accepted file type: {{names}}",
+      "tooBigNamed": "Too large (max {{mb}} MB): {{names}}",
+      "toomany": "Only the first {{count}} files can be uploaded at once.",
+      "someRejected": "These files were not accepted: {{names}}",
+      "anyType": "Any file type is accepted.",
+      "acceptedTypes": "Accepted: {{types}}",
+      "someFailed": "These files could not be stored. Please try them again: {{names}}"
+    },
+    "newSend": "Send files",
+    "newRequest": "Request files",
+    "emptyTab": "Nothing in this tab yet.",
+    "requestCreated": "File request created",
+    "requestCreateFailed": "Could not create the file request",
+    "createRequest": "Create request",
+    "createRequestAndSend": "Create & ask",
+    "someRejected": "{{count}} file(s) were not an allowed type and were skipped: {{names}}",
+    "uploadBy": "Accepts uploads until",
+    "filesReceived": "Files received",
+    "closeRequest": "Close request",
+    "requestClosed": "Request closed",
+    "resend": "Send again",
+    "emailResent": "Email sent again",
+    "askedOf": "Asked of",
+    "uploadCode": "Short upload code",
+    "issueCode": "Issue a code",
+    "rotateCode": "New code",
+    "revokeCode": "Withdraw",
+    "codeIssued": "Upload code issued",
+    "codeRevoked": "Upload code withdrawn",
+    "codeHint": "Optional: a short code you can read out over the phone. The full link above always works.",
+    "unscannedNote": "These files are stored exactly as received and are never opened or scanned by PicPeak. Check them before you use or pass them on.",
+    "deleteRequestConfirmTitle": "Delete file request?",
+    "deleteRequestConfirmBody": "This removes the upload link and permanently deletes every file the client sent.",
+    "tab": {
+      "all": "All",
+      "sent": "Sent",
+      "requested": "Requested"
+    },
+    "kind": {
+      "send": "Send",
+      "request": "Request"
+    },
+    "emptyReadOnly": "Nothing here yet.",
+    "someDropped": "{{count}} attached file(s) were not kept — a file request only collects files: {{names}}"
   },
   "workflows": {
     "title": "Workflows",
@@ -1386,7 +1438,26 @@
       "unavailable": "Downloads are briefly unavailable. Please try again in a moment.",
       "unlimited": "Unlimited downloads"
     },
-    "viewFullSize": "View full size"
+    "viewFullSize": "View full size",
+    "favoriteSelected_one": "Favourite {{count}} photo",
+    "favoriteSelected_other": "Favourite {{count}} photos",
+    "unfavoriteSelected_one": "Remove {{count}} favourite",
+    "unfavoriteSelected_other": "Remove {{count}} favourites",
+    "favoritesAdded_one": "{{count}} photo added to favourites",
+    "favoritesAdded_other": "{{count}} photos added to favourites",
+    "favoritesRemoved_one": "{{count}} photo removed from favourites",
+    "favoritesRemoved_other": "{{count}} photos removed from favourites",
+    "favoriteSelectedError": "Some favourites could not be saved",
+    "downloadLimit": {
+      "reached": "Download limit reached. Please contact your photographer for more downloads.",
+      "notEnough": "Only {{remaining}} downloads left. Please select fewer photos or contact your photographer.",
+      "counter": "{{used}} of {{limit}} downloads used",
+      "selectionCost": "Uses {{cost}} of your {{remaining}} remaining downloads",
+      "selectionTooLarge": "Download limit: this selection needs {{cost}} downloads, only {{remaining}} left",
+      "downloadAllBlocked": "This gallery holds more photos than your remaining downloads",
+      "previewOnly": "Downloads in this gallery are preview size. The original files are available to the client.",
+      "videoClientOnly": "This video is available to the client only."
+    }
   },
   "categories": {
     "title": "Photo Categories",
@@ -1499,7 +1570,7 @@
     "externalFolder": "External Folder",
     "externalFolderHint": "These folders are read from the /external-media mount inside your container or host.",
     "externalWatch": "Watch folder for new files",
-    "externalWatchHint": "New images copied into this folder are imported automatically, the same way the Import button does it. Files removed from the folder are never deleted from the gallery.",
+    "externalWatchHint": "New images copied into this folder are imported automatically, and so are videos of an allowed file type, the same way the Import button does it. Files removed from the folder are never deleted from the gallery.",
     "externalWatchActive": "Folder is watched — new files are imported automatically.",
     "externalWatchNoPermission": "Requires the permission to upload photos.",
     "externalFolderRequired": "Please select an external folder before saving.",
@@ -1805,7 +1876,7 @@
     "devtoolsDetection": "DevTools detection",
     "watermarked": "Watermarked",
     "importExternal": "Import from External Folder",
-    "externalImportInfo": "All pictures from the selected folder will be imported.",
+    "externalImportInfo": "All pictures from the selected folder will be imported. Videos are imported too when their file type is allowed for uploads.",
     "selectExternalFolder": "Select external folder under /external-media",
     "importFromSelectedFolder": "Import from selected folder",
     "promoBanner": {
@@ -1989,7 +2060,42 @@
       "publishAction": "Publish",
       "done": "done",
       "needsPermission": "Needs the {{permission}} permission"
-    }
+    },
+    "media": "Media",
+    "mediaStatistics": "Media Statistics",
+    "videos": "Videos",
+    "videoRuntime": "Video runtime",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "videosCount_one": "{{count}} video",
+    "videosCount_other": "{{count}} videos",
+    "manageMedia": "Manage Media",
+    "downloadLimit": "Download Limit",
+    "downloadLimitHelp": "Maximum number of photos the client can download. 0 = unlimited",
+    "downloadLimitUsage": "{{used}} / {{limit}} downloaded",
+    "downloadLimitReset": "Reset",
+    "downloadLimitResetConfirm": "Reset the downloads for this gallery? The client gets the full limit again, and photos already downloaded count again.",
+    "downloadLimitResetDone": "Downloads reset",
+    "downloadLimitResetFailed": "Could not reset the downloads",
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Newest first",
+    "sortDateOldest": "Oldest first",
+    "sortCreatedNewest": "Recently created",
+    "sortCreatedOldest": "First created",
+    "sortPhotosMost": "Most photos",
+    "sortPhotosFewest": "Fewest photos",
+    "sortStatusActive": "Active first",
+    "sortStatusArchived": "Archived first",
+    "sortExpiresSoonest": "Expiring soonest",
+    "sortExpiresLatest": "Expiring latest",
+    "filterAllTypes": "All types",
+    "filterByType": "Filter by type",
+    "sortByName": "Sort by name",
+    "sortByDate": "Sort by date",
+    "sortByPhotos": "Sort by photo count",
+    "sortByStatus": "Sort by status",
+    "sortByExpiry": "Sort by expiry"
   },
   "settings": {
     "title": "System Settings",
@@ -2044,7 +2150,10 @@
       "notificationEmail": "Notification email",
       "notificationEmailHelp": "Where PicPeak sends admin mail about galleries, such as a finished archive or an expired gallery. Customers also see it as the contact address. Leave empty to use the address stored on each event.",
       "useBusinessEmail": "Use {{email}}",
-      "notificationEmailInvalid": "Enter a valid email address, for example studio@example.com"
+      "notificationEmailInvalid": "Enter a valid email address, for example studio@example.com",
+      "adminLanguage": "Your admin language",
+      "adminLanguageHelp": "Applies to the admin area, for you on this device only. It takes effect immediately — no need to save.",
+      "customerLanguage": "Gallery & guest language"
     },
     "publicSite": {
       "badge": "Public Landing",
@@ -2160,7 +2269,7 @@
       "aboutText": "Global categories are available for all events. You can also create event-specific categories when editing individual events. Categories help organize photos and allow guests to filter photos by type in the gallery view."
     },
     "systemStatus": {
-      "title": "System Status",
+      "title": "Status",
       "storageOverview": "Storage Overview",
       "systemInfo": "System Information",
       "databaseInfo": "Database Information",
@@ -2186,7 +2295,8 @@
       "failed": "Failed",
       "lastUpdate": "Last update",
       "emailProcessorStopped": "Not running — queued emails are written but nothing sends them.",
-      "emailProcessorDegraded": "Running, but the last pass could not send: {{error}}"
+      "emailProcessorDegraded": "Running, but the last pass could not send: {{error}}",
+      "description": "Services, queues, storage and version — what this instance is running right now."
     },
     "photoDimensions": {
       "title": "Photo Dimensions",
@@ -2259,7 +2369,9 @@
       "keybindColors": "Colors only — 1 green, 2 yellow, 3 red",
       "keybindLightroom": "Lightroom — 1-5 stars, 6-9 colors",
       "keybindMode": "Lightbox keyboard shortcuts",
-      "keybindModeHelp": "Applies to every gallery at once, including existing ones."
+      "keybindModeHelp": "Applies to every gallery at once, including existing ones.",
+      "defaultDownloadLimit": "Default download limit",
+      "defaultDownloadLimitHelp": "Pre-filled on new events: how many photos a client can download. 0 = unlimited."
     },
     "imageSecurity": {
       "title": "Image Protection",
@@ -2444,7 +2556,8 @@
       "system": "System",
       "appearance": "Content & Appearance",
       "communication": "Communication",
-      "crm": "CRM-Settings"
+      "crm": "CRM-Settings",
+      "people": "People & access"
     },
     "contracts": {
       "title": "Contracts"
@@ -2712,7 +2825,7 @@
       },
       "transfers": {
         "title": "PicTransfer",
-        "description": "Send original files from any event(s) as a secure, token-protected download link, with an optional client-upload code so clients can send you logos and files back. Strictly opt-in.",
+        "description": "Send files to a client as a secure, token-protected download link, and request files from a client through an upload link of their own. Strictly opt-in.",
         "sidebar": "PicTransfer"
       },
       "workflows": {
@@ -2728,7 +2841,9 @@
       "documents": {
         "title": "Customer documents",
         "description": "Share documents with a customer in their portal and receive documents from them. Customer uploads stay unavailable until you mark them clean on the customer record. PDF by default; more file types, size and storage limits under Settings → CRM."
-      }
+      },
+      "configure": "Configure",
+      "sidebarInSettings": "No sidebar item — lives in Settings"
     },
     "customerSurface": {
       "brandingTitle": "Customer dashboard header",
@@ -2758,7 +2873,7 @@
       "vat": {
         "title": "VAT",
         "registered": "VAT-registered (charge output VAT + reclaim input VAT)",
-        "registeredHint": "Off = small business / under threshold: no VAT charged, input VAT is a cost (not reclaimable). Invoices and quotes without VAT then show no VAT line; the VAT note from the CRM settings stands in its place.",
+        "registeredHint": "Off = small business / under threshold: no VAT charged, input VAT is a cost (not reclaimable). Invoices without VAT then show no VAT line; the VAT note from the CRM settings stands in its place. Quotes never carry it — an offer is not the tax document.",
         "reclaimCountries": "Countries where input VAT is reclaimable",
         "reclaimCountriesHint": "Typically your domestic country (CH / LI). Costs from other countries are treated as non-reclaimable foreign VAT. Cmd/Ctrl-click to multi-select.",
         "defaultOutputCode": "Default VAT code for new invoices",
@@ -2971,6 +3086,269 @@
       "leaveMessage": "You have unsaved changes on this page. Leaving now discards them.",
       "leaveConfirm": "Discard and leave",
       "leaveCancel": "Stay"
+    },
+    "health": {
+      "title": "Health",
+      "description": "Background failures that need attention — stuck emails, failed checks and cleanup."
+    },
+    "search": {
+      "placeholder": "Search settings…",
+      "label": "Search settings",
+      "noResults": "No settings match “{{query}}”."
+    },
+    "keywords": {
+      "accounting": [
+        "accounting",
+        "chart of accounts",
+        "ledger",
+        "vat",
+        "tax",
+        "bookkeeping",
+        "banana"
+      ],
+      "analytics": [
+        "analytics",
+        "tracking",
+        "statistics",
+        "visitors"
+      ],
+      "apiTokens": [
+        "api",
+        "tokens",
+        "api key",
+        "integration"
+      ],
+      "backup": [
+        "backup",
+        "restore",
+        "export",
+        "import",
+        "snapshot",
+        "disaster recovery"
+      ],
+      "branding": [
+        "branding",
+        "logo",
+        "favicon",
+        "colors",
+        "colours",
+        "theme",
+        "company name"
+      ],
+      "businessProfile": [
+        "business profile",
+        "issuer",
+        "company address",
+        "vat id",
+        "tax number",
+        "iban",
+        "bank"
+      ],
+      "categories": [
+        "categories",
+        "photo categories",
+        "tags"
+      ],
+      "cms": [
+        "cms",
+        "pages",
+        "imprint",
+        "impressum",
+        "privacy policy",
+        "terms",
+        "legal"
+      ],
+      "contracts": [
+        "contracts",
+        "blocks",
+        "clauses",
+        "signature",
+        "templates"
+      ],
+      "crm": [
+        "crm",
+        "quotes",
+        "invoices",
+        "numbering",
+        "document defaults"
+      ],
+      "downloads": [
+        "downloads",
+        "resolution",
+        "export size",
+        "original files"
+      ],
+      "email": [
+        "email",
+        "smtp",
+        "imap",
+        "mail server",
+        "sender",
+        "templates",
+        "signature"
+      ],
+      "eventTypes": [
+        "event types",
+        "wedding",
+        "portrait",
+        "categories of event"
+      ],
+      "events": [
+        "event creation",
+        "defaults",
+        "expiry",
+        "upload limit"
+      ],
+      "features": [
+        "features",
+        "flags",
+        "toggles",
+        "enable",
+        "disable",
+        "modules"
+      ],
+      "general": [
+        "general",
+        "language",
+        "timezone",
+        "date format",
+        "time format",
+        "site url",
+        "domain",
+        "account",
+        "password",
+        "mfa",
+        "2fa"
+      ],
+      "health": [
+        "system health",
+        "stuck emails",
+        "diagnostics",
+        "cleanup",
+        "checks",
+        "troubleshooting"
+      ],
+      "imageSecurity": [
+        "image protection",
+        "watermark",
+        "right click",
+        "download protection"
+      ],
+      "moderation": [
+        "moderation",
+        "feedback",
+        "comments",
+        "reports",
+        "flagged"
+      ],
+      "security": [
+        "security",
+        "rate limit",
+        "login",
+        "lockout",
+        "sessions",
+        "password policy"
+      ],
+      "seo": [
+        "seo",
+        "robots",
+        "sitemap",
+        "meta tags",
+        "search engine",
+        "indexing"
+      ],
+      "slideshow": [
+        "slideshow",
+        "kiosk",
+        "presentation",
+        "display"
+      ],
+      "sso": [
+        "sso",
+        "single sign-on",
+        "oidc",
+        "saml",
+        "oauth",
+        "identity provider"
+      ],
+      "status": [
+        "system status",
+        "services",
+        "queue",
+        "workers",
+        "disk",
+        "version"
+      ],
+      "styling": [
+        "custom css",
+        "css",
+        "stylesheet",
+        "styling"
+      ],
+      "thumbnails": [
+        "thumbnails",
+        "preview size",
+        "image size"
+      ],
+      "usage": [
+        "usage",
+        "licence",
+        "license",
+        "plan",
+        "quota"
+      ],
+      "users": [
+        "users",
+        "accounts",
+        "roles",
+        "permissions",
+        "invite",
+        "team",
+        "staff",
+        "access"
+      ],
+      "webhooks": [
+        "webhooks",
+        "callbacks",
+        "http hooks",
+        "events feed"
+      ],
+      "whatsapp": [
+        "whatsapp",
+        "messaging",
+        "phone",
+        "business api"
+      ],
+      "transfers": [
+        "transfer",
+        "pictransfer",
+        "upload",
+        "file types",
+        "mime",
+        "svg",
+        "allowlist",
+        "accept all",
+        "file size",
+        "request files"
+      ]
+    },
+    "transfers": {
+      "title": "PicTransfer",
+      "description": "Which file types clients may send you, and how large.",
+      "uploadsTitle": "What clients may send you",
+      "uploadsIntro": "Applies to file requests and to files you attach to a transfer. It does not change what may be uploaded to a gallery.",
+      "acceptAll": "Accept all file types",
+      "acceptAllHint": "Any file a client picks is accepted. The size limit, file count and link expiry still apply.",
+      "acceptAllWarning": "Uploaded files are stored and delivered as opaque downloads. PicPeak never opens, renders or scans them, and they are never served as web content — but it also cannot tell you whether one is safe. Check anything you open or pass on.",
+      "allowedTypes": "Allowed file types",
+      "addType": "Add type",
+      "allowedTypesHint": "A file is accepted when its type matches and its extension is one of the listed ones. Leave the extensions empty to match on the type alone.",
+      "noTypes": "No types listed. Add at least one, or turn on \"Accept all file types\".",
+      "mime": "File type",
+      "extensions": "Extensions",
+      "maxSize": "Maximum file size (MB)",
+      "maxSizeHint": "Applies per file, not per upload.",
+      "readOnly": "Only admins who can edit settings can change what clients may send."
     }
   },
   "analytics": {
@@ -3456,7 +3834,13 @@
     "heroLogoPosition": "Logo position in the hero",
     "heroLogoPositionHelp": "Applies to every gallery with a hero header.",
     "galleryPasswordLogo": "Show the logo on the gallery password page",
-    "galleryPasswordLogoHelp": "Applies to every password-protected gallery and to the client access page."
+    "galleryPasswordLogoHelp": "Applies to every password-protected gallery and to the client access page.",
+    "storyGridMode": "Photo Framing",
+    "storyGridModeOptions": {
+      "fixed": "Fixed tiles (crop to fill)",
+      "natural": "Natural (keep every aspect ratio)"
+    },
+    "storyGridModeHint": "Natural lays scenes out in rows from each photo's dimensions, so portrait photos are shown whole instead of cropped."
   },
   "admin": {
     "title": "Admin Panel",
@@ -4150,7 +4534,8 @@
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
     "backToMenu": "Back to menu",
-    "viewOnGithub": "View PicPeak on GitHub"
+    "viewOnGithub": "View PicPeak on GitHub",
+    "totalMedia": "Total Media"
   },
   "acceptInvitation": {
     "title": "Accept Invitation",
@@ -5679,7 +6064,14 @@
     "noPasswordSet": "No client password set. The client cannot open the review page until one is set.",
     "generate": "Generate",
     "newPasswordKeep": "New client password (leave empty to keep the current one)",
-    "passwordRequiredOn": "Set a client password before turning client access on."
+    "passwordRequiredOn": "Set a client password before turning client access on.",
+    "pinLabel": "Client PIN",
+    "pinPlaceholder": "Enter your client PIN",
+    "enterPin": "Please enter your client PIN",
+    "invalidPin": "Invalid PIN. Please try again.",
+    "pinHelperText": "The client will use this PIN to access the review page. At least 6 characters.",
+    "pinUpdated": "Client PIN updated",
+    "setPin": "Set PIN"
   },
   "export": {
     "button": "Export",
@@ -7411,7 +7803,8 @@
       "noEndDate": "No end date",
       "validFromNoEnd": "From {{date}}, no end date",
       "validUntilOnly": "Until",
-      "examplesHint": "Archived entries named \"Example: …\" show how each part works. Edit one and restore it to use it."
+      "examplesHint": "Archived entries named \"Example: …\" show how each part works. Edit one and restore it to use it.",
+      "backToTemplates": "Back to templates"
     },
     "promotions": {
       "panelHint": "Percentages apply first, then fixed amounts — never more than the subtotal.",
@@ -7938,7 +8331,7 @@
     "crm_invoices_vat_note_text": {
       "label": "VAT / free-text note on invoices",
       "placeholder": "e.g. Gemäß § 6 Abs. 1 Z 27 UStG 1994 wird keine Umsatzsteuer berechnet (Kleinunternehmer).",
-      "help": "Printed directly under the MwSt. line on every invoice PDF. If the business isn't VAT-registered (Settings → Accounting), it replaces that line on invoices and quotes without VAT. Leave empty to hide. Please confirm the exact wording with your tax advisor."
+      "help": "Printed directly under the MwSt. line on every invoice PDF. If the business isn't VAT-registered (Settings → Accounting), it replaces that line on invoices without VAT. Quotes never carry it — an offer is not the tax document. Leave empty to hide. Please confirm the exact wording with your tax advisor."
     },
     "crm_invoices_skonto_percent_default": {
       "label": "Skonto rate (default %)"
@@ -9633,6 +10026,28 @@
       "savingsUnknown": "Not calculated here",
       "tab": "Download packages",
       "title": "Download packages"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Pages"
+    },
+    "palette": {
+      "label": "Search the admin area",
+      "placeholder": "Search pages and settings…",
+      "noResults": "Nothing matches “{{query}}”.",
+      "open": "Search pages and settings"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "No automation features enabled",
+      "body": "Enable Workflows or reminder emails under Settings → Features to get started.",
+      "noAccessTitle": "Nothing here you can open",
+      "noAccessBody": "These features are switched on, but your role cannot open any of their pages. Ask an administrator for access."
+    },
+    "subnav": {
+      "approvals": "Approvals"
     }
   }
 }

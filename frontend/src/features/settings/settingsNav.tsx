@@ -27,6 +27,9 @@ import {
   Smartphone,
   MonitorPlay,
   ShoppingCart,
+  Send as SendIcon,
+  Users,
+  HeartPulse,
   type LucideIcon,
 } from 'lucide-react';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -56,6 +59,9 @@ export type SettingsTab =
   | 'cms'
   | 'email'
   | 'moderation'
+  // PicTransfer upload policy (#1544) — which file types a client may send,
+  // and the accept-all escape hatch.
+  | 'transfers'
   | 'security'
   | 'sso'
   | 'imageSecurity'
@@ -70,15 +76,28 @@ export type SettingsTab =
   | 'businessProfile'
   | 'crm'
   | 'contracts'
-  | 'reminderTemplates'
   | 'accounting'
   | 'whatsapp'
-  | 'slideshow';
+  | 'slideshow'
+  // People & access — user management moved out of the top-level sidebar.
+  | 'users'
+  // System health moved out of the top-level sidebar. Sits next to
+  // `status`: status is "what is running", health is "what is stuck".
+  | 'health';
 
 export interface SettingsNavItem {
   key: SettingsTab;
   label: string;
   icon: LucideIcon;
+  /** One line under the page title, for tabs whose scope needs saying. */
+  description?: string;
+  /**
+   * Extra search terms for this tab, so the Settings filter and the command
+   * palette find it by what it *does* rather than only by its title —
+   * "SMTP" has to reach Email, "GDPR" has to reach Privacy. Attached by
+   * `useSettingsNavGroups`; see `tabKeywords`.
+   */
+  keywords?: string[];
 }
 
 export interface SettingsNavGroup {
@@ -89,12 +108,13 @@ export interface SettingsNavGroup {
 export const ALL_SETTINGS_TABS: SettingsTab[] = [
   'usage',
   'features', 'general', 'events', 'eventTypes',
+  'users',
   'branding', 'categories', 'thumbnails', 'downloads', 'downloadQuota', 'styling', 'cms',
-  'email', 'moderation',
+  'email', 'moderation', 'transfers',
   'security', 'sso', 'imageSecurity', 'seo',
   'apiTokens', 'webhooks',
-  'status', 'analytics', 'backup',
-  'businessProfile', 'crm', 'contracts', 'reminderTemplates', 'accounting', 'whatsapp',
+  'status', 'health', 'analytics', 'backup',
+  'businessProfile', 'crm', 'contracts', 'accounting', 'whatsapp',
   'slideshow',
 ];
 
@@ -144,10 +164,17 @@ export const SETTINGS_TAB_PERMISSIONS: Record<SettingsTab, string[]> = {
   businessProfile:   ['settings.view', 'settings.banking'],
   crm:               ['settings.view'],
   contracts:         ['settings.view', 'contracts.view', 'contracts.manage'],
-  reminderTemplates: ['settings.view', 'email.view', 'email.edit'],
   accounting:        ['settings.view', 'settings.banking', 'accounting.view', 'accounting.manage'],
   whatsapp:          ['settings.view', 'whatsapp.view', 'whatsapp.manage'],
   slideshow:         ['settings.view'],
+  transfers:         ['settings.view'],
+  // Deliberately NOT carrying the `settings.view` baseline: every other tab
+  // lists it as "can read settings at all", but user management was gated on
+  // `users.view` alone while it was a top-level entry. Adding the baseline
+  // here would hand the tab to every role holding `settings.view` — a
+  // widening of access disguised as a navigation change.
+  users:             ['users.view'],
+  health:            ['settings.view', 'system.view'],
 };
 
 // The union of every settings-tab permission — used to decide whether to show
@@ -157,6 +184,36 @@ export const SETTINGS_TAB_PERMISSIONS_ANY: string[] = Array.from(
   new Set(Object.values(SETTINGS_TAB_PERMISSIONS).flat())
 );
 
+/**
+ * Lowercase, strip diacritics and collapse whitespace so a search for
+ * "impressum" matches "Impressum" and "buro" matches "Büro". Exported
+ * because the command palette indexes more than Settings and has to score
+ * every source the same way.
+ */
+export function normalizeSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Does this entry match the query? A label prefix beats a label substring,
+ * which beats a keyword hit; 0 means no match. Callers sort descending so
+ * typing "se" offers "SEO" before "Image protection".
+ */
+export function searchScore(query: string, label: string, keywords: string[] = []): number {
+  const q = normalizeSearch(query);
+  if (!q) return 1;
+  const l = normalizeSearch(label);
+  if (l.startsWith(q)) return 3;
+  if (l.includes(q)) return 2;
+  if (keywords.some((k) => normalizeSearch(k).includes(q))) return 1;
+  return 0;
+}
+
 type Flags = ReturnType<typeof useFeatureFlags>['flags'];
 
 // Tabs that configure a feature behind a master flag hide when that flag
@@ -165,10 +222,11 @@ export function settingsTabGatedOff(flags: Flags): Partial<Record<SettingsTab, b
   return {
     crm: !(flags.quotes || flags.bills || flags.contracts || flags.documents),
     contracts: !flags.contracts,
-    reminderTemplates: !flags.reminderEmails,
     accounting: !flags.accounting,
     whatsapp: !flags.whatsapp,
     slideshow: !flags.slideshow,
+    transfers: !flags.transfers,
+    users: !flags.userManagement,
   };
 }
 
@@ -193,6 +251,18 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
       ],
     },
     {
+      // People & access — Users was a top-level sidebar entry until the
+      // navigation cleanup. It is configuration, not a workspace, so it
+      // belongs here; the entry hides entirely when `userManagement` is off,
+      // exactly as the sidebar entry did.
+      label: t('settings.groups.people', 'People & access'),
+      items: [
+        ...(flags.userManagement
+          ? [{ key: 'users' as const, label: t('navigation.users', 'Users'), icon: Users }]
+          : []),
+      ],
+    },
+    {
       label: t('settings.groups.appearance', 'Content & Appearance'),
       items: [
         { key: 'branding',   label: t('settings.branding.title',   'Branding'),    icon: Palette },
@@ -212,6 +282,14 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
       items: [
         { key: 'email',      label: t('settings.email.title',      'Email Settings'), icon: Mail },
         { key: 'moderation', label: t('settings.moderation.title', 'Moderation'),     icon: Flag },
+        ...(flags.transfers
+          ? [{
+            key: 'transfers' as const,
+            label: t('settings.transfers.title', 'PicTransfer'),
+            icon: SendIcon,
+            description: t('settings.transfers.description', 'Which file types clients may send you, and how large.'),
+          }]
+          : []),
       ],
     },
     {
@@ -244,9 +322,6 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
         ...(flags.contracts
           ? [{ key: 'contracts' as const,         label: t('settings.contracts.title',         'Contracts'),       icon: ScrollText }]
           : []),
-        ...(flags.reminderEmails
-          ? [{ key: 'reminderTemplates' as const, label: t('settings.reminderTemplates.title', 'Reminder emails'), icon: Mail }]
-          : []),
         ...(flags.accounting
           ? [{ key: 'accounting' as const,        label: t('settings.accounting.title',        'Accounting'),      icon: Landmark }]
           : []),
@@ -258,7 +333,18 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
     {
       label: t('settings.groups.system', 'System'),
       items: [
-        { key: 'status',    label: t('settings.systemStatus.title'),           icon: Activity },
+        // Status and Health sat in this group under two names for the same
+        // idea ("System Status" and "System health"), one of them a top-level
+        // sidebar entry. They answer different questions, so they keep both
+        // tabs and say which is which.
+        {
+          key: 'status', label: t('settings.systemStatus.title'), icon: Activity,
+          description: t('settings.systemStatus.description', 'Services, queues, storage and version — what this instance is running right now.'),
+        },
+        {
+          key: 'health', label: t('settings.health.title', 'Health'), icon: HeartPulse,
+          description: t('settings.health.description', 'Background failures that need attention — stuck emails, failed checks and cleanup.'),
+        },
         { key: 'analytics', label: t('settings.analytics.title'),              icon: BarChart3 },
         { key: 'usage',     label: t('productUsage.title'),                    icon: Shield },
         { key: 'backup',    label: t('settings.backup.title', 'Backup'),       icon: HardDrive },
@@ -269,9 +355,29 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
   return groups
     .map((g) => ({
       ...g,
-      items: g.items.filter((i) => hasAnyPermission(SETTINGS_TAB_PERMISSIONS[i.key] ?? ['settings.view'])),
+      items: g.items
+        .filter((i) => hasAnyPermission(SETTINGS_TAB_PERMISSIONS[i.key] ?? ['settings.view']))
+        // Search terms are attached here rather than written into every item
+        // literal above: they are search-only metadata, and threading them
+        // through 30 declarations would bury the navigation in them.
+        .map((i) => ({ ...i, keywords: tabKeywords(t, i.key) })),
     }))
     .filter((g) => g.items.length > 0);
+}
+
+/**
+ * Search terms for a tab, so the Settings filter and the command palette find
+ * it by what it *does* — "SMTP" has to reach Email, "Impressum" the CMS pages.
+ *
+ * They live in the locale bundles like every other string, rather than half in
+ * a TypeScript map: en and de are authored, and the six deliberately-partial
+ * locales inherit the English terms through i18next's `fallbackLng`. That is
+ * the right answer anyway — SMTP, DNS, SSO, CSS and IBAN are what admins type
+ * whatever language they read the labels in.
+ */
+function tabKeywords(t: ReturnType<typeof useTranslation>['t'], key: SettingsTab): string[] {
+  const raw = t(`settings.keywords.${key}`, { returnObjects: true, defaultValue: [] }) as unknown;
+  return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : [];
 }
 
 /**

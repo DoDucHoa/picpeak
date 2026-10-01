@@ -907,16 +907,18 @@
     "accounting": "Buchhaltung",
     "workflows": "Workflows",
     "betaTag": "Beta",
-    "downloadOrders": "Download-Bestellungen"
+    "downloadOrders": "Download-Bestellungen",
+    "automation": "Automatisierung",
+    "sharing": "Teilen"
   },
   "transfers": {
     "title": "PicTransfer",
-    "subtitle": "Originaldateien aus beliebigen Events als Download-Link versenden.",
+    "subtitle": "Dateien an Kundinnen und Kunden senden – oder Dateien von ihnen anfordern.",
     "new": "Neuer Transfer",
     "create": "Transfer erstellen",
     "created": "Transfer erstellt",
     "createFailed": "Transfer konnte nicht erstellt werden",
-    "empty": "Noch keine Transfers. Erstellen Sie einen, um Dateien zu teilen.",
+    "empty": "Noch nichts vorhanden. Senden Sie Dateien, oder fordern Sie welche an.",
     "untitled": "Unbenannter Transfer",
     "linkCopied": "Link in die Zwischenablage kopiert",
     "copyFailed": "Link konnte nicht kopiert werden",
@@ -930,7 +932,7 @@
     "filesAdded": "Dateien hinzugefügt",
     "deleted": "Transfer gelöscht",
     "deleteConfirmTitle": "Transfer löschen?",
-    "deleteConfirmBody": "Dies entfernt den Link und alle Kunden-Uploads. Die Fotos der Quell-Events sind nicht betroffen.",
+    "deleteConfirmBody": "Damit wird der Link entfernt. Die Fotos im Event bleiben unberührt.",
     "addImages": "Bilder hinzufügen",
     "clientUpload": "Kunden-Upload",
     "disableUploads": "Deaktivieren",
@@ -953,7 +955,9 @@
       "status": "Status",
       "downloads": "Downloads",
       "expires": "Läuft ab",
-      "uploads": "Uploads"
+      "uploads": "Uploads",
+      "kind": "Typ",
+      "deadline": "Frist"
     },
     "status": {
       "active": "Aktiv",
@@ -979,7 +983,12 @@
       "recipientsCount": "{{count}} Empfänger — jeder erhält den Download-Link",
       "recipientsHint": "Mehrere Adressen durch Kommas trennen. Jeder Empfänger erhält den Download-Link.",
       "recipientsCount_one": "{{count}} Empfänger — er erhält den Download-Link",
-      "recipientsCount_other": "{{count}} Empfänger — jeder erhält den Download-Link"
+      "recipientsCount_other": "{{count}} Empfänger — jeder erhält den Download-Link",
+      "requestTitlePlaceholder": "z. B. Logo und Markenmaterial für Familie Schmidt",
+      "requestMessage": "Was benötigen Sie von ihnen? (optional)",
+      "requestMessagePlaceholder": "Wird dem Kunden auf der Upload-Seite angezeigt",
+      "uploadWindowDays": "Uploads annehmen für (Tage)",
+      "requestRecipientsHint": "Mehrere Adressen mit Komma trennen. Jede erhält den Upload-Link."
     },
     "picker": {
       "title": "Bilder aus anderen Events auswählen",
@@ -1020,8 +1029,51 @@
       "send": "{{count}} Dateien hochladen",
       "failed": "Upload fehlgeschlagen. Bitte erneut versuchen.",
       "send_one": "{{count}} Datei hochladen",
-      "send_other": "{{count}} Dateien hochladen"
-    }
+      "send_other": "{{count}} Dateien hochladen",
+      "typeRejected": "Kein akzeptierter Dateityp: {{names}}",
+      "tooBigNamed": "Zu groß (max. {{mb}} MB): {{names}}",
+      "toomany": "Es können nur die ersten {{count}} Dateien auf einmal hochgeladen werden.",
+      "someRejected": "Diese Dateien wurden nicht akzeptiert: {{names}}",
+      "anyType": "Jeder Dateityp wird akzeptiert.",
+      "acceptedTypes": "Akzeptiert: {{types}}",
+      "someFailed": "Diese Dateien konnten nicht gespeichert werden. Bitte erneut versuchen: {{names}}"
+    },
+    "newSend": "Dateien senden",
+    "newRequest": "Dateien anfordern",
+    "emptyTab": "In diesem Tab ist noch nichts vorhanden.",
+    "requestCreated": "Dateianfrage erstellt",
+    "requestCreateFailed": "Die Dateianfrage konnte nicht erstellt werden",
+    "createRequest": "Anfrage erstellen",
+    "createRequestAndSend": "Erstellen & anfragen",
+    "someRejected": "{{count}} Datei(en) hatten keinen erlaubten Typ und wurden übersprungen: {{names}}",
+    "uploadBy": "Nimmt Uploads an bis",
+    "filesReceived": "Erhaltene Dateien",
+    "closeRequest": "Anfrage schließen",
+    "requestClosed": "Anfrage geschlossen",
+    "resend": "Erneut senden",
+    "emailResent": "E-Mail erneut gesendet",
+    "askedOf": "Angefragt bei",
+    "uploadCode": "Kurzer Upload-Code",
+    "issueCode": "Code erstellen",
+    "rotateCode": "Neuer Code",
+    "revokeCode": "Zurückziehen",
+    "codeIssued": "Upload-Code erstellt",
+    "codeRevoked": "Upload-Code zurückgezogen",
+    "codeHint": "Optional: ein kurzer Code, den Sie am Telefon vorlesen können. Der vollständige Link oben funktioniert immer.",
+    "unscannedNote": "Diese Dateien werden genau so gespeichert, wie sie eingegangen sind, und von PicPeak nie geöffnet oder geprüft. Prüfen Sie sie, bevor Sie sie verwenden oder weitergeben.",
+    "deleteRequestConfirmTitle": "Dateianfrage löschen?",
+    "deleteRequestConfirmBody": "Damit wird der Upload-Link entfernt und jede vom Kunden gesendete Datei endgültig gelöscht.",
+    "tab": {
+      "all": "Alle",
+      "sent": "Gesendet",
+      "requested": "Angefordert"
+    },
+    "kind": {
+      "send": "Senden",
+      "request": "Anfrage"
+    },
+    "emptyReadOnly": "Noch nichts vorhanden.",
+    "someDropped": "{{count}} angehängte Datei(en) wurden nicht übernommen – eine Dateianfrage sammelt nur Dateien: {{names}}"
   },
   "workflows": {
     "title": "Workflows",
@@ -1924,7 +1976,26 @@
       "unavailable": "Downloads sind kurzzeitig nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
       "unlimited": "Unbegrenzte Downloads"
     },
-    "viewFullSize": "In voller Größe ansehen"
+    "viewFullSize": "In voller Größe ansehen",
+    "favoriteSelected_one": "{{count}} Foto favorisieren",
+    "favoriteSelected_other": "{{count}} Fotos favorisieren",
+    "unfavoriteSelected_one": "{{count}} Favorit entfernen",
+    "unfavoriteSelected_other": "{{count}} Favoriten entfernen",
+    "favoritesAdded_one": "{{count}} Foto zu den Favoriten hinzugefügt",
+    "favoritesAdded_other": "{{count}} Fotos zu den Favoriten hinzugefügt",
+    "favoritesRemoved_one": "{{count}} Foto aus den Favoriten entfernt",
+    "favoritesRemoved_other": "{{count}} Fotos aus den Favoriten entfernt",
+    "favoriteSelectedError": "Einige Favoriten konnten nicht gespeichert werden",
+    "downloadLimit": {
+      "reached": "Download-Limit erreicht. Bitte wende dich für weitere Downloads an deinen Fotografen.",
+      "notEnough": "Nur noch {{remaining}} Downloads übrig. Bitte wähle weniger Fotos aus oder wende dich an deinen Fotografen.",
+      "counter": "{{used}} von {{limit}} Downloads genutzt",
+      "selectionCost": "Verbraucht {{cost}} deiner {{remaining}} verbleibenden Downloads",
+      "selectionTooLarge": "Download-Limit: Diese Auswahl braucht {{cost}} Downloads, nur noch {{remaining}} übrig",
+      "downloadAllBlocked": "Diese Galerie enthält mehr Fotos, als du noch herunterladen kannst",
+      "previewOnly": "Downloads in dieser Galerie sind in Vorschaugröße. Die Originaldateien erhält der Kunde.",
+      "videoClientOnly": "Dieses Video ist nur für den Kunden verfügbar."
+    }
   },
   "categories": {
     "title": "Fotokategorien",
@@ -2038,7 +2109,7 @@
     "externalFolder": "Externer Ordner",
     "externalFolderHint": "Diese Ordner stammen aus dem /external-media Mount innerhalb des Containers oder Hosts.",
     "externalWatch": "Ordner auf neue Dateien überwachen",
-    "externalWatchHint": "Neue Bilder, die in diesen Ordner kopiert werden, werden automatisch importiert – genau wie über den Import-Button. Aus dem Ordner entfernte Dateien werden nie aus der Galerie gelöscht.",
+    "externalWatchHint": "Neue Bilder, die in diesen Ordner kopiert werden, werden automatisch importiert, ebenso Videos eines erlaubten Dateityps – genau wie über den Import-Button. Aus dem Ordner entfernte Dateien werden nie aus der Galerie gelöscht.",
     "externalWatchActive": "Ordner wird überwacht – neue Dateien werden automatisch importiert.",
     "externalWatchNoPermission": "Erfordert die Berechtigung, Fotos hochzuladen.",
     "externalFolderRequired": "Bitte wählen Sie vor dem Speichern einen externen Ordner aus.",
@@ -2343,7 +2414,7 @@
     "devtoolsDetection": "DevTools-Erkennung",
     "watermarked": "Mit Wasserzeichen",
     "importExternal": "Aus externem Ordner importieren",
-    "externalImportInfo": "Alle Bilder aus dem ausgewählten Ordner werden importiert.",
+    "externalImportInfo": "Alle Bilder aus dem ausgewählten Ordner werden importiert. Videos werden ebenfalls importiert, wenn ihr Dateityp für Uploads erlaubt ist.",
     "selectExternalFolder": "Externen Ordner unter /external-media auswählen",
     "importFromSelectedFolder": "Aus ausgewähltem Ordner importieren",
     "promoBanner": {
@@ -2527,7 +2598,42 @@
       "publishAction": "Veröffentlichen",
       "done": "erledigt",
       "needsPermission": "Benötigt die Berechtigung {{permission}}"
-    }
+    },
+    "videos": "Videos",
+    "videoRuntime": "Videolaufzeit",
+    "photosCount_one": "{{count}} Foto",
+    "photosCount_other": "{{count}} Fotos",
+    "videosCount_one": "{{count}} Video",
+    "videosCount_other": "{{count}} Videos",
+    "media": "Medien",
+    "mediaStatistics": "Medienstatistiken",
+    "manageMedia": "Medien verwalten",
+    "downloadLimit": "Download-Limit",
+    "downloadLimitHelp": "Maximale Anzahl Fotos, die der Kunde herunterladen kann. 0 = unbegrenzt",
+    "downloadLimitUsage": "{{used}} / {{limit}} heruntergeladen",
+    "downloadLimitReset": "Zurücksetzen",
+    "downloadLimitResetConfirm": "Downloads für diese Galerie zurücksetzen? Der Kunde erhält das volle Limit zurück, und bereits heruntergeladene Fotos zählen erneut.",
+    "downloadLimitResetDone": "Downloads zurückgesetzt",
+    "downloadLimitResetFailed": "Downloads konnten nicht zurückgesetzt werden",
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Neueste zuerst",
+    "sortDateOldest": "Älteste zuerst",
+    "sortCreatedNewest": "Zuletzt erstellt",
+    "sortCreatedOldest": "Zuerst erstellt",
+    "sortPhotosMost": "Meiste Fotos",
+    "sortPhotosFewest": "Wenigste Fotos",
+    "sortStatusActive": "Aktive zuerst",
+    "sortStatusArchived": "Archivierte zuerst",
+    "sortExpiresSoonest": "Läuft zuerst ab",
+    "sortExpiresLatest": "Läuft zuletzt ab",
+    "filterAllTypes": "Alle Typen",
+    "filterByType": "Nach Typ filtern",
+    "sortByName": "Nach Name sortieren",
+    "sortByDate": "Nach Datum sortieren",
+    "sortByPhotos": "Nach Fotoanzahl sortieren",
+    "sortByStatus": "Nach Status sortieren",
+    "sortByExpiry": "Nach Ablauf sortieren"
   },
   "settings": {
     "title": "Systemeinstellungen",
@@ -2582,7 +2688,10 @@
       "notificationEmail": "Benachrichtigungs-E-Mail",
       "notificationEmailHelp": "Hierhin schickt PicPeak Admin-Mails zu Galerien, etwa zu einem fertigen Archiv oder einer abgelaufenen Galerie. Kunden sehen sie auch als Kontaktadresse. Lass das Feld leer, um die Adresse zu nutzen, die bei jedem Event gespeichert ist.",
       "useBusinessEmail": "{{email}} verwenden",
-      "notificationEmailInvalid": "Gib eine gültige E-Mail-Adresse ein, zum Beispiel studio@example.com"
+      "notificationEmailInvalid": "Gib eine gültige E-Mail-Adresse ein, zum Beispiel studio@example.com",
+      "adminLanguage": "Ihre Admin-Sprache",
+      "adminLanguageHelp": "Gilt für den Admin-Bereich, nur für Sie auf diesem Gerät. Die Änderung wirkt sofort — Speichern ist nicht nötig.",
+      "customerLanguage": "Sprache für Galerie & Gäste"
     },
     "publicSite": {
       "badge": "Öffentliche Landingpage",
@@ -2732,7 +2841,9 @@
       "keybindColors": "Nur Farben – 1 Grün, 2 Gelb, 3 Rot",
       "keybindLightroom": "Lightroom – 1–5 Sterne, 6–9 Farben",
       "keybindMode": "Tastenkürzel in der Lightbox",
-      "keybindModeHelp": "Gilt sofort für jede Galerie, auch für bestehende."
+      "keybindModeHelp": "Gilt sofort für jede Galerie, auch für bestehende.",
+      "defaultDownloadLimit": "Standard-Download-Limit",
+      "defaultDownloadLimitHelp": "Vorbelegung für neue Events: wie viele Fotos ein Kunde herunterladen kann. 0 = unbegrenzt."
     },
     "imageSecurity": {
       "title": "Bildschutz",
@@ -2836,7 +2947,7 @@
       "aboutText": "Globale Kategorien sind für alle Veranstaltungen verfügbar. Sie können auch veranstaltungsspezifische Kategorien erstellen, wenn Sie einzelne Veranstaltungen bearbeiten. Kategorien helfen beim Organisieren von Fotos und ermöglichen es Gästen, Fotos nach Typ in der Galerieansicht zu filtern."
     },
     "systemStatus": {
-      "title": "Systemstatus",
+      "title": "Status",
       "storageOverview": "Speicherübersicht",
       "systemInfo": "Systeminformationen",
       "databaseInfo": "Datenbankinformationen",
@@ -2862,7 +2973,8 @@
       "failed": "Fehlgeschlagen",
       "lastUpdate": "Letzte Aktualisierung",
       "emailProcessorStopped": "Läuft nicht — eingereihte E-Mails werden geschrieben, aber niemand versendet sie.",
-      "emailProcessorDegraded": "Läuft, aber der letzte Durchlauf konnte nicht senden: {{error}}"
+      "emailProcessorDegraded": "Läuft, aber der letzte Durchlauf konnte nicht senden: {{error}}",
+      "description": "Dienste, Warteschlangen, Speicher und Version — was diese Instanz gerade ausführt."
     },
     "photoDimensions": {
       "title": "Foto-Abmessungen",
@@ -2982,7 +3094,8 @@
       "system": "System",
       "appearance": "Inhalt & Erscheinungsbild",
       "communication": "Kommunikation",
-      "crm": "CRM-Einstellungen"
+      "crm": "CRM-Einstellungen",
+      "people": "Personen & Zugriff"
     },
     "contracts": {
       "title": "Verträge"
@@ -3250,7 +3363,7 @@
       },
       "transfers": {
         "title": "PicTransfer",
-        "description": "Originaldateien aus beliebigen Events als sicheren, Token-geschützten Download-Link versenden – mit optionalem Kunden-Upload-Code, über den Kunden Ihnen Logos und Dateien zurücksenden können. Strikt optional.",
+        "description": "Dateien als sicheren, tokengeschützten Download-Link an Kunden senden – und über einen eigenen Upload-Link Dateien von Kunden anfordern. Strikt optional.",
         "sidebar": "PicTransfer"
       },
       "workflows": {
@@ -3266,7 +3379,9 @@
       "documents": {
         "title": "Kundendokumente",
         "description": "Teilen Sie Dokumente im Portal mit einem Kunden und erhalten Sie Dokumente von ihm. Kunden-Uploads bleiben gesperrt, bis Sie sie im Kundendatensatz als sauber markieren. Standardmäßig PDF; weitere Dateitypen, Größen- und Speichergrenzen unter Einstellungen → CRM."
-      }
+      },
+      "configure": "Konfigurieren",
+      "sidebarInSettings": "Kein Eintrag in der Seitenleiste — liegt in den Einstellungen"
     },
     "customerSurface": {
       "brandingTitle": "Kundendashboard-Kopfzeile",
@@ -3296,7 +3411,7 @@
       "vat": {
         "title": "MwSt.",
         "registered": "MwSt-pflichtig (Umsatzsteuer berechnen + Vorsteuer abziehen)",
-        "registeredHint": "Aus = Kleinunternehmen / unter der Schwelle: keine MwSt berechnet, Vorsteuer ist Aufwand (nicht abziehbar). Rechnungen und Angebote ohne MwSt zeigen dann keine MwSt.-Zeile; der MwSt.-Hinweis aus den CRM-Einstellungen steht an ihrer Stelle.",
+        "registeredHint": "Aus = Kleinunternehmen / unter der Schwelle: keine MwSt berechnet, Vorsteuer ist Aufwand (nicht abziehbar). Rechnungen ohne MwSt zeigen dann keine MwSt.-Zeile; der MwSt.-Hinweis aus den CRM-Einstellungen steht an ihrer Stelle. Auf Angeboten erscheint er nie — ein Angebot ist nicht das Steuerdokument.",
         "reclaimCountries": "Länder mit abziehbarer Vorsteuer",
         "reclaimCountriesHint": "Üblicherweise Ihr Inland (CH / LI). Kosten aus anderen Ländern gelten als nicht abziehbare ausländische MwSt. Cmd/Ctrl-Klick für Mehrfachauswahl.",
         "defaultOutputCode": "Standard-MwSt-Code für neue Rechnungen",
@@ -3509,6 +3624,234 @@
       "leaveMessage": "Auf dieser Seite gibt es ungespeicherte Änderungen. Wenn du jetzt gehst, gehen sie verloren.",
       "leaveConfirm": "Verwerfen und verlassen",
       "leaveCancel": "Hier bleiben"
+    },
+    "health": {
+      "title": "Systemzustand",
+      "description": "Fehler im Hintergrund, die Aufmerksamkeit brauchen — hängende E-Mails, fehlgeschlagene Prüfungen und Aufräumarbeiten."
+    },
+    "search": {
+      "placeholder": "Einstellungen durchsuchen…",
+      "label": "Einstellungen durchsuchen",
+      "noResults": "Keine Einstellung passt zu „{{query}}“."
+    },
+    "keywords": {
+      "usage": [
+        "nutzung",
+        "lizenz",
+        "kontingent"
+      ],
+      "features": [
+        "funktionen",
+        "module",
+        "aktivieren",
+        "deaktivieren",
+        "schalter"
+      ],
+      "general": [
+        "sprache",
+        "zeitzone",
+        "datumsformat",
+        "uhrzeitformat",
+        "domain",
+        "konto",
+        "passwort"
+      ],
+      "events": [
+        "veranstaltungen",
+        "standardwerte",
+        "ablauf",
+        "uploadlimit"
+      ],
+      "eventTypes": [
+        "veranstaltungstypen",
+        "hochzeit",
+        "portrait"
+      ],
+      "users": [
+        "benutzer",
+        "rollen",
+        "berechtigungen",
+        "team",
+        "einladen",
+        "zugriff",
+        "mitarbeiter"
+      ],
+      "branding": [
+        "logo",
+        "farben",
+        "favicon",
+        "firmenname",
+        "erscheinungsbild"
+      ],
+      "categories": [
+        "kategorien",
+        "schlagworte"
+      ],
+      "thumbnails": [
+        "vorschaubilder",
+        "bildgröße"
+      ],
+      "downloads": [
+        "auflösung",
+        "originaldateien",
+        "herunterladen"
+      ],
+      "styling": [
+        "css",
+        "stylesheet",
+        "gestaltung"
+      ],
+      "cms": [
+        "impressum",
+        "datenschutz",
+        "agb",
+        "seiten",
+        "rechtliches"
+      ],
+      "email": [
+        "e-mail",
+        "smtp",
+        "imap",
+        "postfach",
+        "absender",
+        "signatur",
+        "vorlagen"
+      ],
+      "moderation": [
+        "moderation",
+        "feedback",
+        "kommentare",
+        "meldungen"
+      ],
+      "security": [
+        "sicherheit",
+        "anmeldung",
+        "sperre",
+        "sitzungen",
+        "passwortrichtlinie"
+      ],
+      "sso": [
+        "anmeldung",
+        "oidc",
+        "saml",
+        "identitätsanbieter",
+        "einmalanmeldung"
+      ],
+      "imageSecurity": [
+        "bildschutz",
+        "wasserzeichen",
+        "rechtsklick"
+      ],
+      "seo": [
+        "suchmaschine",
+        "robots",
+        "sitemap",
+        "indexierung"
+      ],
+      "apiTokens": [
+        "api",
+        "token",
+        "schlüssel",
+        "schnittstelle"
+      ],
+      "webhooks": [
+        "webhooks",
+        "rückrufe"
+      ],
+      "status": [
+        "systemstatus",
+        "dienste",
+        "warteschlange",
+        "speicher",
+        "version"
+      ],
+      "health": [
+        "systemzustand",
+        "hängende e-mails",
+        "diagnose",
+        "fehler",
+        "aufräumen"
+      ],
+      "analytics": [
+        "statistik",
+        "auswertung",
+        "besucher"
+      ],
+      "backup": [
+        "sicherung",
+        "wiederherstellung",
+        "export",
+        "import",
+        "datensicherung"
+      ],
+      "businessProfile": [
+        "firmenprofil",
+        "adresse",
+        "ust-idnr",
+        "steuernummer",
+        "iban",
+        "bank",
+        "rechnungssteller"
+      ],
+      "crm": [
+        "angebote",
+        "rechnungen",
+        "nummerierung",
+        "dokumente"
+      ],
+      "contracts": [
+        "verträge",
+        "klauseln",
+        "unterschrift",
+        "vorlagen",
+        "bausteine"
+      ],
+      "accounting": [
+        "buchhaltung",
+        "kontenplan",
+        "mwst",
+        "steuer",
+        "banana"
+      ],
+      "whatsapp": [
+        "whatsapp",
+        "telefon"
+      ],
+      "slideshow": [
+        "diashow",
+        "präsentation",
+        "kiosk"
+      ],
+      "transfers": [
+        "transfer",
+        "pictransfer",
+        "upload",
+        "dateitypen",
+        "mime",
+        "svg",
+        "erlaubte dateien",
+        "alle akzeptieren",
+        "dateigröße",
+        "dateien anfordern"
+      ]
+    },
+    "transfers": {
+      "title": "PicTransfer",
+      "description": "Welche Dateitypen Kunden Ihnen senden dürfen – und wie groß.",
+      "uploadsTitle": "Was Kunden Ihnen senden dürfen",
+      "uploadsIntro": "Gilt für Dateianfragen und für Dateien, die Sie einem Transfer anhängen. Ändert nicht, was in eine Galerie hochgeladen werden darf.",
+      "acceptAll": "Alle Dateitypen akzeptieren",
+      "acceptAllHint": "Jede Datei, die ein Kunde auswählt, wird angenommen. Größenlimit, Dateianzahl und Ablauf des Links gelten weiterhin.",
+      "acceptAllWarning": "Hochgeladene Dateien werden als undurchsichtige Downloads gespeichert und ausgeliefert. PicPeak öffnet, rendert und prüft sie nie und liefert sie nie als Webinhalt aus – kann Ihnen aber auch nicht sagen, ob eine Datei sicher ist. Prüfen Sie alles, was Sie öffnen oder weitergeben.",
+      "allowedTypes": "Erlaubte Dateitypen",
+      "addType": "Typ hinzufügen",
+      "allowedTypesHint": "Eine Datei wird angenommen, wenn ihr Typ passt und ihre Endung eine der aufgeführten ist. Endungen leer lassen, um nur auf den Typ zu prüfen.",
+      "noTypes": "Keine Typen aufgeführt. Fügen Sie mindestens einen hinzu oder aktivieren Sie „Alle Dateitypen akzeptieren“.",
+      "mime": "Dateityp",
+      "extensions": "Endungen",
+      "maxSize": "Maximale Dateigröße (MB)",
+      "maxSizeHint": "Gilt pro Datei, nicht pro Upload.",
+      "readOnly": "Nur Admins mit Bearbeitungsrechten für Einstellungen können ändern, was Kunden senden dürfen."
     }
   },
   "branding": {
@@ -3960,7 +4303,13 @@
     "heroLogoPosition": "Logoposition im Hero-Bereich",
     "heroLogoPositionHelp": "Gilt für jede Galerie mit Hero-Kopfbereich.",
     "galleryPasswordLogo": "Logo auf der Passwortseite der Galerie anzeigen",
-    "galleryPasswordLogoHelp": "Gilt für jede passwortgeschützte Galerie und für die Seite für den Kundenzugang."
+    "galleryPasswordLogoHelp": "Gilt für jede passwortgeschützte Galerie und für die Seite für den Kundenzugang.",
+    "storyGridMode": "Bildausschnitt",
+    "storyGridModeOptions": {
+      "fixed": "Feste Kacheln (zuschneiden)",
+      "natural": "Natürlich (Seitenverhältnis beibehalten)"
+    },
+    "storyGridModeHint": "Natürlich ordnet die Szenen in Reihen nach den Bildmaßen an, sodass Hochformate vollständig statt beschnitten gezeigt werden."
   },
   "admin": {
     "title": "Admin-Panel",
@@ -4654,7 +5003,8 @@
     "expandSidebar": "Seitenleiste ausklappen",
     "collapseSidebar": "Seitenleiste einklappen",
     "backToMenu": "Zurück zum Menü",
-    "viewOnGithub": "PicPeak auf GitHub ansehen"
+    "viewOnGithub": "PicPeak auf GitHub ansehen",
+    "totalMedia": "Medien gesamt"
   },
   "acceptInvitation": {
     "title": "Einladung annehmen",
@@ -5505,7 +5855,14 @@
     "noPasswordSet": "Kein Kunden-Passwort gesetzt. Der Kunde kann die Auswahlseite erst öffnen, wenn eins gesetzt ist.",
     "generate": "Erzeugen",
     "newPasswordKeep": "Neues Kunden-Passwort (leer lassen, um das aktuelle zu behalten)",
-    "passwordRequiredOn": "Setz ein Kunden-Passwort, bevor du den Kundenzugang einschaltest."
+    "passwordRequiredOn": "Setz ein Kunden-Passwort, bevor du den Kundenzugang einschaltest.",
+    "pinLabel": "Kunden-PIN",
+    "pinPlaceholder": "PIN eingeben",
+    "enterPin": "Geben Sie die PIN ein, die Sie erhalten haben",
+    "invalidPin": "Ungültige PIN. Bitte versuchen Sie es erneut.",
+    "pinHelperText": "Der Kunde verwendet diese PIN, um die Überprüfungsseite aufzurufen. Mindestens 6 Zeichen.",
+    "pinUpdated": "Kunden-PIN aktualisiert",
+    "setPin": "PIN festlegen"
   },
   "setup": {
     "title": "Willkommen bei PicPeak",
@@ -7411,7 +7768,8 @@
       "noEndDate": "Unbegrenzt gültig",
       "validFromNoEnd": "Ab {{date}}, unbegrenzt",
       "validUntilOnly": "Bis",
-      "examplesHint": "Archivierte Einträge mit „Beispiel: …“ zeigen, wie jeder Teil funktioniert. Bearbeiten Sie einen und stellen Sie ihn wieder her, um ihn zu verwenden."
+      "examplesHint": "Archivierte Einträge mit „Beispiel: …“ zeigen, wie jeder Teil funktioniert. Bearbeiten Sie einen und stellen Sie ihn wieder her, um ihn zu verwenden.",
+      "backToTemplates": "Zurück zu den Vorlagen"
     },
     "promotions": {
       "panelHint": "Prozente gelten zuerst, dann feste Beträge – nie mehr als die Zwischensumme.",
@@ -7939,7 +8297,7 @@
     "crm_invoices_vat_note_text": {
       "label": "MwSt.- / Freitext-Hinweis auf Rechnungen",
       "placeholder": "z. B. Gemäß § 6 Abs. 1 Z 27 UStG 1994 wird keine Umsatzsteuer berechnet (Kleinunternehmer).",
-      "help": "Wird direkt unter der MwSt.-Zeile auf jeder Rechnungs-PDF gedruckt. Ist das Unternehmen nicht MwSt-pflichtig (Einstellungen → Buchhaltung), steht der Hinweis auf Rechnungen und Angeboten ohne MwSt an Stelle dieser Zeile. Leer lassen zum Ausblenden. Bitte den genauen Wortlaut mit Ihrem Steuerberater abstimmen."
+      "help": "Wird direkt unter der MwSt.-Zeile auf jeder Rechnung ausgegeben. Ist das Unternehmen nicht mehrwertsteuerpflichtig (Einstellungen → Buchhaltung), ersetzt der Text diese Zeile auf Rechnungen ohne MwSt. Auf Angeboten erscheint er nie — ein Angebot ist nicht das Steuerdokument. Leer lassen, um ihn auszublenden. Bitte den genauen Wortlaut mit Ihrem Treuhänder bzw. Steuerberater abstimmen."
     },
     "crm_invoices_skonto_percent_default": {
       "label": "Standard-Skonto %"
@@ -9634,6 +9992,28 @@
       "savingsUnknown": "Hier nicht berechnet",
       "tab": "Download-Pakete",
       "title": "Download-Pakete"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Seiten"
+    },
+    "palette": {
+      "label": "Admin-Bereich durchsuchen",
+      "placeholder": "Seiten und Einstellungen durchsuchen…",
+      "noResults": "Nichts passt zu „{{query}}“.",
+      "open": "Seiten und Einstellungen durchsuchen"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Keine Automatisierungsfunktionen aktiviert",
+      "body": "Aktivieren Sie Workflows oder Erinnerungs-E-Mails unter Einstellungen → Funktionen, um loszulegen.",
+      "noAccessTitle": "Hier gibt es nichts, was Sie öffnen können",
+      "noAccessBody": "Diese Funktionen sind aktiviert, aber Ihre Rolle kann keine ihrer Seiten öffnen. Bitten Sie eine Administratorin oder einen Administrator um Zugriff."
+    },
+    "subnav": {
+      "approvals": "Freigaben"
     }
   }
 }

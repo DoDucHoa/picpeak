@@ -30,7 +30,7 @@ it('no longer requires an admin email on create', async () => {
 });
 
 it('deletes the stored requirement, and down restores it', async () => {
-  const migration = require('../../migrations/core/260_drop_require_admin_email');
+  const migration = require('../../migrations/core/262_drop_require_admin_email');
   await migration.up(db);
   expect(await db('app_settings').where({ setting_key: 'event_require_admin_email' }).first()).toBeUndefined();
   await migration.down(db);

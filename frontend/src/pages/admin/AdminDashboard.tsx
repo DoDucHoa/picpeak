@@ -30,6 +30,7 @@ import { CrmOverviewSection } from '../../components/admin/CrmOverviewSection';
 import { useQuery } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { adminService, ActivityType, type Activity } from '../../services/admin.service';
+import { mediaSplitLabel, splitMediaCount } from '../../utils/mediaCounts';
 import { workflowsService } from '../../services/workflows.service';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 
@@ -106,7 +107,7 @@ export const AdminDashboard: React.FC = () => {
     // Order by soonest expiry so the five shown rows ARE the earliest to
     // expire — useExpiryRefresh then schedules against the true next boundary
     // even when >5 events are expiring (#909 review round 3).
-    queryFn: () => eventsService.getEvents(1, 5, 'expiring', undefined, 'expires_at', 'asc'),
+    queryFn: () => eventsService.getEvents({ limit: 5, status: 'expiring', sortBy: 'expires_at', sortOrder: 'asc' }),
   });
 
   // Keep the "expiring soon" card honest when a row crosses its expiry while
@@ -173,6 +174,8 @@ export const AdminDashboard: React.FC = () => {
   };
 
   // Build statistics cards - always show 8 cards in 2x4 grid
+  const installMedia = splitMediaCount(dashboardStats?.totalPhotos, dashboardStats?.totalVideos);
+
   const stats: StatCard[] = [
     {
       title: t('admin.activeEvents'),
@@ -188,8 +191,11 @@ export const AdminDashboard: React.FC = () => {
       color: 'text-orange-600',
     },
     {
-      title: t('admin.totalPhotos'),
+      // An install that holds videos counts media and shows the split; one
+      // that holds only photos keeps "Total Photos" (issue 1430).
+      title: installMedia.hasVideos ? t('admin.totalMedia', 'Total Media') : t('admin.totalPhotos'),
       value: formatNumber(dashboardStats?.totalPhotos || 0),
+      change: installMedia.hasVideos ? mediaSplitLabel(t, installMedia) : undefined,
       icon: Image,
       color: 'text-blue-600',
     },
@@ -400,7 +406,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
               {pendingApprovals.length > 5 && (
                 <button
-                  onClick={() => navigate('/admin/workflows/approvals')}
+                  onClick={() => navigate('/admin/automation/approvals')}
                   className="w-full mt-4 text-sm text-accent hover:opacity-80 font-medium"
                 >
                   {t('workflows.approvals.viewAll', 'View all approvals')} →

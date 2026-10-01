@@ -178,7 +178,9 @@
     "cmsPages": "Pages CMS",
     "users": "Utilisateurs",
     "calendar": "Calendrier",
-    "clients": "Clients"
+    "clients": "Clients",
+    "automation": "Automatisation",
+    "sharing": "Partage"
   },
   "archives": {
     "title": "Archives",
@@ -438,6 +440,7 @@
     "eventExpiresIn": "Cet événement expire dans {{days}} jours",
     "overview": "Aperçu",
     "photos": "Photos",
+    "media": "Médias",
     "categories": "Catégories",
     "eventInformation": "Informations sur l'événement",
     "sourceMode": "Mode source",
@@ -459,8 +462,18 @@
     "creationEmailResent": "L'e-mail de création a été mis en file d'attente pour envoi",
     "failedToResendEmail": "Échec de l'envoi de l'e-mail de création",
     "photoStatistics": "Statistiques des photos",
+    "mediaStatistics": "Statistiques des médias",
     "totalPhotos": "Photos totales",
+    "videos": "Vidéos",
+    "videoRuntime": "Durée des vidéos",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_many": "{{count}} photos",
+    "photosCount_other": "{{count}} photos",
+    "videosCount_one": "{{count}} vidéo",
+    "videosCount_many": "{{count}} vidéos",
+    "videosCount_other": "{{count}} vidéos",
     "managePhotos": "Gérer les photos",
+    "manageMedia": "Gérer les médias",
     "actions": "Actions",
     "archivingInfo": "L'archivage créera un fichier ZIP de toutes les photos et retirera la galerie de l'accès public.",
     "archivedOn": "Archivé le",
@@ -677,7 +690,7 @@
     "devtoolsDetection": "Détection des outils DevTools",
     "watermarked": "Avec filigrane",
     "importExternal": "Importer depuis un dossier externe",
-    "externalImportInfo": "Toutes les images du dossier sélectionné seront importées.",
+    "externalImportInfo": "Toutes les images du dossier sélectionné seront importées. Les vidéos le sont aussi lorsque leur type de fichier est autorisé pour les téléversements.",
     "selectExternalFolder": "Sélectionner un dossier externe sous /external-media",
     "importFromSelectedFolder": "Importer depuis le dossier sélectionné",
     "promoBanner": {
@@ -706,7 +719,26 @@
       "showToGuestsHelp": "Les invités voient les noms des photos envoyées pendant que cette option est activée ; les noms donnés pendant qu’elle était désactivée restent réservés à vous et à l’hôte. La désactiver masque tous les noms aux invités. S’applique aussi aux crédits du photographe lus dans l’EXIF.",
       "shownToGuests": "Visible par les invités",
       "hiddenFromGuests": "Visible par vous seul"
-    }
+    },
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Plus récentes d’abord",
+    "sortDateOldest": "Plus anciennes d’abord",
+    "sortCreatedNewest": "Créées récemment",
+    "sortCreatedOldest": "Créées en premier",
+    "sortPhotosMost": "Plus de photos",
+    "sortPhotosFewest": "Moins de photos",
+    "sortStatusActive": "Actives d’abord",
+    "sortStatusArchived": "Archivées d’abord",
+    "sortExpiresSoonest": "Expiration la plus proche",
+    "sortExpiresLatest": "Expiration la plus lointaine",
+    "filterAllTypes": "Tous les types",
+    "filterByType": "Filtrer par type",
+    "sortByName": "Trier par nom",
+    "sortByDate": "Trier par date",
+    "sortByPhotos": "Trier par nombre de photos",
+    "sortByStatus": "Trier par statut",
+    "sortByExpiry": "Trier par expiration"
   },
   "settings": {
     "title": "Paramètres système",
@@ -749,7 +781,10 @@
       "accountEmailRequired": "L'adresse e-mail est requise",
       "accountEmailInvalid": "Entrez une adresse e-mail valide",
       "accountSaveButton": "Enregistrer les détails du compte",
-      "accountSaveSuccess": "Détails du compte mis à jour"
+      "accountSaveSuccess": "Détails du compte mis à jour",
+      "adminLanguage": "Votre langue d’administration",
+      "adminLanguageHelp": "S'applique à l'espace d'administration, pour vous sur cet appareil uniquement. L'effet est immédiat — inutile d'enregistrer.",
+      "customerLanguage": "Langue de la galerie et des invités"
     },
     "publicSite": {
       "badge": "Page d'accueil publique",
@@ -842,7 +877,7 @@
       "aboutText": "Les catégories globales sont disponibles pour tous les événements. Vous pouvez également créer des catégories spécifiques à un événement lors de la modification d'événements individuels. Les catégories aident à organiser les photos et permettent aux invités de filtrer les photos par type dans la vue galerie."
     },
     "systemStatus": {
-      "title": "Statut du système",
+      "title": "État",
       "storageOverview": "Aperçu du stockage",
       "systemInfo": "Informations système",
       "databaseInfo": "Informations sur la base de données",
@@ -866,7 +901,8 @@
       "pending": "En attente",
       "sent": "Envoyé",
       "failed": "Échoué",
-      "lastUpdate": "Dernière mise à jour"
+      "lastUpdate": "Dernière mise à jour",
+      "description": "Services, files d'attente, stockage et version — ce que cette instance exécute actuellement."
     },
     "photoDimensions": {
       "title": "Dimensions des photos",
@@ -1089,7 +1125,8 @@
       "integrations": "Intégrations",
       "system": "Système",
       "appearance": "Contenu & Apparence",
-      "communication": "Communication"
+      "communication": "Communication",
+      "people": "Personnes et accès"
     },
     "apiTokens": {
       "title": "Jetons API",
@@ -1218,7 +1255,9 @@
       "clients": {
         "title": "Clients",
         "description": "Interrupteur principal pour la section Clients de la barre latérale. Désactivé masque la section et toutes les sous-fonctionnalités ci-dessous, quel que soit leur état individuel — réactivez pour restaurer selon ce que vous avez défini en dernier."
-      }
+      },
+      "configure": "Configurer",
+      "sidebarInSettings": "Pas d'entrée dans la barre latérale — se trouve dans les paramètres"
     },
     "customerSurface": {
       "brandingTitle": "En-tête du tableau de bord client",
@@ -1260,6 +1299,15 @@
       "running": "Lecture des crédits...",
       "noneToRead": "Plus aucune photo à lire",
       "button": "Lire les crédits EXIF"
+    },
+    "health": {
+      "title": "Santé",
+      "description": "Échecs en arrière-plan nécessitant une intervention — e-mails bloqués, vérifications échouées et nettoyage."
+    },
+    "search": {
+      "placeholder": "Rechercher dans les paramètres…",
+      "label": "Rechercher dans les paramètres",
+      "noResults": "Aucun paramètre ne correspond à « {{query}} »."
     }
   },
   "analytics": {
@@ -1589,6 +1637,7 @@
     "recentActivity": "Activité récente",
     "storageUsed": "Espace utilisé",
     "totalPhotos": "Photos totales",
+    "totalMedia": "Total des médias",
     "storagePercent": "{{percent}}% de la limite {{limit}}",
     "storageSoftLimitConfigured": "Limite configurée : {{limit}}",
     "storageSoftLimitRecommended": "Limite suggérée : {{limit}}",
@@ -3225,6 +3274,28 @@
       "net": "Net",
       "vat": "TVA",
       "total": "Brut"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Pages"
+    },
+    "palette": {
+      "label": "Rechercher dans l'espace d'administration",
+      "placeholder": "Rechercher pages et paramètres…",
+      "noResults": "Rien ne correspond à « {{query}} ».",
+      "open": "Rechercher pages et paramètres"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Aucune fonction d'automatisation activée",
+      "body": "Activez les Workflows ou les e-mails de rappel dans Paramètres → Fonctionnalités pour commencer.",
+      "noAccessTitle": "Rien ici que vous puissiez ouvrir",
+      "noAccessBody": "Ces fonctionnalités sont activées, mais votre rôle ne peut ouvrir aucune de leurs pages. Demandez l'accès à un administrateur."
+    },
+    "subnav": {
+      "approvals": "Approbations"
     }
   }
 }

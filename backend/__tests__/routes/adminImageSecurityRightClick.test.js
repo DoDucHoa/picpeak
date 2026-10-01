@@ -1,6 +1,6 @@
 /**
  * The right-click switch round-trips through the Image security tab. The PUT
- * only updates rows that exist, so this also pins the seed from migration 258.
+ * only updates rows that exist, so this also pins the seed from migration 260.
  */
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'image-security-right-click-secret-32';

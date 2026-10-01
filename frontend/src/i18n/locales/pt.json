@@ -219,7 +219,9 @@
     "cmsPages": "Páginas CMS",
     "users": "Utilizadores",
     "calendar": "Calendário",
-    "clients": "Clientes"
+    "clients": "Clientes",
+    "automation": "Automação",
+    "sharing": "Partilha"
   },
   "archives": {
     "title": "Arquivos",
@@ -545,6 +547,7 @@
     "eventExpiresIn": "Este evento expira em {{days}} dias",
     "overview": "Visão Geral",
     "photos": "Fotos",
+    "media": "Mídia",
     "categories": "Categorias",
     "eventInformation": "Informações do Evento",
     "sourceMode": "Modo de Origem",
@@ -566,8 +569,18 @@
     "creationEmailResent": "O e-mail de criação foi enfileirado para envio",
     "failedToResendEmail": "Falha ao reenviar e-mail de criação",
     "photoStatistics": "Estatísticas de Fotos",
+    "mediaStatistics": "Estatísticas de Mídia",
     "totalPhotos": "Total de Fotos",
+    "videos": "Vídeos",
+    "videoRuntime": "Duração dos Vídeos",
+    "photosCount_one": "{{count}} foto",
+    "photosCount_many": "{{count}} fotos",
+    "photosCount_other": "{{count}} fotos",
+    "videosCount_one": "{{count}} vídeo",
+    "videosCount_many": "{{count}} vídeos",
+    "videosCount_other": "{{count}} vídeos",
     "managePhotos": "Gerenciar Fotos",
+    "manageMedia": "Gerenciar Mídia",
     "actions": "Ações",
     "archivingInfo": "O arquivamento criará um arquivo ZIP de todas as fotos e removerá a galeria do acesso público.",
     "archivedOn": "Arquivado em",
@@ -792,7 +805,7 @@
     "devtoolsDetection": "Deteção de ferramentas de desenvolvedor",
     "watermarked": "Com marca d'água",
     "importExternal": "Importar de pasta externa",
-    "externalImportInfo": "Todas as imagens da pasta selecionada serão importadas.",
+    "externalImportInfo": "Todas as imagens da pasta selecionada serão importadas. Os vídeos também são importados quando o tipo de arquivo é permitido para envios.",
     "selectExternalFolder": "Selecionar pasta externa em /external-media",
     "importFromSelectedFolder": "Importar da pasta selecionada",
     "promoBanner": {
@@ -821,7 +834,26 @@
       "showToGuestsHelp": "Os convidados veem os nomes das fotos enviadas enquanto isto está ligado; os nomes dados enquanto estava desligado ficam apenas para si e para o anfitrião. Desligar oculta todos os nomes aos convidados. Aplica-se também aos créditos do fotógrafo lidos do EXIF.",
       "shownToGuests": "Visível para os convidados",
       "hiddenFromGuests": "Visível apenas para si"
-    }
+    },
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Mais recentes primeiro",
+    "sortDateOldest": "Mais antigas primeiro",
+    "sortCreatedNewest": "Criadas recentemente",
+    "sortCreatedOldest": "Criadas primeiro",
+    "sortPhotosMost": "Mais fotos",
+    "sortPhotosFewest": "Menos fotos",
+    "sortStatusActive": "Ativas primeiro",
+    "sortStatusArchived": "Arquivadas primeiro",
+    "sortExpiresSoonest": "Expiram primeiro",
+    "sortExpiresLatest": "Expiram por último",
+    "filterAllTypes": "Todos os tipos",
+    "filterByType": "Filtrar por tipo",
+    "sortByName": "Ordenar por nome",
+    "sortByDate": "Ordenar por data",
+    "sortByPhotos": "Ordenar por número de fotos",
+    "sortByStatus": "Ordenar por estado",
+    "sortByExpiry": "Ordenar por expiração"
   },
   "settings": {
     "title": "Configurações do Sistema",
@@ -860,7 +892,10 @@
       "accountEmailRequired": "E-mail é obrigatório",
       "accountEmailInvalid": "Insira um e-mail válido",
       "accountSaveButton": "Salvar detalhes da conta",
-      "accountSaveSuccess": "Detalhes da conta atualizados"
+      "accountSaveSuccess": "Detalhes da conta atualizados",
+      "adminLanguage": "O seu idioma de administração",
+      "adminLanguageHelp": "Aplica-se à área de administração, apenas para si neste dispositivo. Tem efeito imediato — não é preciso guardar.",
+      "customerLanguage": "Idioma da galeria e dos convidados"
     },
     "publicSite": {
       "badge": "Landing Page",
@@ -953,7 +988,7 @@
       "aboutText": "Categorias globais estão disponíveis para todos os eventos. Você também pode criar categorias específicas ao editar um evento. Elas ajudam a organizar as fotos e permitem filtros por tipo."
     },
     "systemStatus": {
-      "title": "Status do Sistema",
+      "title": "Estado",
       "storageOverview": "Visão Geral do Espaço",
       "systemInfo": "Informações do Sistema",
       "databaseInfo": "Informações do Banco de Dados",
@@ -977,7 +1012,8 @@
       "pending": "Pendentes",
       "sent": "Enviados",
       "failed": "Falhas",
-      "lastUpdate": "Última atualização"
+      "lastUpdate": "Última atualização",
+      "description": "Serviços, filas, armazenamento e versão — o que esta instância está a executar agora."
     },
     "photoDimensions": {
       "title": "Dimensões das Fotos",
@@ -1194,7 +1230,8 @@
       "integrations": "Integrações",
       "system": "Sistema",
       "appearance": "Conteúdo e Aparência",
-      "communication": "Comunicação"
+      "communication": "Comunicação",
+      "people": "Pessoas e acesso"
     },
     "apiTokens": {
       "title": "Tokens de API",
@@ -1323,7 +1360,9 @@
       "clients": {
         "title": "Clientes",
         "description": "Chave principal da seção Clientes na barra lateral. Desligado oculta a seção e todas as sub-funcionalidades independentemente dos seus controles individuais — reativar restaura o estado anterior."
-      }
+      },
+      "configure": "Configurar",
+      "sidebarInSettings": "Sem item na barra lateral — fica nas definições"
     },
     "customerSurface": {
       "brandingTitle": "Cabeçalho do painel do cliente",
@@ -1345,6 +1384,15 @@
       "running": "A ler autores...",
       "noneToRead": "Não há mais fotos por ler",
       "button": "Ler autores do EXIF"
+    },
+    "health": {
+      "title": "Saúde",
+      "description": "Falhas em segundo plano que precisam de atenção — e-mails travados, verificações falhadas e limpeza."
+    },
+    "search": {
+      "placeholder": "Pesquisar nas definições…",
+      "label": "Pesquisar nas definições",
+      "noResults": "Nenhuma definição corresponde a “{{query}}”."
     }
   },
   "analytics": {
@@ -1674,6 +1722,7 @@
     "recentActivity": "Atividade Recente",
     "storageUsed": "Espaço Utilizado",
     "totalPhotos": "Total de Fotos",
+    "totalMedia": "Total de Mídia",
     "storagePercent": "{{percent}}% do limite de {{limit}}",
     "storageSoftLimitConfigured": "Limite configurado: {{limit}}",
     "storageSoftLimitRecommended": "Limite sugerido: {{limit}}",
@@ -3437,6 +3486,28 @@
       "net": "Líquido",
       "vat": "IVA",
       "total": "Bruto"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Páginas"
+    },
+    "palette": {
+      "label": "Pesquisar na área de administração",
+      "placeholder": "Pesquisar páginas e definições…",
+      "noResults": "Nada corresponde a “{{query}}”.",
+      "open": "Pesquisar páginas e definições"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Nenhuma funcionalidade de automação ativada",
+      "body": "Ative Workflows ou e-mails de lembrete em Definições → Funcionalidades para começar.",
+      "noAccessTitle": "Não há nada aqui que possa abrir",
+      "noAccessBody": "Estas funcionalidades estão ativadas, mas o seu perfil não pode abrir nenhuma das suas páginas. Peça acesso a um administrador."
+    },
+    "subnav": {
+      "approvals": "Aprovações"
     }
   }
 }

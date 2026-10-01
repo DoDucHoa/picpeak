@@ -32,7 +32,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Mail, ArrowLeft, AlertTriangle, Workflow as WorkflowIcon } from 'lucide-react';
+import { Mail, AlertTriangle, Workflow as WorkflowIcon } from 'lucide-react';
 import { Card, Loading, Input } from '../../../components/common';
 import { SUPPORTED_LANGUAGES } from '../../../components/common/LanguageSelector';
 import { EmailTemplateEditor } from '../../../components/admin/EmailTemplateEditor';
@@ -281,11 +281,6 @@ export const ReminderTemplatesPage: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-3">
-        <Link to="/admin/settings/crm" className="p-2 -ml-2 rounded hover:bg-hover">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-      </div>
       <SectionPageHeader
         icon={Mail}
         title={t('reminderTemplates.title', 'Pre-event reminder emails')}
@@ -301,7 +296,7 @@ export const ReminderTemplatesPage: React.FC = () => {
               <p className="font-medium">{t('reminderTemplates.scheduleMoved.title', 'The reminder schedule is now in Workflows')}</p>
               <p className="mt-1 text-soft">
                 {t('reminderTemplates.scheduleMoved.body', 'Whether pre-event reminders are sent, and how many days before the event, is configured in the “Pre-event reminder” workflow. This page edits the email templates; per-event overrides stay on each event’s detail page.')}{' '}
-                <Link to="/admin/workflows" className="underline font-medium">{t('reminderTemplates.scheduleMoved.link', 'Open Workflows')}</Link>
+                <Link to="/admin/automation/workflows" className="underline font-medium">{t('reminderTemplates.scheduleMoved.link', 'Open Workflows')}</Link>
               </p>
             </div>
           </div>

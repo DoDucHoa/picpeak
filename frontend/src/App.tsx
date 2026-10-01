@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { createBrowserRouter, createRoutesFromElements, RouterProvider, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -24,8 +24,10 @@ import {
   DownloadOrdersPage,
   AnalyticsPage,
   SettingsPage,
-  SystemHealthPage,
-  UserManagementPage,
+  // SystemHealthPage and UserManagementPage are no longer routed from here:
+  // they render as the Settings > Health and Settings > Users tabs, and
+  // SettingsPage imports them itself. /admin/system-health and /admin/users
+  // redirect to those tabs, further down.
   CustomerManagementPage,
   CustomerDetailPage,
   WebhookDeliveriesPage,
@@ -70,6 +72,9 @@ import { ContractAttachmentsPage } from './pages/admin/contracts/ContractAttachm
 import { PaymentCheckPage } from './pages/public/PaymentCheckPage';
 import { AcceptInvitePage } from './pages/public/AcceptInvitePage';
 import { TransfersPage } from './pages/admin/transfers/TransfersPage';
+import { AutomationLayout } from './components/admin/AutomationLayout';
+import { RequirePermission } from './components/admin/RequirePermission';
+import { ReminderTemplatesPage } from './pages/admin/settings/ReminderTemplatesPage';
 import { TransferDownloadPage } from './pages/public/TransferDownloadPage';
 import { TransferUploadPage } from './pages/public/TransferUploadPage';
 import {
@@ -203,6 +208,28 @@ function RedirectCustomerDetail() {
   return <Navigate to={`/admin/clients/accounts/${id}`} replace />;
 }
 
+/**
+ * Settings, with one redirect in front of it.
+ *
+ * `?tab=reminderTemplates` moved out of Settings into the Automation section.
+ * A query string cannot be matched by a Route path, and doing the check inside
+ * SettingsPage lost a race with that page's own URL-sync effect, which rewrites
+ * an unknown ?tab= to the default before a redirect rendered there can fire.
+ * Sitting above the page, this runs before any of that.
+ */
+function SettingsRoute() {
+  const [params] = useSearchParams();
+  if (params.get('tab') === 'reminderTemplates') {
+    return <Navigate to="/admin/automation/reminder-templates" replace />;
+  }
+  return <SettingsPage />;
+}
+
+function RedirectWorkflowEditor() {
+  const { id } = useParams();
+  return <Navigate to={`/admin/automation/workflows/${id}`} replace />;
+}
+
 // A data router, created once, so pages can block navigation with
 // useBlocker (spec finding 16). The route list is the one that sat inside
 // <Routes>, moved verbatim under the root layout.
@@ -252,22 +279,20 @@ const router = createBrowserRouter(
                       <Route path="events/new" element={<CreateEventPage />} />
                       <Route path="events/:id" element={<EventDetailsPage />} />
                       <Route path="events/:id/feedback" element={<EventFeedbackPage />} />
-                      <Route path="archives" element={<ArchivesPage />} />
+                      {/* Archives is a sub-page of the Events section now —
+                          an archived event is still an event. Static segment,
+                          so it outranks events/:id. */}
+                      <Route path="events/archives" element={<ArchivesPage />} />
+
                       {/* Download orders (migration 214) — the queue a client
                           lands in once a gallery runs out of free downloads. */}
                       <Route path="download-orders" element={<DownloadOrdersPage />} />
                       {/* PicTransfer (#997) — cross-event file transfers.
-                          Gated by the `transfers` flag (strictly opt-in). */}
+                          Gated by the `transfers` flag (strictly opt-in). It
+                          keeps this URL and joins Events and Archives in the
+                          Sharing section, which activates on both trees. */}
                       <Route element={<RequireFeature flag="transfers" />}>
                         <Route path="transfers" element={<TransfersPage />} />
-                      </Route>
-
-                      {/* Feature-gated surfaces — redirect to /admin/dashboard when flag is off. */}
-                      <Route element={<RequireFeature flag="analytics" />}>
-                        <Route path="analytics" element={<AnalyticsPage />} />
-                      </Route>
-                      <Route element={<RequireFeature flag="userManagement" />}>
-                        <Route path="users" element={<UserManagementPage />} />
                       </Route>
                       <Route element={<RequireFeature flag="messaging" />}>
                         <Route path="messages" element={
@@ -275,6 +300,11 @@ const router = createBrowserRouter(
                             <MessagesPage />
                           </Suspense>
                         } />
+                      </Route>
+
+                      {/* Feature-gated surfaces — redirect to /admin/dashboard when flag is off. */}
+                      <Route element={<RequireFeature flag="analytics" />}>
+                        <Route path="analytics" element={<AnalyticsPage />} />
                       </Route>
                       {/* Clients section (#354 follow-up). Parent route
                           gated by the top-level `clients` flag — when off
@@ -414,17 +444,56 @@ const router = createBrowserRouter(
                       <Route path="customers"     element={<Navigate to="/admin/clients/accounts" replace />} />
                       <Route path="customers/:id" element={<RedirectCustomerDetail />} />
 
-                      {/* Workflows (automation engine) — top-level area gated
-                          by the `workflows` flag. */}
-                      <Route element={<RequireFeature flag="workflows" />}>
-                        <Route path="workflows" element={<WorkflowsListPage />} />
-                        <Route path="workflows/approvals" element={<WorkflowApprovalsPage />} />
-                        <Route path="workflows/:id" element={<WorkflowEditorPage />} />
+                      {/* Automation section — the workflow engine plus the
+                          reminder email templates it sends. Reminder emails
+                          came from Settings; the page already pointed at
+                          Workflows for its schedule, so the two now sit in one
+                          section. Each sub-area keeps its own flag. */}
+                      <Route path="automation" element={<AutomationLayout />}>
+                        {/* Both gates, for the same reason reminder-templates
+                            carries them: a section opens as soon as ANY item
+                            in it is permitted, so `reminderEmails` alone would
+                            otherwise let a role without workflows.view open
+                            the builder and watch its queries 403. */}
+                        <Route element={<RequireFeature flag="workflows" />}>
+                          <Route element={<RequirePermission permission="workflows.view" />}>
+                            <Route path="workflows" element={<WorkflowsListPage />} />
+                            {/* Flattened out from under workflows/ so the
+                                Workflows entry doesn't stay highlighted here. */}
+                            <Route path="approvals" element={<WorkflowApprovalsPage />} />
+                            <Route path="workflows/:id" element={<WorkflowEditorPage />} />
+                          </Route>
+                        </Route>
+                        {/* Reminder emails needs BOTH gates. As a Settings tab
+                            it was gated by living in Settings, which filters
+                            tabs by permission and snaps away from one the role
+                            cannot see. A section page has no such inheritance:
+                            the section opens as soon as ANY item in it is
+                            permitted, so a workflows-only role would otherwise
+                            reach this page and watch its queries 403. */}
+                        <Route element={<RequireFeature flag="reminderEmails" />}>
+                          <Route element={<RequirePermission permission="email.view" />}>
+                            <Route path="reminder-templates" element={<ReminderTemplatesPage />} />
+                          </Route>
+                        </Route>
                       </Route>
 
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="system-health" element={<SystemHealthPage />} />
+                      <Route path="settings" element={<SettingsRoute />} />
                       <Route path="webhooks/:id/deliveries" element={<WebhookDeliveriesPage />} />
+
+                      {/* Navigation cleanup — Archives, Messages, PicTransfer,
+                          Workflows, Users and System health are no longer
+                          top-level. Kept indefinitely as redirects: these paths
+                          are bookmarked and appear in already-sent email.
+                          Messages and PicTransfer are absent on purpose — they
+                          keep the URLs they always had. */}
+                      <Route path="archives"           element={<Navigate to="/admin/events/archives" replace />} />
+                      <Route path="workflows"          element={<Navigate to="/admin/automation/workflows" replace />} />
+                      <Route path="workflows/approvals" element={<Navigate to="/admin/automation/approvals" replace />} />
+                      <Route path="workflows/:id"      element={<RedirectWorkflowEditor />} />
+                      {/* Users and System health became Settings tabs. */}
+                      <Route path="users"              element={<Navigate to="/admin/settings?tab=users" replace />} />
+                      <Route path="system-health"      element={<Navigate to="/admin/settings?tab=health" replace />} />
 
                       {/* Old top-level routes — these surfaces now live as
                           Settings tabs (#feature-flags-settings-reorg).

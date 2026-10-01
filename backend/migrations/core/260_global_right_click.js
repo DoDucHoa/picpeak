@@ -5,7 +5,7 @@
  *
  * The two creation defaults migration 037 seeded are read by nothing and
  * go: right-click is now this global switch, and download watermarks are
- * the Branding switch from migration 257.
+ * the Branding switch from migration 259.
  */
 exports.up = async function up(knex) {
   const existing = await knex('app_settings').where({ setting_key: 'disable_right_click' }).first();

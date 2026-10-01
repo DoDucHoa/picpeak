@@ -668,8 +668,6 @@
     }
   },
   "systemHealth": {
-    "title": "Stanje sistema",
-    "subtitle": "Napake v ozadju, ki potrebujejo pozornost.",
     "retry": "Ponovi",
     "dismiss": "Zapri",
     "retriedToast": "E-pošta ponovno dodana v čakalno vrsto.",
@@ -886,7 +884,6 @@
     "transfers": "PicTransfer",
     "messages": "Sporočila",
     "settings": "Nastavitve",
-    "systemHealth": "Stanje sistema",
     "eventTypes": "Vrste dogodkov",
     "branding": "Blagovna znamka",
     "emailSettings": "Nastavitve e-pošte",
@@ -897,12 +894,13 @@
     "clients": "Stranke",
     "accounting": "Računovodstvo",
     "workflows": "Delovni tokovi",
-    "betaTag": "Beta"
+    "betaTag": "Beta",
+    "automation": "Avtomatizacija",
+    "sharing": "Deljenje"
   },
   "transfers": {
     "title": "PicTransfer",
     "subtitle": "Pošljite izvirne datoteke iz katerega koli dogodka prek povezave za prenos.",
-    "new": "Nov prenos",
     "create": "Ustvari prenos",
     "created": "Prenos ustvarjen",
     "createFailed": "Prenosa ni bilo mogoče ustvariti",
@@ -922,12 +920,7 @@
     "deleteConfirmTitle": "Izbrišem prenos?",
     "deleteConfirmBody": "S tem odstranite povezavo in vsa nalaganja stranke. Izvorne fotografije dogodka ostanejo nespremenjene.",
     "addImages": "Dodaj slike",
-    "clientUpload": "Nalaganje stranke",
-    "disableUploads": "Onemogoči",
-    "enableUploads": "Omogoči povezavo za nalaganje",
-    "uploadEnabled": "Povezava za nalaganje omogočena",
     "noUploads": "Stranka še ni naložila nobene datoteke.",
-    "uploadHint": "Omogočite to, da stranka dobi 6-mestno kodo za pošiljanje datotek (logotipi ipd.).",
     "createAndSend": "Ustvari in pošlji",
     "uploadedFiles": "Naložene datoteke",
     "addFiles": "Dodaj datoteke",
@@ -941,9 +934,7 @@
       "title": "Naslov",
       "files": "Datoteke",
       "status": "Stanje",
-      "downloads": "Prenosi",
-      "expires": "Poteče",
-      "uploads": "Nalaganja"
+      "downloads": "Prenosi"
     },
     "status": {
       "active": "Aktivno",
@@ -957,7 +948,6 @@
       "messagePlaceholder": "Prikaže se prejemniku na strani za prenos",
       "expiresInDays": "Povezava aktivna (dni)",
       "maxDownloads": "Največ prenosov (0 = neomejeno)",
-      "allowUploads": "Stranki omogoči tudi povezavo za nalaganje (za pošiljanje logotipov ipd.)",
       "files": "Datoteke",
       "noFiles": "Slike še niso izbrane.",
       "uploadFiles": "Naložite svoje datoteke",
@@ -966,10 +956,7 @@
       "delivery": "Dostava",
       "recipients": "E-poštni naslovi prejemnikov",
       "recipientsPlaceholder": "ana@example.com, ben@example.com",
-      "recipientsCount": "{{count}} prejemnikov — vsak prejme povezavo za prenos",
-      "recipientsHint": "Več naslovov ločite z vejicami. Vsak prejemnik prejme povezavo za prenos.",
-      "recipientsCount_one": "{{count}} prejemnikov — vsak prejme povezavo za prenos",
-      "recipientsCount_other": "{{count}} prejemnikov — vsak prejme povezavo za prenos"
+      "recipientsHint": "Več naslovov ločite z vejicami. Vsak prejemnik prejme povezavo za prenos."
     },
     "picker": {
       "title": "Izberite slike iz drugih dogodkov",
@@ -1447,6 +1434,7 @@
     "eventExpiresIn": "Ta dogodek poteče čez {{days}} dni",
     "overview": "Pregled",
     "photos": "Fotografije",
+    "media": "Mediji",
     "categories": "Kategorije",
     "eventInformation": "Informacije o dogodku",
     "sourceMode": "Način vira",
@@ -1456,7 +1444,7 @@
     "externalFolder": "Zunanja mapa",
     "externalFolderHint": "Te mape se berejo iz priklopa /external-media znotraj vsebnika ali gostitelja.",
     "externalWatch": "Spremljaj mapo za nove datoteke",
-    "externalWatchHint": "Nove slike, kopirane v to mapo, se samodejno uvozijo enako kot z gumbom Uvozi. Datoteke, odstranjene iz mape, se nikoli ne izbrišejo iz galerije.",
+    "externalWatchHint": "Nove slike, kopirane v to mapo, se samodejno uvozijo enako kot z gumbom Uvozi, prav tako videi dovoljene vrste datoteke. Datoteke, odstranjene iz mape, se nikoli ne izbrišejo iz galerije.",
     "externalWatchActive": "Mapa se spremlja — nove datoteke se samodejno uvažajo.",
     "externalWatchNoPermission": "Potrebujete dovoljenje za nalaganje fotografij.",
     "externalFolderRequired": "Pred shranjevanjem izberite zunanjo mapo.",
@@ -1502,8 +1490,20 @@
     "resendWithStoredPasswordHint": "Če je za galerijo shranjeno geslo, ga e-pošta vsebuje.",
     "passwordCopied": "Kopirano",
     "photoStatistics": "Statistika fotografij",
+    "mediaStatistics": "Statistika medijev",
     "totalPhotos": "Skupaj fotografij",
+    "videos": "Videi",
+    "videoRuntime": "Trajanje videov",
+    "photosCount_one": "{{count}} fotografija",
+    "photosCount_two": "{{count}} fotografiji",
+    "photosCount_few": "{{count}} fotografije",
+    "photosCount_other": "{{count}} fotografij",
+    "videosCount_one": "{{count}} video",
+    "videosCount_two": "{{count}} videa",
+    "videosCount_few": "{{count}} videi",
+    "videosCount_other": "{{count}} videov",
     "managePhotos": "Upravljanje fotografij",
+    "manageMedia": "Upravljanje medijev",
     "actions": "Dejanja",
     "archivingInfo": "Arhiviranje bo ustvarilo ZIP datoteko vseh fotografij in odstranilo galerijo iz javnega dostopa.",
     "archivedOn": "Arhivirano dne",
@@ -1761,7 +1761,7 @@
     "devtoolsDetection": "Zaznavanje DevTools",
     "watermarked": "Z vodnim žigom",
     "importExternal": "Uvozi iz zunanje mape",
-    "externalImportInfo": "Uvožene bodo vse slike iz izbrane mape.",
+    "externalImportInfo": "Uvožene bodo vse slike iz izbrane mape. Uvozijo se tudi videi, če je njihova vrsta datoteke dovoljena za nalaganje.",
     "selectExternalFolder": "Izberite zunanjo mapo pod /external-media",
     "importFromSelectedFolder": "Uvozi iz izbrane mape",
     "promoBanner": {
@@ -1830,7 +1830,26 @@
       "showToGuestsHelp": "Gostje vidijo imena pri fotografijah, naloženih, ko je to vklopljeno; imena, vpisana, ko je bilo izklopljeno, ostanejo samo za vas in gostitelja. Izklop skrije vsa imena pred gosti. Velja tudi za avtorstvo fotografa iz EXIF.",
       "shownToGuests": "Vidno gostom",
       "hiddenFromGuests": "Vidno samo vam"
-    }
+    },
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Najprej najnovejše",
+    "sortDateOldest": "Najprej najstarejše",
+    "sortCreatedNewest": "Nedavno ustvarjene",
+    "sortCreatedOldest": "Najprej ustvarjene",
+    "sortPhotosMost": "Največ fotografij",
+    "sortPhotosFewest": "Najmanj fotografij",
+    "sortStatusActive": "Najprej aktivne",
+    "sortStatusArchived": "Najprej arhivirane",
+    "sortExpiresSoonest": "Prej potečejo",
+    "sortExpiresLatest": "Pozneje potečejo",
+    "filterAllTypes": "Vse vrste",
+    "filterByType": "Filtriraj po vrsti",
+    "sortByName": "Razvrsti po imenu",
+    "sortByDate": "Razvrsti po datumu",
+    "sortByPhotos": "Razvrsti po številu fotografij",
+    "sortByStatus": "Razvrsti po stanju",
+    "sortByExpiry": "Razvrsti po poteku"
   },
   "settings": {
     "title": "Sistemske nastavitve",
@@ -1881,7 +1900,10 @@
       "timeFormat": "Oblika časa",
       "timeFormat24h": "24-urna (14:30)",
       "timeFormat12h": "12-urna (2:30 PM)",
-      "timeFormatHelp": "Določa prikaz časa v skrbniških pogledih, straneh za stranke in PDF-jih. Shranjevanje ostane 24-urno (HH:mm); spremeni se samo prikaz."
+      "timeFormatHelp": "Določa prikaz časa v skrbniških pogledih, straneh za stranke in PDF-jih. Shranjevanje ostane 24-urno (HH:mm); spremeni se samo prikaz.",
+      "adminLanguage": "Vaš jezik skrbniškega dela",
+      "adminLanguageHelp": "Velja za skrbniški del, samo za vas na tej napravi. Učinkuje takoj — shranjevanje ni potrebno.",
+      "customerLanguage": "Jezik galerije in gostov"
     },
     "publicSite": {
       "badge": "Javna pristajalna stran",
@@ -1997,7 +2019,7 @@
       "aboutText": "Globalne kategorije so na voljo za vse dogodke. Pri urejanju posameznih dogodkov lahko ustvarite tudi kategorije za dogodek. Kategorije pomagajo organizirati fotografije in gostom omogočajo filtriranje fotografij po vrsti v prikazu galerije."
     },
     "systemStatus": {
-      "title": "Stanje sistema",
+      "title": "Status",
       "storageOverview": "Pregled prostora",
       "systemInfo": "Sistemske informacije",
       "databaseInfo": "Informacije o bazi podatkov",
@@ -2023,7 +2045,8 @@
       "failed": "Neuspešno",
       "lastUpdate": "Zadnja posodobitev",
       "emailProcessorStopped": "Ne deluje — e-pošta v čakalni vrsti se zapisuje, vendar je nič ne pošilja.",
-      "emailProcessorDegraded": "Deluje, vendar zadnji prehod ni mogel poslati: {{error}}"
+      "emailProcessorDegraded": "Deluje, vendar zadnji prehod ni mogel poslati: {{error}}",
+      "description": "Storitve, čakalne vrste, shramba in različica — kaj ta instanca trenutno izvaja."
     },
     "photoDimensions": {
       "title": "Dimenzije fotografij",
@@ -2278,7 +2301,8 @@
       "system": "Sistem",
       "appearance": "Vsebina in videz",
       "communication": "Komunikacija",
-      "crm": "Nastavitve CRM"
+      "crm": "Nastavitve CRM",
+      "people": "Osebe in dostop"
     },
     "contracts": {
       "title": "Pogodbe"
@@ -2562,7 +2586,9 @@
       "documents": {
         "title": "Dokumenti stranke",
         "description": "Delite dokumente s stranko v njenem portalu in od nje prejemajte dokumente. Datoteke, ki jih naložijo stranke, ostanejo nedostopne, dokler jih v zapisu stranke ne označite kot varne. Privzeto je dovoljen PDF; dodatne vrste datotek ter omejitve velikosti in prostora nastavite pod Nastavitve → CRM."
-      }
+      },
+      "configure": "Nastavi",
+      "sidebarInSettings": "Ni vnosa v stranski vrstici — najdete ga v nastavitvah"
     },
     "customerSurface": {
       "brandingTitle": "Glava nadzorne plošče stranke",
@@ -2592,7 +2618,7 @@
       "vat": {
         "title": "DDV",
         "registered": "Registriran za DDV (obračunaj izhodni DDV + odbij vhodni DDV)",
-        "registeredHint": "Izklopljeno = malo podjetje / pod pragom: DDV se ne obračuna, vhodni DDV je strošek (ni odbiten). Računi in ponudbe brez DDV zato ne prikazujejo vrstice DDV; namesto nje se prikaže opomba o DDV iz nastavitev CRM.",
+        "registeredHint": "Izklopljeno = malo podjetje / pod pragom: DDV se ne obračuna, vhodni DDV je strošek (ni odbiten). Računi brez DDV zato ne prikazujejo vrstice DDV; namesto nje se prikaže opomba o DDV iz nastavitev CRM. Na ponudbah se nikoli ne izpiše — ponudba ni davčni dokument.",
         "reclaimCountries": "Države, kjer je vhodni DDV odbiten",
         "reclaimCountriesHint": "Običajno vaša domača država (CH / LI). Stroški iz drugih držav se obravnavajo kot tuji DDV brez pravice do odbitka. Cmd/Ctrl-klik za večkratni izbor.",
         "defaultOutputCode": "Privzeta koda DDV za nove račune",
@@ -2797,6 +2823,15 @@
       "running": "Branje avtorjev...",
       "noneToRead": "Ni več fotografij za branje",
       "button": "Preberi avtorje iz EXIF"
+    },
+    "health": {
+      "title": "Stanje",
+      "description": "Napake v ozadju, ki potrebujejo pozornost — obtičala e-pošta, neuspele preverbe in čiščenje."
+    },
+    "search": {
+      "placeholder": "Iskanje po nastavitvah…",
+      "label": "Iskanje po nastavitvah",
+      "noResults": "Nobena nastavitev ne ustreza »{{query}}«."
     }
   },
   "analytics": {
@@ -3283,6 +3318,7 @@
     "recentActivity": "Nedavna aktivnost",
     "storageUsed": "Uporabljen prostor",
     "totalPhotos": "Skupaj fotografij",
+    "totalMedia": "Skupaj medijev",
     "storagePercent": "{{percent}}% od omejitve {{limit}}",
     "storageSoftLimitConfigured": "Nastavljena omejitev: {{limit}}",
     "storageSoftLimitRecommended": "Priporočena omejitev: {{limit}}",
@@ -6576,7 +6612,6 @@
     "search": "Išči po imenu ali stranki…",
     "empty": "Projektov še ni. Ustvarite ga zgoraj ali pa so bili obstoječi dogodki že samodejno združeni.",
     "notFound": "Projekt ni najden",
-    "backToList": "Vsi projekti",
     "noCustomer": "Brez ene določene stranke",
     "rename": "Preimenuj",
     "timeline": "Mejniki",
@@ -7104,6 +7139,7 @@
     "catalog": {
       "addItem": "Dodaj postavko",
       "archive": "Arhiv",
+      "backToTemplates": "Nazaj na predloge",
       "archived": "Arhiviran",
       "boundTo": "Količina",
       "boundToNone": "Fiksna količina",
@@ -7706,7 +7742,7 @@
     "crm_invoices_vat_note_text": {
       "label": "Opomba DDV / prosto besedilo na računih",
       "placeholder": "npr. Gemäß § 6 Abs. 1 Z 27 UStG 1994 wird keine Umsatzsteuer berechnet (Kleinunternehmer).",
-      "help": "Natisne se neposredno pod vrstico MwSt. na vsakem PDF-ju računa. Če podjetje ni registrirano za DDV (Nastavitve → Računovodstvo), na računih in ponudbah brez DDV nadomesti to vrstico. Pustite prazno za skritje. Natančno besedilo preverite pri davčnem svetovalcu."
+      "help": "Natisne se neposredno pod vrstico MwSt. na vsakem PDF-ju računa. Če podjetje ni registrirano za DDV (Nastavitve → Računovodstvo), nadomesti to vrstico na računih brez DDV. Na ponudbah se nikoli ne izpiše — ponudba ni davčni dokument. Pustite prazno, da ga skrijete. Natančno besedilo preverite pri svojem davčnem svetovalcu."
     },
     "crm_invoices_skonto_percent_default": {
       "label": "Stopnja skonta (privzeto %)"
@@ -8035,7 +8071,6 @@
       "auditEmpty": "V revizijskem dnevniku še ni vnosov.",
       "auditTrail": "Revizijska sled",
       "auditTrailHelp": "Vsak dogodek, zabeležen pri tej pogodbi. Seznam je samo za dodajanje in je vir resnice v primeru spora glede pogodbe.",
-      "back": "Nazaj na seznam",
       "blocks": "Vključeni sklopi",
       "cancel": "Prekliči",
       "cancelConfirm": "Prekličem to pogodbo? Povezava za podpis stranke bo razveljavljena.",
@@ -8168,7 +8203,6 @@
       }
     },
     "editor": {
-      "back": "Nazaj na seznam",
       "backToDetail": "Nazaj na pogodbo",
       "create": "Ustvari osnutek",
       "createdToast": "Pogodba ustvarjena.",
@@ -8246,7 +8280,6 @@
       "takeTheirs": "Uporabi njihove"
     },
     "blocks": {
-      "back": "Nazaj na pogodbe",
       "title": "Knjižnica pogodbenih sklopov",
       "hideInactive": "Skrij neaktivne",
       "disclaimerTitle": "Samo primeri — naj jih pregleda vaš pravnik",
@@ -8287,7 +8320,6 @@
     "templates": {
       "title": "Predloge pogodb",
       "intro": "Predloga določa določila, s katerimi se začne nova pogodba, njihov vrstni red in besedilo. Objava zamrzne različico; pogodba ohrani različico, iz katere je bila ustvarjena.",
-      "back": "Nazaj na pogodbe",
       "backToTemplates": "Nazaj na predloge",
       "newName": "Ime nove predloge",
       "create": "Ustvari predlogo",
@@ -9259,6 +9291,28 @@
     },
     "legalNotice": {
       "title": "Pravno obvestilo"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Strani"
+    },
+    "palette": {
+      "label": "Iskanje po skrbniškem delu",
+      "placeholder": "Iskanje strani in nastavitev…",
+      "noResults": "Nič ne ustreza »{{query}}«.",
+      "open": "Iskanje strani in nastavitev"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Nobena funkcija avtomatizacije ni omogočena",
+      "body": "Omogočite Workflows ali opomnike po e-pošti v Nastavitve → Funkcije, da začnete.",
+      "noAccessTitle": "Tukaj ni ničesar, kar bi lahko odprli",
+      "noAccessBody": "Te funkcije so vklopljene, vendar vaša vloga ne more odpreti nobene od njihovih strani. Za dostop prosite skrbnika."
+    },
+    "subnav": {
+      "approvals": "Odobritve"
     }
   }
 }

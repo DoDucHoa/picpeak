@@ -178,7 +178,9 @@
     "cmsPages": "CMS-pagina's",
     "users": "Gebruikers",
     "calendar": "Agenda",
-    "clients": "Klanten"
+    "clients": "Klanten",
+    "automation": "Automatisering",
+    "sharing": "Delen"
   },
   "archives": {
     "title": "Archieven",
@@ -438,6 +440,7 @@
     "eventExpiresIn": "Dit evenement verloopt over {{days}} dagen",
     "overview": "Overzicht",
     "photos": "Foto's",
+    "media": "Media",
     "categories": "Categorieen",
     "eventInformation": "Evenementinformatie",
     "sourceMode": "Bronmodus",
@@ -459,8 +462,16 @@
     "creationEmailResent": "Aanmaakmail is in de wachtrij geplaatst",
     "failedToResendEmail": "Kan aanmaakmail niet opnieuw verzenden",
     "photoStatistics": "Fotostatistieken",
+    "mediaStatistics": "Mediastatistieken",
     "totalPhotos": "Totaal foto's",
+    "videos": "Video's",
+    "videoRuntime": "Videoduur",
+    "photosCount_one": "{{count}} foto",
+    "photosCount_other": "{{count}} foto's",
+    "videosCount_one": "{{count}} video",
+    "videosCount_other": "{{count}} video's",
     "managePhotos": "Foto's beheren",
+    "manageMedia": "Media beheren",
     "actions": "Acties",
     "archivingInfo": "Archiveren maakt een ZIP-bestand van alle foto's en verwijdert de galerij uit openbare toegang.",
     "archivedOn": "Gearchiveerd op",
@@ -677,7 +688,7 @@
     "devtoolsDetection": "Ontwikkelaarshulpmiddelen detectie",
     "watermarked": "Voorzien van watermerk",
     "importExternal": "Importeren vanuit externe map",
-    "externalImportInfo": "Alle afbeeldingen uit de geselecteerde map worden geïmporteerd.",
+    "externalImportInfo": "Alle afbeeldingen uit de geselecteerde map worden geïmporteerd. Video's worden ook geïmporteerd als hun bestandstype voor uploads is toegestaan.",
     "selectExternalFolder": "Externe map selecteren onder /external-media",
     "importFromSelectedFolder": "Importeren vanuit geselecteerde map",
     "promoBanner": {
@@ -706,7 +717,26 @@
       "showToGuestsHelp": "Gasten zien de namen bij uploads die zijn gedaan terwijl dit aan stond; namen die zijn opgegeven terwijl het uit stond, blijven alleen voor jou en de gastheer. Uitzetten verbergt alle namen voor gasten. Geldt ook voor fotografenvermeldingen uit EXIF.",
       "shownToGuests": "Zichtbaar voor gasten",
       "hiddenFromGuests": "Alleen zichtbaar voor jou"
-    }
+    },
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Nieuwste eerst",
+    "sortDateOldest": "Oudste eerst",
+    "sortCreatedNewest": "Recent aangemaakt",
+    "sortCreatedOldest": "Eerst aangemaakt",
+    "sortPhotosMost": "Meeste foto’s",
+    "sortPhotosFewest": "Minste foto’s",
+    "sortStatusActive": "Actieve eerst",
+    "sortStatusArchived": "Gearchiveerde eerst",
+    "sortExpiresSoonest": "Verloopt het eerst",
+    "sortExpiresLatest": "Verloopt het laatst",
+    "filterAllTypes": "Alle typen",
+    "filterByType": "Filteren op type",
+    "sortByName": "Sorteren op naam",
+    "sortByDate": "Sorteren op datum",
+    "sortByPhotos": "Sorteren op aantal foto’s",
+    "sortByStatus": "Sorteren op status",
+    "sortByExpiry": "Sorteren op vervaldatum"
   },
   "settings": {
     "title": "Systeeminstellingen",
@@ -745,7 +775,10 @@
       "accountEmailRequired": "E-mailadres is verplicht",
       "accountEmailInvalid": "Voer een geldig e-mailadres in",
       "accountSaveButton": "Accountgegevens opslaan",
-      "accountSaveSuccess": "Accountgegevens bijgewerkt"
+      "accountSaveSuccess": "Accountgegevens bijgewerkt",
+      "adminLanguage": "Jouw beheertaal",
+      "adminLanguageHelp": "Geldt voor het beheergedeelte, alleen voor jou op dit apparaat. Werkt direct — opslaan is niet nodig.",
+      "customerLanguage": "Taal voor galerie en gasten"
     },
     "publicSite": {
       "badge": "Openbare landingspagina",
@@ -838,7 +871,7 @@
       "aboutText": "Globale categorieen zijn beschikbaar voor alle evenementen. U kunt ook evenement-specifieke categorieen aanmaken bij het bewerken van individuele evenementen. Categorieen helpen foto's te organiseren en stellen gasten in staat om foto's op type te filteren in de galerijweergave."
     },
     "systemStatus": {
-      "title": "Systeemstatus",
+      "title": "Status",
       "storageOverview": "Opslagoverzicht",
       "systemInfo": "Systeeminformatie",
       "databaseInfo": "Database-informatie",
@@ -862,7 +895,8 @@
       "pending": "In afwachting",
       "sent": "Verzonden",
       "failed": "Mislukt",
-      "lastUpdate": "Laatste update"
+      "lastUpdate": "Laatste update",
+      "description": "Diensten, wachtrijen, opslag en versie — wat deze instantie nu draait."
     },
     "photoDimensions": {
       "title": "Fotoafmetingen",
@@ -1078,7 +1112,8 @@
       "integrations": "Integraties",
       "system": "Systeem",
       "appearance": "Inhoud & Weergave",
-      "communication": "Communicatie"
+      "communication": "Communicatie",
+      "people": "Personen en toegang"
     },
     "apiTokens": {
       "title": "API-tokens",
@@ -1207,7 +1242,9 @@
       "clients": {
         "title": "Klanten",
         "description": "Hoofdschakelaar voor het Klanten-onderdeel in de zijbalk. Uitgeschakeld verbergt het onderdeel en alle subfuncties ongeacht hun individuele schakelaars — opnieuw inschakelen herstelt de vorige status."
-      }
+      },
+      "configure": "Configureren",
+      "sidebarInSettings": "Geen item in de zijbalk — staat in Instellingen"
     },
     "customerSurface": {
       "brandingTitle": "Kopregel klantdashboard",
@@ -1229,6 +1266,15 @@
       "running": "Makers worden gelezen...",
       "noneToRead": "Geen foto’s meer te lezen",
       "button": "Makers uit EXIF lezen"
+    },
+    "health": {
+      "title": "Gezondheid",
+      "description": "Achtergrondfouten die aandacht nodig hebben — vastgelopen e-mails, mislukte controles en opruiming."
+    },
+    "search": {
+      "placeholder": "Instellingen zoeken…",
+      "label": "Instellingen zoeken",
+      "noResults": "Geen instelling komt overeen met “{{query}}”."
     }
   },
   "analytics": {
@@ -1558,6 +1604,7 @@
     "recentActivity": "Recente activiteit",
     "storageUsed": "Gebruikte opslag",
     "totalPhotos": "Totaal foto's",
+    "totalMedia": "Totaal media",
     "storagePercent": "{{percent}}% van limiet {{limit}}",
     "storageSoftLimitConfigured": "Geconfigureerde limiet: {{limit}}",
     "storageSoftLimitRecommended": "Aanbevolen limiet: {{limit}}",
@@ -3194,6 +3241,28 @@
       "net": "Netto",
       "vat": "Btw",
       "total": "Bruto"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Pagina's"
+    },
+    "palette": {
+      "label": "Zoeken in het beheergedeelte",
+      "placeholder": "Pagina's en instellingen zoeken…",
+      "noResults": "Niets komt overeen met “{{query}}”.",
+      "open": "Pagina's en instellingen zoeken"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Geen automatiseringsfuncties ingeschakeld",
+      "body": "Schakel Workflows of herinneringsmails in via Instellingen → Functies om te beginnen.",
+      "noAccessTitle": "Hier is niets dat je kunt openen",
+      "noAccessBody": "Deze functies staan aan, maar jouw rol kan geen van de bijbehorende pagina’s openen. Vraag een beheerder om toegang."
+    },
+    "subnav": {
+      "approvals": "Goedkeuringen"
     }
   }
 }
