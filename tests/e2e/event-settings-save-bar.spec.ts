@@ -44,7 +44,9 @@ test.describe('event Settings save bar @smoke', () => {
     expect((await saved.json()).customer_name).toBe('E2E Host Saved');
 
     await name.fill('Not saved');
-    await page.getByRole('link', { name: /dashboard/i }).first().click();
+    // Inside the Sharing section the sidebar lists that section's pages
+    // (upstream #1718), so leave through one of them.
+    await page.getByRole('link', { name: /download orders/i }).first().click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: /stay/i }).click();

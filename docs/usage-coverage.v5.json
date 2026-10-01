@@ -160,13 +160,6 @@
       ],
       "reason": "Admin contract/template capability only; no legal text or signatures."
     },
-    "reminderTemplates": {
-      "signals": [
-        "reminder_emails",
-        "email_template_editing"
-      ],
-      "reason": "Reminder flag configuration and admin template editing only; no automatic reminder sends/recipients/content."
-    },
     "accounting": {
       "signals": [
         "accounting",
@@ -1870,15 +1863,6 @@
       "route_signatures": [
         "GET /:slug/download-quota",
         "POST /:slug/download-orders"
-      ]
-    },
-    "adminEvents/downloadLimit.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Download limit usage and reset for one gallery (issue 1560): no product-usage middleware, counters or report triggers; the usage numbers stay on the install.",
-      "route_signatures": [
-        "GET /:id/download-limit",
-        "POST /:id/download-limit/reset"
       ]
     },
     "adminEvents/listSort.js": {
