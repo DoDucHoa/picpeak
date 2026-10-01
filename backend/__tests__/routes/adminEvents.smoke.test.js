@@ -117,6 +117,51 @@ describe('admin events CRUD endpoints (smoke)', () => {
       expect(queued).toHaveLength(0);
     });
 
+    // P5 (spec 5.5): the create page can start an event on an external folder,
+    // with the PUT's photos.upload rule for the watcher.
+    const folderEvent = (over = {}) => ({
+      event_type: 'wedding', event_name: 'Folder Wedding', event_date: '2026-09-03',
+      customer_name: 'Client Person', customer_email: 'client@example.com', require_password: false,
+      source_mode: 'reference', external_path: 'weddings/2026', ...over,
+    });
+
+    it('stores an external folder and its watcher on create', async () => {
+      const res = await auth(request(app).post('/api/admin/events')).send(folderEvent({ external_watch: true }));
+      expect(res.status).toBe(200);
+      const row = await db('events').where({ id: res.body.id }).first();
+      expect(row.source_mode).toBe('reference');
+      expect(row.external_path).toBe('weddings/2026');
+      expect(Boolean(row.external_watch)).toBe(true);
+    });
+
+    it('400s on reference mode without a folder and creates nothing', async () => {
+      const res = await auth(request(app).post('/api/admin/events')).send(folderEvent({ external_path: '' }));
+      expect(res.status).toBe(400);
+      expect(await db('events').select('id')).toHaveLength(0);
+    });
+
+    it('refuses the watcher to an admin without photos.upload, but not the folder', async () => {
+      const { clearPermissionCache } = require('../../src/middleware/permissions');
+      const [roleRow] = await db('roles').insert({ name: 'p5_creator', display_name: 'P5 creator', priority: 1 }).returning('id');
+      const roleId = roleRow?.id ?? roleRow;
+      const perms = await db('permissions').whereIn('name', ['events.view', 'events.create']).select('id');
+      await db('role_permissions').insert(perms.map((p) => ({ role_id: roleId, permission_id: p.id })));
+      const [userRow] = await db('admin_users').insert({
+        username: 'p5creator', email: 'p5creator@example.com', password_hash: 'x',
+        must_change_password: false, role_id: roleId, created_at: new Date(),
+      }).returning('id');
+      clearPermissionCache();
+      const creator = (req) => req.set('Authorization', `Bearer ${mintAdminToken(userRow?.id ?? userRow)}`);
+
+      const watched = await creator(request(app).post('/api/admin/events')).send(folderEvent({ external_watch: true }));
+      expect(watched.status).toBe(403);
+      expect(await db('events').select('id')).toHaveLength(0);
+
+      const plain = await creator(request(app).post('/api/admin/events')).send(folderEvent({ event_name: 'Folder only' }));
+      expect(plain.status).toBe(200);
+      expect((await db('events').where({ id: plain.body.id }).first()).source_mode).toBe('reference');
+    });
+
     it('409s (not 500) when the slug uniqueness race is lost', async () => {
       // The route mints the slug with a read-then-insert, so two concurrent
       // creates for the same name + date both clear the existence check and

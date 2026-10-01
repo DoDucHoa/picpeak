@@ -287,6 +287,11 @@ module.exports = (router) => {
       'capture_date_desc', 'capture_date_asc',
       'filename_asc', 'filename_desc'
     ]),
+    // Photo source (P5, spec 5.5); the watcher's permission is checked in
+    // the service through canEnableWatch.
+    body('source_mode').optional().isIn(['managed', 'reference']),
+    body('external_path').optional({ nullable: true }).isString().trim(),
+    body('external_watch').optional().isBoolean(),
     // Per-event promotional override (#440). Three-way mode:
     //   inherit → fall back to global branding_promo_markdown
     //   custom  → render this event's promo_markdown verbatim
@@ -320,6 +325,7 @@ module.exports = (router) => {
       const created = await require('../../services/eventCreationService').createEvent(req.body, {
         actor: req.admin,
         frontendUrl: await getAbsoluteFrontendUrl(req, { override: process.env.APP_URL }),
+        canEnableWatch: () => userHasAllPermissions(req.admin.id, ['photos.upload']),
       });
       res.json(created);
     } catch (error) {

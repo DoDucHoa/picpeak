@@ -22,6 +22,7 @@ const { getStoragePath, getEventFieldRequirements, readBooleanSetting, getDownlo
   getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, hasCustomerContactColumns,
   SLIDESHOW_TRANSITIONS, SLIDESHOW_COLORFILTERS } = require('./eventSettings');
 const { validateCreationInput } = require('./eventCreationValidation');
+const { resolveCreatePhotoSource } = require('./eventPhotoSource');
 const { getNotificationEmail } = require('./notificationEmail');
 const { guestNameModeOf } = require('./photoCredit');
 function creationError(body) {
@@ -33,7 +34,7 @@ function creationError(body) {
 /** Shared creation operation. v1 explicitly publishes immediately and accepts
  * an optional absolute expiry; admin/legacy use configured field requirements.
  */
-async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) {
+async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnableWatch } = {}) {
   const input = await validateCreationInput(data);
   if (source === 'v1') input.is_draft = false;
   if (!actor || !Number.isInteger(actor.id)) throw new AppError('Event owner required', 400, 'EVENT_OWNER_REQUIRED');
@@ -138,6 +139,13 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   if (validationErrors.length > 0) {
     throw creationError({ errors: validationErrors });
   }
+
+  // Photo source (spec 5.5), from the admin create page only: v1 and the
+  // conversions stay managed. Resolved before any hash or folder is made, so
+  // a refusal leaves nothing behind.
+  const photoSource = source === 'admin'
+    ? await resolveCreatePhotoSource(input, { canEnableWatch: canEnableWatch || (async () => false) })
+    : null;
 
   // The admin address stored on the event (spec 5.11): the global
   // notification email when set, else the one given, else, on the admin
@@ -418,6 +426,11 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     hero_divider_style: effectiveDividerStyle || 'wave',
     hero_image_anchor: hero_image_anchor || 'center',
     photo_cap: photo_cap || null,
+    ...(photoSource ? {
+      source_mode: photoSource.source_mode,
+      external_path: photoSource.external_path,
+      external_watch: formatBoolean(photoSource.external_watch),
+    } : {}),
     is_draft: formatBoolean(parseBooleanInput(is_draft, true)),
     default_photo_sort: default_photo_sort || 'upload_date_desc',
     // Client access (#172)
