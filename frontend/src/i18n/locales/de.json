@@ -10026,7 +10026,12 @@
     "viewer": {
       "fileName": "Dateiname",
       "dimensions": "Abmessungen",
-      "size": "Größe"
+      "size": "Größe",
+      "back": "Zurück",
+      "comments": "Kommentare",
+      "fileInfo": "Dateiinfo",
+      "captured": "Aufgenommen",
+      "download": "Herunterladen"
     },
     "list": {
       "action": "Aktion"

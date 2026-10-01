@@ -10060,7 +10060,12 @@
     "viewer": {
       "fileName": "File name",
       "dimensions": "Dimensions",
-      "size": "Size"
+      "size": "Size",
+      "back": "Back",
+      "comments": "Comments",
+      "fileInfo": "File info",
+      "captured": "Captured",
+      "download": "Download"
     },
     "list": {
       "action": "Action"

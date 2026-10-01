@@ -171,3 +171,47 @@
   /* One row at phone width has no room for the allowance pill. */
   .client-gallery .cg-toolbar-compact .cg-tb-quota { display: none; }
 }
+
+/* Photo viewer. YARL portals to <body>, outside the gallery's own root, so
+   its root carries .client-gallery itself to pick up the tokens above. The
+   rail, the side panel and the filmstrip all live inside it, because YARL
+   marks everything else on the page inert while it is open. */
+.cg-viewer {
+  min-height: 0;
+  --yarl__color_button: rgba(26, 26, 26, .55);
+  --yarl__color_button_active: #1a1a1a;
+  --yarl__color_button_disabled: rgba(26, 26, 26, .25);
+  --yarl__button_filter: none;
+}
+.cg-viewer .yarl__navigation_prev { left: 96px; }
+.cg-viewer-with-panel .yarl__navigation_next { right: 360px; }
+.client-gallery .cg-viewer-video { max-width: 100%; max-height: 100%; }
+.client-gallery .cg-viewer-rail { position: absolute; top: 0; left: 0; bottom: 72px; z-index: 1; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 54px; box-sizing: border-box; }
+.client-gallery .cg-viewer-btn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--cg-text); cursor: pointer; }
+.client-gallery .cg-viewer-btn:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+.client-gallery .cg-viewer-btn-on { background: var(--cg-placeholder); }
+.client-gallery .cg-viewer-back { color: var(--cg-accent); margin-bottom: 18px; }
+.client-gallery .cg-viewer-divider { flex: none; width: 32px; height: 1px; background: var(--cg-muted); }
+.client-gallery .cg-viewer-panel { position: absolute; top: 0; right: 0; bottom: 72px; z-index: 2; width: 360px; box-sizing: border-box; padding: 20px 24px; overflow-y: auto; background: var(--cg-bg); border-left: 1px solid var(--cg-divider); }
+.client-gallery .cg-viewer-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.client-gallery .cg-viewer-panel-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.client-gallery .cg-fileinfo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin: 0; font-size: 14px; }
+.client-gallery .cg-fileinfo dt { color: var(--cg-muted); }
+.client-gallery .cg-fileinfo dd { margin: 0; overflow-wrap: anywhere; }
+.client-gallery .cg-filmstrip { position: absolute; left: 96px; right: 0; bottom: 0; z-index: 1; height: 72px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.client-gallery .cg-filmstrip::-webkit-scrollbar { display: none; }
+.client-gallery .cg-filmstrip-thumb { position: absolute; top: 8px; left: 0; margin: 0; padding: 0; border: 0; overflow: hidden; background: var(--cg-placeholder); cursor: pointer; opacity: .7; }
+.client-gallery .cg-filmstrip-thumb:hover, .client-gallery .cg-filmstrip-current { opacity: 1; }
+.client-gallery .cg-filmstrip-current { outline: 2px solid var(--cg-text); outline-offset: -2px; }
+.client-gallery .cg-filmstrip-thumb:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+.client-gallery .cg-filmstrip-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 767px) {
+  .cg-viewer .yarl__navigation_prev { left: 0; }
+  .cg-viewer-with-panel .yarl__navigation_next { right: 0; }
+  .client-gallery .cg-viewer-rail { right: 0; bottom: auto; width: auto; height: 56px; flex-direction: row; gap: 4px; padding: 0 8px; background: var(--cg-bg); }
+  .client-gallery .cg-viewer-back { margin: 0 auto 0 0; }
+  .client-gallery .cg-viewer-divider { width: 1px; height: 32px; margin: 0 4px; }
+  /* A bottom sheet over the filmstrip. */
+  .client-gallery .cg-viewer-panel { top: auto; left: 0; bottom: 0; width: auto; max-height: 60vh; border-left: 0; border-top: 1px solid var(--cg-divider); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, .08); }
+  .client-gallery .cg-filmstrip { left: 0; }
+}

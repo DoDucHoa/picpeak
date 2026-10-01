@@ -10052,7 +10052,12 @@
     "viewer": {
       "fileName": "Tên file",
       "dimensions": "Kích thước",
-      "size": "Dung lượng"
+      "size": "Dung lượng",
+      "back": "Quay lại",
+      "comments": "Bình luận",
+      "fileInfo": "Thông tin file",
+      "captured": "Ngày chụp",
+      "download": "Tải về"
     },
     "list": {
       "action": "Thao tác"
