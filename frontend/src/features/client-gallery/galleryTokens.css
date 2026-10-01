@@ -74,3 +74,45 @@
   .client-gallery .cg-row-head, .client-gallery .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; column-gap: 12px; }
   .client-gallery .cg-row-dim, .client-gallery .cg-row-size { display: none; }
 }
+
+/* Cover and expiry notice. 100vh first, 100svh over it where supported, so a
+   mobile address bar sliding away does not make the cover jump. */
+.client-gallery .cg-cover {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  background: #111;
+  overflow: hidden;
+  color: #fff;
+}
+.client-gallery .cg-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.client-gallery .cg-cover-shade {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0) 40%);
+}
+.client-gallery .cg-cover-logo { position: absolute; top: 40px; left: 40px; max-height: 40px; }
+.client-gallery .cg-cover-lang { position: absolute; top: 40px; right: 40px; }
+.client-gallery .cg-cover-text { position: absolute; left: 40px; bottom: 40px; right: 220px; }
+.client-gallery .cg-cover-text h1 { margin: 0; font-size: clamp(40px, 5vw, 72px); line-height: 1.05; color: #fff; font-weight: 400; }
+.client-gallery .cg-cover-text p { margin: 8px 0 0; font-size: 18px; font-weight: 400; }
+.client-gallery .cg-cover-button {
+  position: absolute; right: 40px; bottom: 40px;
+  border: 1.5px solid #fff; border-radius: 999px; padding: 10px 20px;
+  background: transparent; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.client-gallery .cg-cover-button:hover { background: rgba(255, 255, 255, .15); }
+@media (max-width: 767px) {
+  .client-gallery .cg-cover-logo { top: 20px; left: 20px; }
+  .client-gallery .cg-cover-lang { top: 20px; right: 20px; }
+  .client-gallery .cg-cover-text { left: 20px; bottom: 20px; right: 150px; }
+  .client-gallery .cg-cover-button { right: 20px; bottom: 20px; }
+}
+
+.client-gallery .cg-expiry {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(32, 32, 32, .92); color: #fff; font-size: 14px;
+  border-radius: 8px; padding: 8px 16px;
+}
+.client-gallery .cg-expiry svg { width: 16px; height: 16px; flex: none; }
+.client-gallery .cg-expiry button { display: flex; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; margin-left: 4px; }

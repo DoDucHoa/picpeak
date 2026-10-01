@@ -10017,6 +10017,8 @@
     }
   },
   "clientGallery": {
+    "viewAlbum": "Album ansehen",
+    "expiresOn": "Dein Album läuft am <1>{{date}}</1> ab",
     "like": "Gefällt mir",
     "unlike": "Gefällt mir nicht mehr",
     "pick": "Auswählen",

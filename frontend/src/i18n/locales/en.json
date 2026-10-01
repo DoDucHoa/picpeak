@@ -10051,6 +10051,8 @@
     }
   },
   "clientGallery": {
+    "viewAlbum": "View Album",
+    "expiresOn": "Your album expires on <1>{{date}}</1>",
     "like": "Like",
     "unlike": "Unlike",
     "pick": "Pick",
