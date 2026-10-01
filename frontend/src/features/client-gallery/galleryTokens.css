@@ -1,0 +1,21 @@
+/* Fixed client gallery look (spec 2026-10-01). Scoped so brand tokens on
+   :root, which style the admin and the portal, never reach the gallery and
+   the gallery never leaks into them. */
+.client-gallery {
+  --cg-bg: #ffffff;
+  --cg-text: #1a1a1a;
+  --cg-muted: #6b6b6b;
+  --cg-divider: #e6e6e6;
+  --cg-accent: #f08a24;
+  --cg-like: #f0524f;
+  --cg-pick: #3b5bdb;
+  --cg-placeholder: #f2f2f2;
+  --cg-font: 'Red Hat Display', 'Noto Sans', sans-serif;
+  --cg-title-font: 'DM Serif Display', Georgia, serif;
+  background: var(--cg-bg);
+  color: var(--cg-text);
+  font-family: var(--cg-font);
+  min-height: 100vh;
+}
+.client-gallery * { font-family: inherit; }
+.client-gallery .cg-title { font-family: var(--cg-title-font); }
