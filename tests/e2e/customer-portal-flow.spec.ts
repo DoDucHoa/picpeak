@@ -243,7 +243,8 @@ test.describe('Customer portal — login + gallery handoff', () => {
       // The portal switches to the customer's preferred language after login,
       // which a fresh invite can leave on German.
       await expect(page.getByRole('heading', { name: /Your galleries|Ihre Galerien/i })).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText(event.event_name, { exact: false })).toBeVisible({ timeout: 15000 });
+      // The heading, not any text: the gallery link beside it carries the name too.
+      await expect(page.getByRole('heading', { name: event.event_name })).toBeVisible({ timeout: 15000 });
 
       // Click → gallery handoff. Watch for the URL change AND the absence
       // of the per-event password prompt. Either of those failing is the
@@ -257,9 +258,8 @@ test.describe('Customer portal — login + gallery handoff', () => {
       // dashboard handoff.
       await expect(page.getByText(/Enter Gallery Password/i)).toHaveCount(0);
 
-      // The grid tiles use the `.relative.group` selector across layouts;
-      // matches `auth-smoke.spec.ts`. At least one must render.
-      const tiles = page.locator('.relative.group');
+      // At least one grid tile must render; matches `auth-smoke.spec.ts`.
+      const tiles = page.getByTestId('grid-tile');
       await expect(tiles.first()).toBeVisible({ timeout: 20000 });
     } finally {
       // Clean up: turn the feature off so the next test starts from a
