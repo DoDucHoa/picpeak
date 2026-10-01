@@ -136,6 +136,17 @@ export function useGalleryDownloads({
     return true;
   }, [refetchDownloadQuota, notifyGuestBlocked, t]);
 
+  /**
+   * The catch of every bulk path. Called from void handlers, so it must never
+   * rethrow. The allowance is re-read whatever happened: photos that went out
+   * before the failure claimed their slots.
+   */
+  const failBulkDownload = useCallback(async (error: unknown) => {
+    refreshDownloadQuota(slug);
+    if (await handleDownloadFailure(error)) return;
+    toast.error(t('gallery.downloadError', 'Some photos failed to download'));
+  }, [refreshDownloadQuota, slug, handleDownloadFailure, t]);
+
   const offerForBlockedDownload = useCallback(() => {
     // A single not-yet-delivered photo against an exhausted allowance always
     // costs exactly one slot: the same arithmetic the server's quota gate
@@ -212,7 +223,11 @@ export function useGalleryDownloads({
 
     mutateDownloadAll(
       { slug, zipReady },
-      { onError: (error) => { void handleDownloadFailure(error); } },
+      {
+        // The archive claimed its slots before the first byte went out.
+        onSuccess: () => refreshDownloadQuota(slug),
+        onError: (error) => { void handleDownloadFailure(error); },
+      },
     );
 
     // Track download all action
@@ -221,7 +236,7 @@ export function useGalleryDownloads({
       photo_count: eventPhotoCount,
       is_download_all: true
     });
-  }, [allowDownloads, downloadChoices.length, mutateDownloadAll, slug, zipReady, handleDownloadFailure, eventPhotoCount]);
+  }, [allowDownloads, downloadChoices.length, mutateDownloadAll, slug, zipReady, refreshDownloadQuota, handleDownloadFailure, eventPhotoCount]);
 
   const handleDownloadSelected = useCallback(async () => {
     if (selectedPhotos.size === 0) return;
@@ -255,11 +270,11 @@ export function useGalleryDownloads({
       // Each photo claimed its slot before streaming, so re-read the allowance.
       refreshDownloadQuota(slug);
     } catch (error) {
-      // The selection is deliberately left standing on a quota refusal: the
-      // dialog asks the guest to drop photos themselves, which it cannot do
-      // if the selection has already been cleared out from under them.
-      if (await handleDownloadFailure(error)) return;
-      throw error;
+      // The selection is deliberately left standing on any failure: the quota
+      // dialog asks the guest to drop photos themselves, and after any other
+      // error the same selection is what they would retry.
+      await failBulkDownload(error);
+      return;
     }
 
     // Clear selection after download
@@ -267,7 +282,7 @@ export function useGalleryDownloads({
     setIsSelectionMode(false);
   }, [
     selectedPhotos, allowDownloads, downloadChoices.length, filteredPhotos, slug,
-    refreshDownloadQuota, handleDownloadFailure, setSelectedPhotos, setIsSelectionMode,
+    refreshDownloadQuota, failBulkDownload, setSelectedPhotos, setIsSelectionMode,
   ]);
 
   // "Download these N" (#1074): the payoff of the people filter.
@@ -305,10 +320,9 @@ export function useGalleryDownloads({
       await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
       refreshDownloadQuota(slug);
     } catch (error) {
-      if (await handleDownloadFailure(error)) return;
-      throw error;
+      await failBulkDownload(error);
     }
-  }, [allowDownloads, peopleDownloadableIds, downloadChoices.length, slug, refreshDownloadQuota, handleDownloadFailure]);
+  }, [allowDownloads, peopleDownloadableIds, downloadChoices.length, slug, refreshDownloadQuota, failBulkDownload]);
 
   // Download just the open folder (#1160). The event-wide "download all" still
   // zips the whole gallery including foldered photos; this is the "only this
@@ -351,10 +365,9 @@ export function useGalleryDownloads({
       await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
       refreshDownloadQuota(slug);
     } catch (error) {
-      if (await handleDownloadFailure(error)) return;
-      throw error;
+      await failBulkDownload(error);
     }
-  }, [allowDownloads, folderDownloadableIds.length, downloadChoices.length, folderDownloadIds, slug, refreshDownloadQuota, handleDownloadFailure]);
+  }, [allowDownloads, folderDownloadableIds.length, downloadChoices.length, folderDownloadIds, slug, refreshDownloadQuota, failBulkDownload]);
 
   const closeResolutionPicker = useCallback(() => {
     setShowResolutionPicker(false);
