@@ -25,7 +25,12 @@ const BULK_DOWNLOAD_FILES = [
   'components/gallery/PhotoGridWithLayouts.tsx',
   'components/gallery/layouts/GalleryPremiumLayout.tsx',
   'components/gallery/layouts/GalleryStoryLayout.tsx',
+  'features/client-gallery/state/useGalleryController.ts',
 ];
+
+// Every folder that may hold a bulk download call site. The new client gallery
+// keeps its handlers in plain .ts hooks, so both extensions are scanned.
+const SCANNED_DIRS = ['components/gallery', 'features/client-gallery'];
 
 const countOf = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 
@@ -40,15 +45,14 @@ describe('bulk downloads re-read the download quota', () => {
   });
 
   it('still has no other bulk call site hiding outside the list', () => {
-    const galleryDir = path.join(SRC, 'components/gallery');
     const walk = (dir: string): string[] =>
       fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) return entry.name === '__tests__' ? [] : walk(full);
-        return entry.name.endsWith('.tsx') ? [full] : [];
+        return /\.tsx?$/.test(entry.name) ? [full] : [];
       });
 
-    const callers = walk(galleryDir)
+    const callers = SCANNED_DIRS.flatMap((dir) => walk(path.join(SRC, dir)))
       .filter((full) => fs.readFileSync(full, 'utf8').includes('downloadSelectedPhotos('))
       .map((full) => path.relative(SRC, full).split(path.sep).join('/'));
 
