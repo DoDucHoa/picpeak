@@ -10046,6 +10046,14 @@
     "like": "Thích",
     "unlike": "Bỏ thích",
     "pick": "Chọn",
-    "unpick": "Bỏ chọn"
+    "unpick": "Bỏ chọn",
+    "viewer": {
+      "fileName": "Tên file",
+      "dimensions": "Kích thước",
+      "size": "Dung lượng"
+    },
+    "list": {
+      "action": "Thao tác"
+    }
   }
 }

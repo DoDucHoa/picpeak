@@ -10020,6 +10020,14 @@
     "like": "Gefällt mir",
     "unlike": "Gefällt mir nicht mehr",
     "pick": "Auswählen",
-    "unpick": "Auswahl entfernen"
+    "unpick": "Auswahl entfernen",
+    "viewer": {
+      "fileName": "Dateiname",
+      "dimensions": "Abmessungen",
+      "size": "Größe"
+    },
+    "list": {
+      "action": "Aktion"
+    }
   }
 }

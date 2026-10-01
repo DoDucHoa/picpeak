@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import type { Photo } from '../../../types';
 import { gridGeometry, columnWidth, tileHeight } from '../layout/gridGeometry';
+import { useDocumentTop } from '../layout/useDocumentTop';
+import { useViewportWidth } from '../layout/useViewportWidth';
 import { GridTile } from './GridTile';
 
 interface MasonryGridProps {
@@ -10,51 +12,6 @@ interface MasonryGridProps {
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   selecting: boolean; selectedIds: Set<number>; onSelect: (id: number) => void;
-}
-
-/**
- * The page width, read from the document rather than measured from the grid:
- * jsdom has no layout, and on first paint nothing has been measured yet, so a
- * measured width would be 0 in both places.
- */
-function useViewportWidth(): number {
-  const [width, setWidth] = useState(() => document.documentElement.clientWidth || window.innerWidth);
-  useEffect(() => {
-    let frame = 0;
-    const onResize = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => setWidth(document.documentElement.clientWidth || window.innerWidth));
-    };
-    window.addEventListener('resize', onResize);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', onResize); };
-  }, []);
-  return width;
-}
-
-/**
- * Where the grid starts in the document, which the window virtualiser needs as
- * its scroll margin. Content above the grid (a cover, a banner, a folder bar)
- * can change height without the window resizing, and every such change moves
- * the grid. Observing document.body catches all of them in one place: any
- * height change above the grid changes the body's height too. It also fires
- * when the grid itself grows, which re-measures to the same value and renders
- * nothing.
- */
-function useDocumentTop(ref: React.RefObject<HTMLElement>): number {
-  const [top, setTop] = useState(0);
-  useLayoutEffect(() => {
-    const measure = () => {
-      const el = ref.current;
-      if (el) setTop(Math.round(el.getBoundingClientRect().top + window.scrollY));
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    // Absent in jsdom and in old webviews; resize alone still covers those.
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
-    observer?.observe(document.body);
-    return () => { window.removeEventListener('resize', measure); observer?.disconnect(); };
-  }, [ref]);
-  return top;
 }
 
 /** The first tile (in album order) whose bottom edge is below the top of the viewport. */

@@ -53,3 +53,24 @@
 .client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
 .client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
 @media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
+
+/* List view. One grid template shared by the header and every row, so the
+   columns line up. The open button sits under the content and the text cells
+   let clicks through to it; only the action buttons catch them. */
+.client-gallery .cg-row-head, .client-gallery .cg-row { display: grid; grid-template-columns: 80px minmax(0, 1fr) 160px 120px 120px; align-items: center; column-gap: 24px; }
+.client-gallery .cg-row-head { padding: 12px 0; border-bottom: 1px solid var(--cg-divider); color: var(--cg-muted); font-size: 13px; font-weight: 600; }
+.client-gallery .cg-row { box-sizing: border-box; padding: 15px 0; border-bottom: 1px solid var(--cg-divider); }
+.client-gallery .cg-row-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.client-gallery .cg-row-open:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+.client-gallery .cg-row-thumb { position: relative; width: 80px; height: 120px; background: var(--cg-placeholder); overflow: hidden; pointer-events: none; }
+.client-gallery .cg-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.client-gallery .cg-row-dim, .client-gallery .cg-row-size { color: var(--cg-muted); font-size: 14px; pointer-events: none; }
+.client-gallery .cg-row-actions { position: relative; display: flex; gap: 16px; justify-content: flex-start; pointer-events: none; }
+.client-gallery .cg-row-btn { display: inline-flex; align-items: center; gap: 4px; min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-muted); cursor: pointer; pointer-events: auto; }
+.client-gallery .cg-row-btn.cg-badge-on { color: var(--cg-like); }
+.client-gallery .cg-row-btn.cg-badge-pick.cg-badge-on { color: var(--cg-pick); }
+.client-gallery .cg-row-btn:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+@media (max-width: 767px) {
+  .client-gallery .cg-row-head, .client-gallery .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; column-gap: 12px; }
+  .client-gallery .cg-row-dim, .client-gallery .cg-row-size { display: none; }
+}

@@ -10054,6 +10054,14 @@
     "like": "Like",
     "unlike": "Unlike",
     "pick": "Pick",
-    "unpick": "Unpick"
+    "unpick": "Unpick",
+    "viewer": {
+      "fileName": "File name",
+      "dimensions": "Dimensions",
+      "size": "Size"
+    },
+    "list": {
+      "action": "Action"
+    }
   }
 }
