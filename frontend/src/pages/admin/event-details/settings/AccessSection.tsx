@@ -1,13 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Input, useConfirm } from '../../../../components/common';
+import { Card, useConfirm } from '../../../../components/common';
 import { eventsService } from '../../../../services/events.service';
 import { normalizeRequirePassword } from '../../../../utils/accessControl';
 import { nextEventPassword } from '../../../../utils/passwordGenerator';
 import { ClientAccessCard } from '../ClientAccessCard';
 import { StoredPasswordLine, passwordVersion } from './StoredPasswordLine';
 import { useEventSettings } from './EventSettingsContext';
+import { PasswordField } from './PasswordField';
 
 /**
  * Settings > Access (spec 5.4). The password is shown the way it is stored,
@@ -74,22 +75,16 @@ export const AccessSection: React.FC = () => {
         {editForm.require_password && (
           <div className="space-y-2">
             {savedOn && <StoredPasswordLine eventId={event.id} kind="gallery" stored={status?.password_stored === true} version={passwordVersion(event)} />}
-            <Input
-              type="text"
+            <PasswordField
               label={savedOn
                 ? t('events.access.newPasswordKeep', 'New password (leave empty to keep the current one)')
                 : t('events.access.galleryPassword', 'Gallery password')}
               value={editForm.new_password}
-              onChange={(e) => setEditForm(prev => ({ ...prev, new_password: e.target.value }))}
+              onChange={(new_password) => setEditForm(prev => ({ ...prev, new_password }))}
               placeholder={t('events.enterPassword')}
+              onRegenerate={() => setEditForm(prev => ({ ...prev, new_password: generate(prev.new_password) }))}
+              regenerateLabel={t('events.access.regenerate', 'Regenerate')}
             />
-            <button
-              type="button"
-              className="text-sm font-medium text-accent"
-              onClick={() => setEditForm(prev => ({ ...prev, new_password: generate(prev.new_password) }))}
-            >
-              {t('events.access.regenerate', 'Regenerate')}
-            </button>
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import { eventsService } from '../../../services/events.service';
 import { nextEventPassword } from '../../../utils/passwordGenerator';
 import type { EditFormState } from './types';
 import { StoredPasswordLine, passwordVersion } from './settings/StoredPasswordLine';
+import { PasswordField } from './settings/PasswordField';
 
 interface ClientAccessCardProps {
   event: Event;
@@ -165,26 +166,17 @@ const ClientAccessSettings: React.FC<{
             {hasPassword && (
               <StoredPasswordLine eventId={event.id} kind="client" stored={status?.client_password_stored === true} version={passwordVersion(event)} />
             )}
-            <label className="block text-sm font-medium text-body mb-1">
-              {hasPassword
+            <PasswordField
+              label={hasPassword
                 ? t('clientAccess.newPasswordKeep', 'New client password (leave empty to keep the current one)')
                 : t('clientAccess.passwordLabel')}
-            </label>
-            <input
-              type="text"
               value={editForm.client_password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               placeholder={t('clientAccess.passwordPlaceholder')}
-              className="w-full px-3 py-2 bg-inset border border-line-strong text-heading rounded-lg text-sm"
+              helperText={t('clientAccess.passwordHelperText')}
+              onRegenerate={() => setPassword(generate(editForm.client_password))}
+              regenerateLabel={t('clientAccess.generate', 'Generate')}
             />
-            <p className="text-xs text-muted">{t('clientAccess.passwordHelperText')}</p>
-            <button
-              type="button"
-              className="text-sm font-medium text-accent"
-              onClick={() => setPassword(generate(editForm.client_password))}
-            >
-              {t('clientAccess.generate', 'Generate')}
-            </button>
           </div>
         )}
       </div>
