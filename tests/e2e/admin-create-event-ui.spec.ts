@@ -34,11 +34,17 @@ test('admin can create event via UI @smoke', async ({ page }) => {
   // calendar button carries the same label, so check the textbox has a value.
   await expect(page.getByRole('textbox', { name: 'Event Date' })).not.toHaveValue('');
   await page.getByLabel(/Customer Email/i).fill(hostEmail);
-  await page.getByLabel(/Gallery Password/i).fill('UiPlay123!');
-  await page.getByLabel(/Confirm Password/i).fill('UiPlay123!');
+  // The password starts generated and shown in clear (spec 5.4); typing one's
+  // own still works, and there is no confirm field any more.
+  const password = page.getByLabel(/Gallery Password/i);
+  await expect(password).not.toHaveValue('');
+  await password.fill('UiPlay123!');
+  await expect(page.getByLabel(/Confirm Password/i)).toHaveCount(0);
 
   await page.getByRole('button', { name: /Create Event/i }).click();
 
-  await expect(page).toHaveURL(/\/admin\/events\//, { timeout: 20000 });
+  await expect(page).toHaveURL(/\/admin\/events\/\d+/, { timeout: 20000 });
   await expect(page.getByRole('heading', { name: eventName })).toBeVisible();
+  // A new event is a draft and opens on its Overview with the checklist (spec 5.5, 5.6).
+  await expect(page.getByRole('region', { name: 'Next steps' })).toBeVisible();
 });
