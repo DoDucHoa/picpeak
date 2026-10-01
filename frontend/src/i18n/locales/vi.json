@@ -10041,5 +10041,11 @@
     "subnav": {
       "approvals": "Phê duyệt"
     }
+  },
+  "clientGallery": {
+    "like": "Thích",
+    "unlike": "Bỏ thích",
+    "pick": "Chọn",
+    "unpick": "Bỏ chọn"
   }
 }

@@ -10049,5 +10049,11 @@
     "subnav": {
       "approvals": "Approvals"
     }
+  },
+  "clientGallery": {
+    "like": "Like",
+    "unlike": "Unlike",
+    "pick": "Pick",
+    "unpick": "Unpick"
   }
 }

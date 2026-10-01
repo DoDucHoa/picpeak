@@ -10015,5 +10015,11 @@
     "subnav": {
       "approvals": "Freigaben"
     }
+  },
+  "clientGallery": {
+    "like": "Gefällt mir",
+    "unlike": "Gefällt mir nicht mehr",
+    "pick": "Auswählen",
+    "unpick": "Auswahl entfernen"
   }
 }

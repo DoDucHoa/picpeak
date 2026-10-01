@@ -26,3 +26,20 @@
 }
 .client-gallery * { font-family: inherit; }
 .client-gallery .cg-title { font-family: var(--cg-title-font); }
+
+/* Masonry tiles. Hover is CSS only, so pointer movement renders nothing.
+   Visibility and hit testing move together through pointer-events (#1263):
+   a badge nobody can see can never swallow a tap meant for the photo. */
+.client-gallery .cg-tile { background: var(--cg-placeholder); overflow: hidden; cursor: pointer; contain: strict; }
+.client-gallery .cg-tile-img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 200ms ease; }
+.client-gallery .cg-tile-img[data-loaded], .client-gallery .cg-tile-img.loaded { opacity: 1; }
+.client-gallery .cg-badges { position: absolute; inset: 0; pointer-events: none; }
+.client-gallery .cg-badge { position: absolute; top: 12px; display: inline-flex; align-items: center; gap: 4px; color: #fff; pointer-events: none; opacity: 0; transition: opacity 120ms ease; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-badge-like { left: 12px; }
+.client-gallery .cg-badge-pick { right: 12px; }
+.client-gallery .cg-tile:hover .cg-badge,
+.client-gallery .cg-badges-always .cg-badge,
+.client-gallery .cg-badge-on { opacity: 1; pointer-events: auto; }
+.client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
+.client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
+@media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
