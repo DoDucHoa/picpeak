@@ -34,11 +34,24 @@ for (const vp of VIEWPORTS) {
     // viewport would switch it to mouse mode and hide the tile badges again.
     const press = (target: Locator) => (vp.touch ? target.tap() : target.click());
 
-    /** Bring a tile's badges up: hover with a mouse; on touch they always show. */
-    const reveal = async (page: Page, index: number) => {
+    /**
+     * Like or pick a photo that has neither yet. With a mouse the badge comes
+     * up on hover; on touch only badges already on are drawn, so the photo is
+     * opened and toggled from the viewer, the way a phone user does it.
+     * Returns the viewer to the album unless a dialog has already closed it.
+     */
+    const react = async (page: Page, index: number, name: 'Like' | 'Pick') => {
       const tile = tiles(page).nth(index);
-      if (!vp.touch) await tile.hover();
-      return tile;
+      if (!vp.touch) {
+        await tile.hover();
+        await press(tile.getByRole('button', { name, exact: true }));
+        return;
+      }
+      await press(tile.getByTestId('tile-open'));
+      await press(page.getByTestId('viewer-rail').getByRole('button', { name, exact: true }));
+    };
+    const leaveViewer = async (page: Page) => {
+      if (vp.touch) await press(page.getByRole('button', { name: 'Back', exact: true }));
     };
 
     test('the cover names the event and View Album brings the toolbar into view', async ({ page }) => {
@@ -68,10 +81,10 @@ for (const vp of VIEWPORTS) {
       await openGallery(page, g.shareLink);
 
       await expect(page.getByRole('tab', { name: 'Like 0' })).toBeVisible();
-      const tile = await reveal(page, 0);
-      await press(tile.getByRole('button', { name: 'Like', exact: true }));
+      await react(page, 0, 'Like');
+      await leaveViewer(page);
       await expect(page.getByRole('tab', { name: 'Like 1' })).toBeVisible();
-      await expect(tile.getByRole('button', { name: 'Unlike' })).toBeVisible();
+      await expect(tiles(page).nth(0).getByRole('button', { name: 'Unlike' })).toBeVisible();
 
       await page.reload();
       await expect(page.getByRole('tab', { name: 'Like 1' })).toBeVisible();
@@ -82,10 +95,12 @@ for (const vp of VIEWPORTS) {
       await openGallery(page, g.shareLink);
 
       await expect(page.getByRole('tab', { name: 'Pick 0 / 1' })).toBeVisible();
-      await press((await reveal(page, 0)).getByRole('button', { name: 'Pick', exact: true }));
+      await react(page, 0, 'Pick');
+      await leaveViewer(page);
       await expect(page.getByRole('tab', { name: 'Pick 1 / 1' })).toBeVisible();
 
-      await press((await reveal(page, 1)).getByRole('button', { name: 'Pick', exact: true }));
+      // From the viewer on a phone: the modal must not open behind it.
+      await react(page, 1, 'Pick');
       const modal = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: /limit reached/i }) });
       await expect(modal).toBeVisible();
       await expect(page.getByRole('tab', { name: 'Pick 1 / 1' })).toBeVisible();

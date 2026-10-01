@@ -12,6 +12,8 @@ interface MasonryGridProps {
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   selecting: boolean; selectedIds: Set<number>; onSelect: (id: number) => void;
+  showOriginalFilename: boolean;
+  isClient: boolean; onToggleVisibility: (id: number, current: string) => void;
 }
 
 /** The first tile (in album order) whose bottom edge is below the top of the viewport. */

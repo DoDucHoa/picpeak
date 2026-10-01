@@ -37,7 +37,7 @@ async function nextFrame() {
   await act(async () => { await new Promise((resolve) => requestAnimationFrame(() => resolve(null))); });
 }
 
-const props = { slug: 's', onOpen: vi.fn(), onToggle: vi.fn(), allowLikes: true, allowPicks: true, selecting: false, selectedIds: new Set<number>(), onSelect: vi.fn() };
+const props = { slug: 's', onOpen: vi.fn(), onToggle: vi.fn(), allowLikes: true, allowPicks: true, selecting: false, selectedIds: new Set<number>(), onSelect: vi.fn(), showOriginalFilename: false, isClient: false, onToggleVisibility: vi.fn() };
 
 const renderedIds = () => screen.getAllByTestId('grid-tile').map((t) => t.getAttribute('data-photo-id'));
 

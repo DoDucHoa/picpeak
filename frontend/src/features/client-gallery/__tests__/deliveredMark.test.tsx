@@ -13,7 +13,7 @@ const photo = (id: number) => ({
   size: 1000, uploaded_at: '', width: 4000, height: 6000,
 }) as Photo;
 
-const tile = { width: 300, height: 450, x: 0, y: 0, priority: 'normal' as const, slug: 's', allowLikes: true, allowPicks: true, selecting: false, selected: false, onSelect: vi.fn(), onOpen: vi.fn(), onToggle: vi.fn() };
+const tile = { width: 300, height: 450, x: 0, y: 0, priority: 'normal' as const, slug: 's', allowLikes: true, allowPicks: true, selecting: false, selected: false, onSelect: vi.fn(), onOpen: vi.fn(), onToggle: vi.fn(), showOriginalFilename: false, isClient: false, onToggleVisibility: vi.fn() };
 
 function renderTile(id: number, delivered: number[]) {
   return render(
@@ -47,7 +47,7 @@ describe('the already downloaded mark', () => {
   it('marks only the delivered rows of the list', () => {
     render(
       <DownloadedPhotosProvider value={new Set([2])}>
-        <PhotoList photos={[photo(1), photo(2)]} slug="s" allowLikes allowPicks showOriginalFilename={false} onOpen={vi.fn()} onToggle={vi.fn()} />
+        <PhotoList photos={[photo(1), photo(2)]} slug="s" allowLikes allowPicks showOriginalFilename={false} isClient={false} onToggleVisibility={vi.fn()} onOpen={vi.fn()} onToggle={vi.fn()} />
       </DownloadedPhotosProvider>,
     );
     const rows = screen.getAllByTestId('list-row');

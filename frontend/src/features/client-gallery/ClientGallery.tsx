@@ -180,6 +180,13 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
     setIds(next);
   }, []);
 
+  // Client mode (#172). The controller's toggle is already stable; wrapped so
+  // the tiles get a void handler and the rejection stays handled there.
+  const { toggleVisibility: toggleVisibilityAsync } = c.client;
+  const toggleVisibility = useCallback((id: number, current: string) => {
+    void toggleVisibilityAsync(id, current);
+  }, [toggleVisibilityAsync]);
+
   const gridAnchorRef = useRef<HTMLDivElement>(null);
   const scrollToAlbum = useCallback(() => {
     gridAnchorRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -262,6 +269,8 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
             allowLikes={allowLikes}
             allowPicks={allowPicks}
             showOriginalFilename={c.showOriginalFilename}
+            isClient={c.client.isClient}
+            onToggleVisibility={toggleVisibility}
           />
         ) : (
           <MasonryGrid
@@ -274,6 +283,9 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
             selecting={c.selection.active}
             selectedIds={c.selection.ids}
             onSelect={toggleSelected}
+            showOriginalFilename={c.showOriginalFilename}
+            isClient={c.client.isClient}
+            onToggleVisibility={toggleVisibility}
           />
         )
       )}

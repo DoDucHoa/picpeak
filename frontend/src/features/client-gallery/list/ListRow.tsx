@@ -4,13 +4,15 @@ import { AuthenticatedImage } from '../../../components/common';
 import { thumbnailUrlForTile } from '../../../components/gallery/imageTiers';
 import { useIsPhotoDelivered } from '../../../contexts/DownloadedPhotosContext';
 import type { Photo } from '../../../types';
-import { DeliveredIcon, HeartIcon, PickIcon } from '../icons';
+import { DeliveredIcon, EyeIcon, EyeOffIcon, HeartIcon, PickIcon } from '../icons';
 
 interface ListRowProps {
   photo: Photo; y: number; height: number; slug: string;
   showOriginalFilename: boolean;
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
+  /** Client mode (#172): the row shows and toggles what guests may see. */
+  isClient: boolean; onToggleVisibility: (id: number, current: string) => void;
 }
 
 /** 24.3 MB style: one decimal, base 1024. */
@@ -32,19 +34,20 @@ export function formatDimensions(w?: number | null, h?: number | null): string {
  * sits inside another and each one gets Enter and Space natively. Text cells
  * let clicks fall through to the open button; only the buttons catch them.
  */
-function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks }: ListRowProps) {
+function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks, isClient, onToggleVisibility }: ListRowProps) {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
   const delivered = useIsPhotoDelivered(photo.id);
   const onLoad = useCallback(() => setLoaded(true), []);
   const name = showOriginalFilename && photo.original_filename ? photo.original_filename : photo.filename;
   const thumbSrc = thumbnailUrlForTile(photo.thumbnail_url, photo, 80);
+  const hidden = isClient && photo.visibility === 'hidden';
 
   return (
     <div
       data-testid="list-row"
       data-photo-id={photo.id}
-      className="cg-row"
+      className={`cg-row${hidden ? ' cg-row-hidden' : ''}`}
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height, transform: `translateY(${y}px)` }}
     >
       <button
@@ -75,6 +78,11 @@ function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onT
             <DeliveredIcon />
           </span>
         )}
+        {hidden && (
+          <span data-testid="hidden-mark" className="cg-hidden-mark" role="img" aria-label={t('clientAccess.hiddenFromGuests', 'Hidden from guests')}>
+            <EyeOffIcon />
+          </span>
+        )}
       </div>
       <div className="cg-row-name">{name}</div>
       <div className="cg-row-dim">{formatDimensions(photo.width, photo.height)}</div>
@@ -99,6 +107,16 @@ function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onT
             onClick={() => onToggle(photo, 'favorite')}
           >
             <PickIcon filled={Boolean(photo.is_favorited)} />
+          </button>
+        )}
+        {isClient && (
+          <button
+            type="button"
+            aria-label={hidden ? t('clientAccess.showToGuests', 'Show to guests') : t('clientAccess.hideFromGuests', 'Hide from guests')}
+            className={`cg-row-btn${hidden ? ' cg-visibility-hidden' : ''}`}
+            onClick={() => onToggleVisibility(photo.id, photo.visibility || 'visible')}
+          >
+            {hidden ? <EyeIcon /> : <EyeOffIcon />}
           </button>
         )}
       </div>

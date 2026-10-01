@@ -5900,7 +5900,10 @@
     "invalidPin": "Invalid PIN. Please try again.",
     "pinHelperText": "The client will use this PIN to access the review page. At least 6 characters.",
     "pinUpdated": "Client PIN updated",
-    "setPin": "Set PIN"
+    "setPin": "Set PIN",
+    "hiddenFromGuests": "Hidden from guests",
+    "hideFromGuests": "Hide from guests",
+    "showToGuests": "Show to guests"
   },
   "export": {
     "button": "Export",
@@ -9925,6 +9928,7 @@
     "emptyPicked": "No picked photos yet",
     "backToTop": "Back to top",
     "emptyAll": "No photos yet",
-    "copyFailed": "Could not copy the link"
+    "copyFailed": "Could not copy the link",
+    "select": "Select"
   }
 }

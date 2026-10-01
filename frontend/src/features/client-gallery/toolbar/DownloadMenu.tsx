@@ -51,11 +51,14 @@ export function DownloadMenu({ c }: { c: GalleryController }) {
       onSelect: () => { void c.people.downloadFiltered(); },
     });
   }
-  items.push({
-    key: 'select',
-    label: t('clientGallery.multiSelect', 'Multi-select'),
-    onSelect: () => c.selection.setActive(true),
-  });
+  // Clients have Select beside the menu already (see GalleryToolbar).
+  if (!c.client.isClient) {
+    items.push({
+      key: 'select',
+      label: t('clientGallery.multiSelect', 'Multi-select'),
+      onSelect: () => c.selection.setActive(true),
+    });
+  }
 
   const label = t('clientGallery.download', 'Download');
   return (

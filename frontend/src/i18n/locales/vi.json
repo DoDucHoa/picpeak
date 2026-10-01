@@ -5892,7 +5892,10 @@
     "invalidPin": "PIN không hợp lệ. Vui lòng thử lại.",
     "pinHelperText": "Khách hàng sẽ dùng PIN này để truy cập trang duyệt ảnh. Tối thiểu 6 ký tự.",
     "pinUpdated": "Đã cập nhật PIN khách hàng",
-    "setPin": "Đặt PIN"
+    "setPin": "Đặt PIN",
+    "hiddenFromGuests": "Đã ẩn với khách",
+    "hideFromGuests": "Ẩn với khách",
+    "showToGuests": "Hiện cho khách"
   },
   "export": {
     "button": "Xuất",
@@ -9917,6 +9920,7 @@
     "emptyPicked": "Chưa chọn ảnh nào",
     "backToTop": "Lên đầu trang",
     "emptyAll": "Chưa có ảnh nào",
-    "copyFailed": "Không chép được link"
+    "copyFailed": "Không chép được link",
+    "select": "Chọn"
   }
 }

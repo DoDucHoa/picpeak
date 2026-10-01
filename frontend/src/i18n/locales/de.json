@@ -5711,7 +5711,10 @@
     "invalidPin": "Ungültige PIN. Bitte versuchen Sie es erneut.",
     "pinHelperText": "Der Kunde verwendet diese PIN, um die Überprüfungsseite aufzurufen. Mindestens 6 Zeichen.",
     "pinUpdated": "Kunden-PIN aktualisiert",
-    "setPin": "PIN festlegen"
+    "setPin": "PIN festlegen",
+    "hiddenFromGuests": "Für Gäste ausgeblendet",
+    "hideFromGuests": "Für Gäste ausblenden",
+    "showToGuests": "Für Gäste einblenden"
   },
   "setup": {
     "title": "Willkommen bei PicPeak",
@@ -9891,6 +9894,7 @@
     "emptyPicked": "Noch keine Fotos ausgewählt",
     "backToTop": "Nach oben",
     "emptyAll": "Noch keine Fotos",
-    "copyFailed": "Link konnte nicht kopiert werden"
+    "copyFailed": "Link konnte nicht kopiert werden",
+    "select": "Auswählen"
   }
 }

@@ -72,20 +72,29 @@ body:has(.client-gallery) { background: #ffffff; }
 .client-gallery .cg-badge-pick { right: 12px; }
 .client-gallery .cg-tile:hover .cg-badge,
 .client-gallery .cg-tile:has(:focus-visible) .cg-badge,
-.client-gallery .cg-badges-always .cg-badge,
 .client-gallery .cg-badge-on { opacity: 1; pointer-events: auto; }
 /* A finger needs 44x44px. The extra hit area is an invisible ::before that
    grows from the tile corner inwards, so the icon does not move and the area
    is not clipped by the tile's own edge. It inherits pointer-events, so a
    hidden badge stays untappable. */
-.client-gallery .cg-badges-always .cg-badge::before { content: ''; position: absolute; top: -6px; min-width: 44px; min-height: 44px; width: calc(100% + 12px); height: calc(100% + 12px); }
-.client-gallery .cg-badges-always .cg-badge-like::before { left: -6px; }
-.client-gallery .cg-badges-always .cg-badge-pick::before { right: -6px; }
+.client-gallery .cg-badges-touch .cg-badge::before { content: ''; position: absolute; top: -6px; min-width: 44px; min-height: 44px; width: calc(100% + 12px); height: calc(100% + 12px); }
+.client-gallery .cg-badges-touch .cg-badge-like::before { left: -6px; }
+.client-gallery .cg-badges-touch .cg-badge-pick::before { right: -6px; }
 .client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
 /* Already downloaded: a quiet corner mark, never a control, so it takes no taps. */
 .client-gallery .cg-delivered { position: absolute; left: 8px; bottom: 8px; display: flex; color: #fff; opacity: .8; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
 .client-gallery .cg-delivered svg { width: 18px; height: 18px; }
 .client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
+/* Client mode (#172): a hidden photo is dimmed and marked, and every tile
+   carries the toggle bottom right, always visible: it is the client's tool. */
+.client-gallery .cg-tile-hidden .cg-tile-img.loaded, .client-gallery .cg-row-hidden .cg-tile-img.loaded { opacity: .4; }
+.client-gallery .cg-hidden-mark { position: absolute; right: 52px; bottom: 8px; display: flex; padding: 6px; border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; pointer-events: none; }
+.client-gallery .cg-row-thumb .cg-hidden-mark { right: 4px; bottom: 4px; }
+.client-gallery .cg-hidden-mark svg { width: 16px; height: 16px; }
+.client-gallery .cg-visibility { position: absolute; right: 4px; bottom: 4px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+.client-gallery .cg-visibility svg { width: 22px; height: 22px; }
+.client-gallery .cg-visibility-hidden { color: var(--cg-like); }
+.client-gallery .cg-visibility:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
 @media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
 
 /* List view. One grid template shared by the header and every row, so the

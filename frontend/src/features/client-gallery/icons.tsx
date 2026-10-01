@@ -198,6 +198,25 @@ export function DeliveredIcon() {
   );
 }
 
+export function EyeIcon() {
+  return (
+    <Svg>
+      <path d="M2.75 12S6 5.75 12 5.75 21.25 12 21.25 12 18 18.25 12 18.25 2.75 12 2.75 12Z" />
+      <circle cx={12} cy={12} r={3} />
+    </Svg>
+  );
+}
+
+export function EyeOffIcon() {
+  return (
+    <Svg>
+      <path d="M9.9 6.05A8.7 8.7 0 0 1 12 5.75c6 0 9.25 6.25 9.25 6.25a15.6 15.6 0 0 1-2.6 3.35M6.2 7.7C3.95 9.4 2.75 12 2.75 12S6 18.25 12 18.25a8.9 8.9 0 0 0 4.45-1.2" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="m3.75 3.75 16.5 16.5" />
+    </Svg>
+  );
+}
+
 export function ShieldIcon() {
   return (
     <Svg>

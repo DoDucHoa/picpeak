@@ -11,7 +11,7 @@ const make = (n: number, extra: Partial<Photo> = {}) => Array.from({ length: n }
   id: i + 1, filename: `p${i}.jpg`, url: '/o', type: 'individual', size: 1000, uploaded_at: '', ...extra,
 })) as Photo[];
 
-const base = { slug: 's', allowLikes: true, allowPicks: true, showOriginalFilename: false };
+const base = { slug: 's', allowLikes: true, allowPicks: true, showOriginalFilename: false, isClient: false, onToggleVisibility: vi.fn() };
 
 beforeEach(() => {
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
@@ -85,5 +85,25 @@ describe('PhotoList', () => {
     expect(screen.getByText('24.3 MB')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Like' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Pick' })).toBeNull();
+  });
+
+  it('gives a client a visibility toggle per row and marks hidden rows', () => {
+    const onToggleVisibility = vi.fn(); const onOpen = vi.fn();
+    const photos = make(2).map((p, i) => (i === 1 ? { ...p, visibility: 'hidden' as const } : p));
+    render(<PhotoList photos={photos} {...base} isClient onToggleVisibility={onToggleVisibility} onOpen={onOpen} onToggle={vi.fn()} />);
+    const [shown, hidden] = screen.getAllByTestId('list-row');
+    expect(shown.className).not.toContain('cg-row-hidden');
+    expect(hidden.className).toContain('cg-row-hidden');
+    expect(within(hidden).getByTestId('hidden-mark')).toBeTruthy();
+    fireEvent.click(within(shown).getByRole('button', { name: 'Hide from guests' }));
+    fireEvent.click(within(hidden).getByRole('button', { name: 'Show to guests' }));
+    expect(onToggleVisibility).toHaveBeenNthCalledWith(1, 1, 'visible');
+    expect(onToggleVisibility).toHaveBeenNthCalledWith(2, 2, 'hidden');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('offers guests no visibility toggle', () => {
+    render(<PhotoList photos={make(2)} {...base} onOpen={vi.fn()} onToggle={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /guests/i })).toBeNull();
   });
 });

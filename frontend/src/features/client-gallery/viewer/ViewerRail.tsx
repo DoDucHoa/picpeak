@@ -58,7 +58,7 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
   };
 
   return (
-    <nav className="cg-viewer-rail" {...stopNavigationEventsPropagation()}>
+    <nav className="cg-viewer-rail" data-testid="viewer-rail" {...stopNavigationEventsPropagation()}>
       <button type="button" className="cg-viewer-btn cg-viewer-back" aria-label={t('clientGallery.viewer.back', 'Back')} onClick={onBack}>
         <BackIcon />
       </button>

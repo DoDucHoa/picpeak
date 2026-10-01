@@ -217,6 +217,35 @@ describe('GalleryToolbar', () => {
     expect(c.selection.setActive).toHaveBeenCalledWith(false);
   });
 
+  it('offers a client Select whether or not downloads are allowed', () => {
+    const client = { ...fakeController().client, isClient: true };
+    const c = fakeController({ allowDownloads: false, client });
+    const { unmount } = render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^select$/i }));
+    expect(c.selection.setActive).toHaveBeenCalledWith(true);
+    unmount();
+    render(<GalleryToolbar c={fakeController({ client })} onShare={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /^select$/i })).toBeTruthy();
+  });
+
+  it('keeps Select out of the toolbar for guests', () => {
+    render(<GalleryToolbar c={fakeController({ allowDownloads: false })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /^select$/i })).toBeNull();
+  });
+
+  it('lets a client hide or show a selection with downloads off', () => {
+    const c = fakeController({
+      allowDownloads: false,
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1]), setIds: vi.fn() },
+      client: { ...fakeController().client, isClient: true },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /download selected/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /hide selected/i }));
+    expect(c.client.bulkVisibility).toHaveBeenCalledWith('hidden');
+  });
+
   it('disables download selected at zero and hides visibility controls from guests', () => {
     const c = fakeController({ selection: { active: true, setActive: vi.fn(), ids: new Set(), setIds: vi.fn() } });
     render(<GalleryToolbar c={c} onShare={vi.fn()} />);

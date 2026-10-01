@@ -12,6 +12,7 @@ interface PhotoListProps {
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   showOriginalFilename: boolean;
+  isClient: boolean; onToggleVisibility: (id: number, current: string) => void;
 }
 
 const ROW_HEIGHT = 150;

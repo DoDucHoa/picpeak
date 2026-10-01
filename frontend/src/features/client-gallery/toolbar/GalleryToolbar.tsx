@@ -4,7 +4,7 @@ import { DownloadQuotaBadge } from '../../../components/gallery/DownloadQuotaBad
 import type { GalleryController } from '../state/useGalleryController';
 import type { GalleryTab } from '../state/urlState';
 import {
-  BackIcon, CartIcon, DownloadIcon, GridIcon, HeartIcon, ListIcon, LogoutIcon,
+  BackIcon, CartIcon, CheckIcon, DownloadIcon, GridIcon, HeartIcon, ListIcon, LogoutIcon,
   PeopleIcon, PhotosIcon, PickIcon, ShareIcon, SortChevron,
 } from '../icons';
 import { DownloadMenu } from './DownloadMenu';
@@ -110,6 +110,7 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
   const allPhotosLabel = t('gallery.backToGallery', 'All photos');
   const getAllLabel = t('gallery.downloadQuota.getAll', 'Get all photos');
   const peopleLabel = t('clientGallery.people', 'People');
+  const selectLabel = t('clientGallery.select', 'Select');
 
   const tools = (
     <>
@@ -132,6 +133,13 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
       {c.allowDownloads && c.offerFullPackage && (
         <button type="button" className="cg-tb-btn" aria-label={getAllLabel} onClick={() => c.setQuotaOffer({ exceeded: null })}>
           <CartIcon /><span className="cg-tb-label">{getAllLabel}</span>
+        </button>
+      )}
+      {/* A client selects to hide or show photos, which has nothing to do
+          with downloads, so Select stands on its own for them. */}
+      {c.client.isClient && (
+        <button type="button" className="cg-tb-btn" aria-label={selectLabel} onClick={() => c.selection.setActive(true)}>
+          <CheckIcon /><span className="cg-tb-label">{selectLabel}</span>
         </button>
       )}
       {c.allowDownloads && <DownloadMenu c={c} />}
