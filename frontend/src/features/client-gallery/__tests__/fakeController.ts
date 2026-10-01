@@ -43,9 +43,8 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
     resolutionPicker: { open: false, ids: null, close: vi.fn() },
     people: {
       enabled: false, list: [], selectedIds: [], toggle: vi.fn(),
-      matchAny: false, setMatchAny: vi.fn(), clear: vi.fn(),
       downloadableIds: [], downloadFiltered: vi.fn(async () => {}),
-      sheetOpen: false, setSheetOpen: vi.fn(), scan: undefined,
+      sheetOpen: false, setSheetOpen: vi.fn(),
     },
     folders: {
       tiles: [], open: null, openBySlug: vi.fn(),
@@ -56,7 +55,7 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
       isClient: false, visibleCount: 0, totalCount: 0,
       toggleVisibility: vi.fn(async () => {}), bulkVisibility: vi.fn(async () => {}),
     },
-    expiry: { expiresAt: null, daysLeft: null },
+    expiry: { expiresAt: null },
     showLogout: false, logout: vi.fn(),
     promoMarkdown: null, infoMarkdown: null,
   };

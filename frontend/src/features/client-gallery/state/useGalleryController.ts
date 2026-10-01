@@ -28,7 +28,7 @@ import { feedbackService } from '../../../services/feedback.service';
 import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import type {
-  DownloadResolutionChoice, GalleryData, GalleryPeopleResponse, GalleryPerson, Photo,
+  DownloadResolutionChoice, GalleryData, GalleryPerson, Photo,
 } from '../../../types';
 import { readUrlState, writeUrlState } from './urlState';
 import type { GalleryTab, SortField, UrlState, ViewMode } from './urlState';
@@ -96,16 +96,15 @@ export interface GalleryController {
   resolutionPicker: { open: boolean; ids: number[] | null; close: () => void };
   people: {
     enabled: boolean; list: GalleryPerson[]; selectedIds: number[]; toggle: (id: number) => void;
-    matchAny: boolean; setMatchAny: (v: boolean) => void; clear: () => void;
     downloadableIds: number[]; downloadFiltered: () => Promise<void>;
-    sheetOpen: boolean; setSheetOpen: (v: boolean) => void; scan: GalleryPeopleResponse['scan'] | undefined;
+    sheetOpen: boolean; setSheetOpen: (v: boolean) => void;
   };
   folders: {
     tiles: ReturnType<typeof folderTiles>; open: ReturnType<typeof findFolderByKey>; openBySlug: (key: string | null) => void;
     downloadIds: number[]; downloadTotal: number; downloadCapped: boolean; downloadFolder: () => Promise<void>; rootIsFoldersOnly: boolean;
   };
   client: { isClient: boolean; visibleCount: number; totalCount: number; toggleVisibility: (id: number, current: string) => Promise<void>; bulkVisibility: (v: 'visible' | 'hidden') => Promise<void> };
-  expiry: { expiresAt: string | null; daysLeft: number | null };
+  expiry: { expiresAt: string | null };
   showLogout: boolean; logout: () => void;
   promoMarkdown: string | null; infoMarkdown: string | null;
 }
@@ -202,26 +201,14 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
 
   const [protectionLevel, setProtectionLevel] = useState<'basic' | 'standard' | 'enhanced' | 'maximum'>('standard');
 
-  // People filter (#1074). Multi-select, AND by default: see useGalleryFiltering.
-  // `peopleMatchAny` only becomes reachable once a second person is picked,
-  // since the toggle is meaningless for one.
+  // People filter (#1074). Multi-select, always AND (a photo must show every
+  // picked person): the people sheet offers no any/all switch.
   const [selectedPersonIds, setSelectedPersonIds] = useState<number[]>([]);
-  const [peopleMatchAny, setPeopleMatchAny] = useState(false);
   const [showPeopleSheet, setShowPeopleSheet] = useState(false);
   const togglePerson = useCallback((personId: number) => {
-    setSelectedPersonIds((prev) => {
-      const next = prev.includes(personId)
-        ? prev.filter((id) => id !== personId)
-        : [...prev, personId];
-      // Dropping back below two people makes the any/all toggle meaningless;
-      // reset it so it doesn't silently persist into the next selection.
-      if (next.length < 2) setPeopleMatchAny(false);
-      return next;
-    });
-  }, []);
-  const clearPeople = useCallback(() => {
-    setSelectedPersonIds([]);
-    setPeopleMatchAny(false);
+    setSelectedPersonIds((prev) => (prev.includes(personId)
+      ? prev.filter((id) => id !== personId)
+      : [...prev, personId]));
   }, []);
   const [guestId] = useState<string>(readGuestId);
   const [staticHeroPhoto, setStaticHeroPhoto] = useState<Photo | null>(null);
@@ -461,7 +448,6 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     // peopleInScope drops them from the strip, leaving an invisible filter that
     // empties the grid with no control left to clear it.
     setSelectedPersonIds([]);
-    setPeopleMatchAny(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [setSelectedPhotos]);
   const openFolderBySlug = useCallback((key: string | null) => enterFolder(key, 'push'), [enterFolder]);
@@ -526,7 +512,6 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
         setOpenFolderSlug(nextFolder);
         setSelectedPhotos(new Set());
         setSelectedPersonIds([]);
-        setPeopleMatchAny(false);
       }
     };
     window.addEventListener('popstate', onPop);
@@ -538,7 +523,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     selectedCategoryId: null, searchTerm: '', sortBy: url.sort, sortDesc: url.dir === 'desc',
     watermarkEnabled, slug, activeFilters: NO_FEEDBACK_FILTERS, activeColorFilters: NO_COLOR_FILTERS, mediaFilter: 'all',
     isGuestIdentityMode: identityMode === 'guest', myFeedbackPhotoIds: NO_FEEDBACK_IDS,
-    selectedPersonIds, peopleMatchAny,
+    selectedPersonIds, peopleMatchAny: false,
   });
   const visiblePhotos = useMemo(() => tabPhotos(filteredPhotos, url.tab), [filteredPhotos, url.tab]);
   const counts = useMemo(() => tabCounts(scopedPhotos), [scopedPhotos]);
@@ -628,7 +613,6 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     active: isSelectionMode, setActive: setIsSelectionMode, ids: selectedPhotos, setIds: setSelectedPhotos,
   }), [isSelectionMode, setIsSelectionMode, selectedPhotos, setSelectedPhotos]);
 
-  const peopleScan = peopleData?.scan;
   const {
     peopleDownloadableIds, handleDownloadPeopleFiltered,
     folderDownloadIds, folderDownloadTotal, folderDownloadCapped, handleDownloadFolder,
@@ -638,17 +622,13 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     list: people,
     selectedIds: selectedPersonIds,
     toggle: togglePerson,
-    matchAny: peopleMatchAny,
-    setMatchAny: setPeopleMatchAny,
-    clear: clearPeople,
     downloadableIds: peopleDownloadableIds,
     downloadFiltered: handleDownloadPeopleFiltered,
     sheetOpen: showPeopleSheet,
     setSheetOpen: setShowPeopleSheet,
-    scan: peopleScan,
   }), [
-    peopleEnabled, people, selectedPersonIds, togglePerson, peopleMatchAny, clearPeople,
-    peopleDownloadableIds, handleDownloadPeopleFiltered, showPeopleSheet, peopleScan,
+    peopleEnabled, people, selectedPersonIds, togglePerson,
+    peopleDownloadableIds, handleDownloadPeopleFiltered, showPeopleSheet,
   ]);
 
   const foldersGroup = useMemo(() => ({
@@ -675,10 +655,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   }), [isClient, visibleCount, totalCount, handleToggleVisibility, handleBulkVisibility]);
 
   const expiresAt = event.expires_at;
-  const expiry = useMemo(
-    () => ({ expiresAt, daysLeft: daysUntilExpiration }),
-    [expiresAt, daysUntilExpiration]
-  );
+  const expiry = useMemo(() => ({ expiresAt }), [expiresAt]);
 
   const {
     allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
