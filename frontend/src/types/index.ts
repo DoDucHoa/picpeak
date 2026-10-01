@@ -1,4 +1,8 @@
 // Event/Gallery types
+
+// Uploader names (#1561).
+export type GuestNameMode = 'off' | 'optional' | 'required';
+
 export interface Event {
   id: number;
   slug: string;
@@ -19,7 +23,11 @@ export interface Event {
   archive_path?: string;
   archived_at?: string;
   require_password?: boolean;
+  // Rows of either type. video_count says how many are videos, and
+  // video_duration is their total runtime in seconds (issue 1430).
   photo_count?: number;
+  video_count?: number;
+  video_duration?: number;
   total_size?: number;
   recent_photos?: Array<{
     filename: string;
@@ -28,6 +36,10 @@ export interface Event {
     uploaded_at: string;
   }>;
   allow_user_uploads?: boolean;
+  // Uploader names (#1561): the upload dialog's name step, and whether guests
+  // see the names. SQLite hands the flag back as 0/1.
+  guest_name_mode?: GuestNameMode;
+  show_credits_to_guests?: boolean | number;
   // Reveal mode (#838)
   reveal_mode?: boolean;
   reveal_at?: string | null;
@@ -75,7 +87,12 @@ export interface Event {
   is_draft?: boolean;
   // Client access (#172)
   client_access_enabled?: boolean;
+  // Whether a client password is set (event form redesign P4). Never the hash.
+  has_client_password?: boolean;
   client_share_token?: string;
+  // Set when the API withheld the gallery links because the admin sees this
+  // event but cannot act on it (another owner's gallery).
+  share_secrets_hidden?: boolean;
   // Live Slideshow / "Diashow" (migration 138). Token-only fullscreen kiosk
   // link minted on demand; null token = disabled. Settings drive the running
   // projector and can be changed live.
@@ -170,9 +187,6 @@ export interface Photo {
   // the same /preview/:id URL, so an install that never flipped the toggle
   // stops serving multi-megabyte originals to display a photo on screen.
   slideshow_url?: string | null;
-  secure_url_template?: string;
-  download_url_template?: string;
-  requires_token?: boolean;
   type: 'collage' | 'individual' | 'video';
   category_id?: number | string | null;
   category_name?: string;
@@ -189,6 +203,11 @@ export interface Photo {
   // filtered out server-side, so this never reveals a person the
   // photographer suppressed.
   person_ids?: number[];
+  // Photo credit (#1561). Present only when the viewer may see names
+  // (GalleryData.event.credits_visible). `uploaded_by_guest` tells a nameless
+  // guest upload apart from the photographer's own photos.
+  credit_name?: string | null;
+  uploaded_by_guest?: boolean;
   size: number;
   uploaded_at: string;
   captured_at?: string; // EXIF capture date (if available)
@@ -318,6 +337,10 @@ export interface GalleryData {
     // chose to keep the people strip to themselves. The whole face UI hangs
     // off this one boolean.
     people_enabled?: boolean;
+    // Uploader names (#1561). guest_name_mode drives the upload dialog's name
+    // step; credits_visible says whether photos carry credit_name at all.
+    guest_name_mode?: GuestNameMode;
+    credits_visible?: boolean;
   };
   categories?: PhotoCategory[];
   photos: Photo[];
@@ -364,6 +387,12 @@ export interface AdminUser {
   createdAt?: string | null;
   updatedAt?: string | null;
   createdByUsername?: string;
+  /**
+   * Whether a first SSO login may link to this admin by email
+   * (admin_users.email_link_eligible, migration 227). Undefined on a backend
+   * that predates the column — callers read that as eligible.
+   */
+  emailLinkEligible?: boolean;
 }
 
 export interface LoginResponse {

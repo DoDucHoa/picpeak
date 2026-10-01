@@ -73,11 +73,11 @@ const invalidateSiteUrlCache = () => {
 
 // The origin the request itself arrived on. `trust proxy` is configured in
 // server.js, so req.protocol honours X-Forwarded-Proto behind the standard
-// reverse proxies, and frontend/nginx.conf forwards $http_host so the port
-// survives the proxy hop too. Still only a last resort: the setup wizard
-// persists the browser's own window.location.origin instead of relying on
-// this, and it is unavailable entirely to background jobs (reminder emails)
-// that have no request.
+// reverse proxies. frontend/nginx.conf forwards $http_host, port included, but
+// an outer proxy that forwards $host still strips a non-default port — which
+// is why the setup wizard persists the browser's own window.location.origin
+// instead of relying on this. It stays a last resort, and it is unavailable
+// entirely to background jobs (reminder emails) that have no request.
 const originFromRequest = (req) => {
   if (!req || typeof req.get !== 'function') return '';
   const host = req.get('host');

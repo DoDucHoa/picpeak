@@ -69,9 +69,6 @@ export interface FeedbackSettings {
   require_name_email: boolean;
   moderate_comments: boolean;
   show_feedback_to_guests: boolean;
-  enable_rate_limiting: boolean;
-  rate_limit_window_minutes?: number;
-  rate_limit_max_requests?: number;
   identity_mode?: IdentityMode;
   // Per-guest caps (#655). null or 0 = unlimited (preserves current
   // behaviour for installs that haven't enabled the cap). Positive
@@ -181,7 +178,9 @@ class FeedbackService {
     return response.data;
   }
 
-  async updateEventFeedbackSettings(eventId: string, settings: FeedbackSettings): Promise<FeedbackSettings> {
+  // Partial: the backend updates only the keys it receives (pickSettingsColumns),
+  // and the event page sends only the ones the user changed.
+  async updateEventFeedbackSettings(eventId: string, settings: Partial<FeedbackSettings>): Promise<FeedbackSettings> {
     const response = await api.put(`/admin/feedback/events/${eventId}/feedback-settings`, settings);
     return response.data;
   }

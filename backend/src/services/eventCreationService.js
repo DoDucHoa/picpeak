@@ -18,10 +18,13 @@ const { clampIntOrUndefined } = require('../utils/numericHelpers');
 const { getFrontendBaseUrl } = require('../utils/frontendUrl');
 const { resolveEventFeedbackDefaults, applyFeedbackDefaults } = require('./feedbackDefaults');
 const { getStoragePath, getEventFieldRequirements, readBooleanSetting, getDownloadProtectionDefaults,
-  getImageSecurityDefaults, resolveImageSecurityColumns, getBrandingDefaults, getCustomerNameFromPayload,
+  getImageSecurityDefaults, resolveImageSecurityColumns, getCustomerNameFromPayload,
   getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, hasCustomerContactColumns,
   SLIDESHOW_TRANSITIONS, SLIDESHOW_COLORFILTERS } = require('./eventSettings');
 const { validateCreationInput } = require('./eventCreationValidation');
+const { resolveCreatePhotoSource } = require('./eventPhotoSource');
+const { getNotificationEmail } = require('./notificationEmail');
+const { guestNameModeOf } = require('./photoCredit');
 function creationError(body) {
   const error = new AppError(body.error || 'Invalid event', 400, 'EVENT_INVALID');
   error.responseBody = body;
@@ -31,7 +34,7 @@ function creationError(body) {
 /** Shared creation operation. v1 explicitly publishes immediately and accepts
  * an optional absolute expiry; admin/legacy use configured field requirements.
  */
-async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) {
+async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnableWatch } = {}) {
   const input = await validateCreationInput(data);
   if (source === 'v1') input.is_draft = false;
   if (!actor || !Number.isInteger(actor.id)) throw new AppError('Event owner required', 400, 'EVENT_OWNER_REQUIRED');
@@ -53,8 +56,9 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     welcome_message = '',
     color_theme = null,
     expiration_days = 30,
-    allow_user_uploads = false,
-    upload_category_id = null,
+    // Uploader names (#1561). undefined = take the Event Defaults value.
+    guest_name_mode: guestNameModeInput,
+    show_credits_to_guests: showCreditsInput,
     allow_downloads = true,
     disable_right_click = false,
     enable_devtools_protection: enableDevtoolsProtectionInput,
@@ -128,15 +132,30 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   if (fieldRequirements.require_customer_email && !customerEmail) {
     validationErrors.push({ path: 'customer_email', msg: 'Customer email is required' });
   }
-  if (fieldRequirements.require_admin_email && !admin_email) {
-    validationErrors.push({ path: 'admin_email', msg: 'Admin email is required' });
-  }
   if (fieldRequirements.require_event_date && !event_date) {
     validationErrors.push({ path: 'event_date', msg: 'Event date is required' });
   }
 
   if (validationErrors.length > 0) {
     throw creationError({ errors: validationErrors });
+  }
+
+  // Photo source (spec 5.5), from the admin create page only: v1 and the
+  // conversions stay managed. Resolved before any hash or folder is made, so
+  // a refusal leaves nothing behind.
+  const photoSource = source === 'admin'
+    ? await resolveCreatePhotoSource(input, { canEnableWatch: canEnableWatch || (async () => false) })
+    : null;
+
+  // The admin address stored on the event (spec 5.11): the global
+  // notification email when set, else the one given, else, on the admin
+  // create page, the acting admin's own address (what the page used to
+  // prefill), else none. The quote and contract conversions fall back the
+  // same way.
+  let storedAdminEmail = (await getNotificationEmail()) || admin_email || null;
+  if (!storedAdminEmail && source === 'admin') {
+    const actorRow = await db('admin_users').where({ id: actor.id }).first('email');
+    storedAdminEmail = actorRow?.email || null;
   }
 
   // Default require_password from global "event_default_require_password"
@@ -158,6 +177,20 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     if (setting !== undefined) feedbackEnabledFallback = setting;
   }
   const feedback_enabled = parseBooleanInput(feedbackEnabledInput, feedbackEnabledFallback);
+
+  // Uploader-name defaults from Settings > Event Defaults (#1561); an
+  // explicitly-sent body value still wins.
+  const guest_name_mode = guestNameModeOf({
+    guest_name_mode: guestNameModeInput === undefined
+      ? await getAppSetting('event_default_guest_name_mode', 'off')
+      : guestNameModeInput,
+  });
+  let showCreditsFallback = false;
+  if (showCreditsInput === undefined) {
+    const setting = await readBooleanSetting('event_default_show_credits_to_guests');
+    if (setting !== undefined) showCreditsFallback = setting;
+  }
+  const show_credits_to_guests = parseBooleanInput(showCreditsInput, showCreditsFallback);
 
   // Sub-toggle defaults from the global Settings > Events values (#1044).
   // One batched read; an explicitly-sent body value still wins.
@@ -260,8 +293,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     }
   }
 
-  // Get branding defaults for hero logo settings (Feature 7: Branding Inheritance)
-  const brandingDefaults = await getBrandingDefaults();
   // hero_logo_visible: store NULL ("inherit") unless the admin explicitly
   // set it, so the global branding_logo_display_hero toggle keeps
   // controlling this gallery afterwards (#756). Only an explicit per-event
@@ -274,7 +305,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
   // NULL = inherit the global branding_logo_size (#756), resolved at read
   // time. Only an explicit per-event size overrides it.
   const effectiveHeroLogoSize = input.hero_logo_size || null;
-  const effectiveHeroLogoPosition = input.hero_logo_position || brandingDefaults.hero_logo_position;
 
   // Inherit "Detect dev tools" from the global Image Security setting unless
   // the request explicitly overrides it (#317 — admin disabled it globally
@@ -347,7 +377,7 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     ...(customerPhone ? { customer_phone: customerPhone } : {}),
     host_name: customerName || null,
     host_email: customerEmail || null,
-    admin_email: admin_email || null,
+    admin_email: storedAdminEmail,
     password_hash,
     // Opt-in recoverable copy (#1271), written with the hash so the two
     // can never disagree. Empty unless the security setting is on.
@@ -363,8 +393,10 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     created_by: actor.id,
-    allow_user_uploads: formatBoolean(allow_user_uploads),
-    upload_category_id,
+    // Guest uploads are removed (P3): allow_user_uploads and
+    // upload_category_id take their column defaults (false, NULL).
+    guest_name_mode,
+    show_credits_to_guests: formatBoolean(show_credits_to_guests),
     allow_downloads: formatBoolean(allow_downloads !== undefined ? allow_downloads : true),
     disable_right_click: formatBoolean(disable_right_click !== undefined ? disable_right_click : false),
     enable_devtools_protection: formatBoolean(effectiveEnableDevtoolsProtection),
@@ -378,7 +410,8 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     // Already formatBoolean-coerced above, or null = inherit global (#756).
     hero_logo_visible: effectiveHeroLogoVisible,
     hero_logo_size: effectiveHeroLogoSize,
-    hero_logo_position: effectiveHeroLogoPosition,
+    // hero_logo_position is a Branding setting since P3 (spec 5.10); the
+    // column takes its database default and is no longer read.
     // Banner overrides. Both were accepted by the validators above and
     // then dropped here, so an API client could POST info_mode:'off' or a
     // custom banner, get 201, and find the row still on 'inherit'.
@@ -393,6 +426,11 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     hero_divider_style: effectiveDividerStyle || 'wave',
     hero_image_anchor: hero_image_anchor || 'center',
     photo_cap: photo_cap || null,
+    ...(photoSource ? {
+      source_mode: photoSource.source_mode,
+      external_path: photoSource.external_path,
+      external_watch: formatBoolean(photoSource.external_watch),
+    } : {}),
     is_draft: formatBoolean(parseBooleanInput(is_draft, true)),
     default_photo_sort: default_photo_sort || 'upload_date_desc',
     // Client access (#172)
@@ -532,8 +570,10 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
         email_type: 'gallery_created',
         email_data: JSON.stringify(emailData),
         status: 'pending',
-        created_at: new Date()
-        // scheduled_at will use default value
+        created_at: new Date(),
+        // Explicit NULL, not the column default: on SQLite the default is
+        // text and the processor never picks the row up (issue 1670).
+        scheduled_at: null
       });
     } catch (queueError) {
       logger.warn('Failed to queue gallery_created email on create', { eventId, error: queueError.message });
@@ -590,7 +630,7 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl } = {}) 
     await require('./workflows').emitWorkflowEvent('gallery.published', {
       entityType: 'event', entityId: eventId,
       payload: { eventId, slug, eventName: event_name, eventDate: event_date,
-        customerEmail, adminEmail: admin_email, galleryLink: shareUrl,
+        customerEmail, adminEmail: storedAdminEmail, galleryLink: shareUrl,
         expiresAt: expires_at ? expires_at.toISOString() : null },
     }).catch(error => logger.warn('Failed to emit gallery.published', { eventId, error: error.message }));
   }

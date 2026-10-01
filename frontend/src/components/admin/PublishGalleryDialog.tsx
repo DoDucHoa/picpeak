@@ -11,6 +11,8 @@ interface PublishGalleryDialogProps {
   customerPhone?: string | null;
   /** Assigned customer accounts — notified via the account "your galleries" email when there's no inline email. */
   assignedCustomerCount?: number;
+  /** A copy of the gallery password is stored: the server fills it into the mail (P4). */
+  storedPassword?: boolean;
   isPublishing: boolean;
   onConfirm: (password?: string, notifyCustomer?: boolean) => void;
   onClose: () => void;
@@ -27,6 +29,10 @@ interface PublishGalleryDialogProps {
  *
  * For galleries without a password, the dialog is a plain confirm + Publish
  * button (mirrors the previous window.confirm() flow).
+ *
+ * When a copy of the password is stored, the server fills it into the mail
+ * (event form redesign P4), so the field shows only on "Use a different
+ * password".
  */
 export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
   eventName,
@@ -34,6 +40,7 @@ export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
   customerEmail,
   customerPhone,
   assignedCustomerCount = 0,
+  storedPassword = false,
   isPublishing,
   onConfirm,
   onClose,
@@ -58,35 +65,39 @@ export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
   // Unchecking "notify" hides it for the same reason: nothing is being sent,
   // so there is no plaintext to carry and no reason to demand it.
   const needsPassword = requirePassword && !!customerEmail && notifyCustomer;
+  // With a stored copy the server fills the password in (P4); the admin types
+  // one only to change it.
+  const [useDifferent, setUseDifferent] = useState(false);
+  const askPassword = needsPassword && (!storedPassword || useDifferent);
 
   const handleSubmit = () => {
-    if (needsPassword) {
+    if (askPassword) {
       if (!password || password.trim().length < 6) {
         setError(t('events.publishDialog.errorMinLength', 'Password must be at least 6 characters long.'));
         return;
       }
     }
     setError(undefined);
-    onConfirm(needsPassword ? password : undefined, notifyCustomer);
+    onConfirm(askPassword ? password : undefined, notifyCustomer);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="max-w-md w-full">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+          <h2 className="text-xl font-semibold text-heading">
             {t('events.publishDialog.title', 'Publish gallery')}
           </h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            className="text-neutral-400 hover:text-body"
             aria-label={t('common.close', 'Close')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+        <p className="text-soft mb-4">
           {/* Follows the checkbox. Left static it contradicted itself — the
               text promised an email to the customer while the box beneath it
               said none would be sent. */}
@@ -132,13 +143,13 @@ export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
                 setNotifyCustomer(e.target.checked);
                 if (error) setError(undefined);
               }}
-              className="mt-1 h-4 w-4 rounded border-neutral-300 dark:border-neutral-600"
+              className="mt-1 h-4 w-4 rounded border-line-strong"
             />
             <span className="text-sm">
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+              <span className="font-medium text-heading">
                 {t('events.publishDialog.notifyLabel', 'Send the gallery email now')}
               </span>
-              <span className="block text-neutral-600 dark:text-neutral-400">
+              <span className="block text-soft">
                 {t(
                   'events.publishDialog.notifyHelp',
                   'Uncheck to publish quietly — the gallery goes live and nothing is sent. You can send the email later from this page.',
@@ -148,7 +159,16 @@ export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
           </label>
         )}
 
-        {needsPassword && (
+        {!askPassword && storedPassword && needsPassword && (
+          <div className="mb-4 text-sm text-body">
+            <p>{t('events.mailPassword.storedNote', 'The email includes the stored gallery password.')}</p>
+            <button type="button" className="mt-1 text-accent font-medium" onClick={() => setUseDifferent(true)}>
+              {t('events.mailPassword.useDifferent', 'Use a different password')}
+            </button>
+          </div>
+        )}
+
+        {askPassword && (
           <div className="space-y-3 mb-4">
             <Input
               type={showPassword ? 'text' : 'password'}
@@ -176,6 +196,11 @@ export const PublishGalleryDialog: React.FC<PublishGalleryDialogProps> = ({
                 </button>
               }
             />
+            {storedPassword && (
+              <button type="button" className="text-sm text-accent font-medium" onClick={() => setUseDifferent(false)}>
+                {t('events.mailPassword.useStored', 'Use the stored password')}
+              </button>
+            )}
           </div>
         )}
 

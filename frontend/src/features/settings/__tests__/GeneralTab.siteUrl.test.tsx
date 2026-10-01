@@ -11,16 +11,23 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { GeneralTab } from '../tabs/GeneralTab';
 import type { GeneralSettings } from '../hooks/useSettingsState';
 
 vi.mock('../components/MfaSettingsCard', () => ({ MfaSettingsCard: () => null }));
+// The tab suggests the business profile address for the notification email (P3).
+vi.mock('../../../services/businessProfile.service', () => ({
+  businessProfileService: { get: vi.fn().mockResolvedValue({ profile: { email: '' }, bankAccounts: [] }) },
+}));
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 const base: GeneralSettings = {
   site_url: '',
   site_url_env_pinned: false,
   site_url_stored: '',
+  notification_email: '',
   default_expiration_days: 30,
   max_file_size_mb: 50,
   max_video_size_mb: 500,
@@ -44,10 +51,13 @@ function renderTab(overrides: Partial<GeneralSettings>) {
     rerender(<Tab />);
   });
   const Tab = () => (
+    <QueryClientProvider client={queryClient}>
     <GeneralTab
       generalSettings={settings}
       setGeneralSettings={setGeneralSettings as never}
       saveGeneralMutation={{ mutate: vi.fn(), isPending: false }}
+      isDirty
+      onDiscard={() => {}}
       accountForm={{ username: 'a', email: 'a@b.c' }}
       accountErrors={{}}
       handleAccountChange={() => () => {}}
@@ -55,10 +65,11 @@ function renderTab(overrides: Partial<GeneralSettings>) {
       updateAdminProfileMutation={{ isPending: false }}
       adminProfileLoading={false}
     />
+    </QueryClientProvider>
   );
   const { rerender } = render(<Tab />);
   return {
-    saveButton: () => screen.getByRole('button', { name: /save general settings|allgemeine/i }),
+    saveButton: () => screen.getByRole('button', { name: /save changes|änderungen speichern/i }),
     urlInput: () => screen.getByPlaceholderText('https://yourdomain.com'),
   };
 }
@@ -104,5 +115,26 @@ describe('GeneralTab — Site URL validation', () => {
     });
     expect(saveButton()).not.toBeDisabled();
     expect(urlInput()).toBeDisabled();
+  });
+});
+
+// The server refuses the whole General save for a malformed notification
+// email (P3, spec 5.11), so the tab says which field is wrong before Save.
+describe('GeneralTab: notification email validation', () => {
+  const emailInput = () => screen.getByPlaceholderText('studio@example.com');
+
+  it('blocks Save and names the field for a malformed address', () => {
+    const { saveButton } = renderTab({});
+    fireEvent.change(emailInput(), { target: { value: 'ops@studio' } });
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
+  });
+
+  it('allows Save for a real address and for an empty field', () => {
+    const { saveButton } = renderTab({});
+    fireEvent.change(emailInput(), { target: { value: 'ops@studio.example' } });
+    expect(saveButton()).not.toBeDisabled();
+    fireEvent.change(emailInput(), { target: { value: '' } });
+    expect(saveButton()).not.toBeDisabled();
   });
 });

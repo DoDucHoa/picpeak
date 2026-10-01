@@ -46,7 +46,7 @@ const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   approved: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   rejected: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-  expired: 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300',
+  expired: 'bg-fill text-body',
 };
 
 /**
@@ -145,10 +145,10 @@ export const DownloadOrdersPage: React.FC = () => {
     <div>
       <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+          <h1 className="text-2xl font-bold text-heading">
             {t('downloadQuotaAdmin.orders.title', 'Download orders')}
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+          <p className="text-soft mt-1">
             {t(
               'downloadQuotaAdmin.orders.subtitle',
               'Approve an order and the gallery allowance grows straight away. Invoicing and telling the client happen outside PicPeak.',
@@ -175,7 +175,7 @@ export const DownloadOrdersPage: React.FC = () => {
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               status === key
                 ? 'bg-accent-dark text-white'
-                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                : 'bg-subtle text-body hover:bg-neutral-200 dark:hover:bg-neutral-700'
             }`}
           >
             {t(`downloadQuotaAdmin.orders.filters.${key}`, FILTER_FALLBACKS[key])}
@@ -191,7 +191,7 @@ export const DownloadOrdersPage: React.FC = () => {
         <Card padding="lg">
           <div className="py-12 text-center">
             <Inbox className="w-8 h-8 mx-auto mb-3 text-neutral-400" aria-hidden />
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="text-sm text-soft">
               {t('downloadQuotaAdmin.orders.empty', 'No download order matches this filter.')}
             </p>
           </div>
@@ -207,7 +207,7 @@ export const DownloadOrdersPage: React.FC = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <a
                         href={`/admin/events/${order.event_id}`}
-                        className="font-semibold text-neutral-900 dark:text-neutral-100 hover:underline"
+                        className="font-semibold text-heading hover:underline"
                       >
                         {order.event_name}
                       </a>
@@ -223,10 +223,10 @@ export const DownloadOrdersPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
+                    <p className="mt-1 text-sm text-body">
                       {packageLabel(order)}
                       {order.package_snapshot ? (
-                        <span className="text-neutral-500 dark:text-neutral-400">
+                        <span className="text-muted">
                           {' · '}
                           {`${order.package_snapshot.price} ${order.package_snapshot.currency}`}
                         </span>
@@ -259,14 +259,14 @@ export const DownloadOrdersPage: React.FC = () => {
                           )}
                     </p>
 
-                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-1 text-xs text-muted">
                       {t('downloadQuotaAdmin.orders.placedAt', 'Placed {{when}}', {
                         when: formatDateTime(order.created_at),
                       })}
                     </p>
 
                     {order.reason && (
-                      <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                      <p className="mt-1 text-xs text-soft">
                         {t('downloadQuotaAdmin.orders.reasonGiven', 'Reason: {{reason}}', {
                           reason: order.reason,
                         })}
@@ -299,7 +299,7 @@ export const DownloadOrdersPage: React.FC = () => {
           })}
 
           <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs text-muted">
               {t('downloadQuotaAdmin.orders.pageOf', 'Page {{page}} of {{lastPage}}, {{total}} orders', {
                 page,
                 lastPage,
@@ -333,17 +333,17 @@ export const DownloadOrdersPage: React.FC = () => {
       {approving && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-lg w-full" role="dialog" aria-modal="true">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h2 className="text-xl font-semibold text-heading mb-2">
               {t('downloadQuotaAdmin.orders.approveTitle', 'Approve this order')}
             </h2>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+            <p className="text-sm text-soft mb-4">
               {t('downloadQuotaAdmin.orders.approveHelp', 'Approving raises the allowance of {{event}} immediately. Collect the payment and tell the client yourself.', {
                 event: approving.event_name,
               })}
             </p>
 
             {grantsUnlimited ? (
-              <p className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 mb-4">
+              <p className="flex items-center gap-2 text-sm text-body mb-4">
                 <InfinityIcon className="w-4 h-4" aria-hidden />
                 {t(
                   'downloadQuotaAdmin.orders.grantsUnlimited',
@@ -391,12 +391,12 @@ export const DownloadOrdersPage: React.FC = () => {
       {rejecting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-lg w-full" role="dialog" aria-modal="true">
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h2 className="text-xl font-semibold text-heading mb-2">
               {t('downloadQuotaAdmin.orders.rejectTitle', 'Reject this order')}
             </h2>
             <label
               htmlFor="download-order-reject-reason"
-              className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5"
+              className="block text-sm font-medium text-body mb-1.5"
             >
               {t('downloadQuotaAdmin.orders.reasonLabel', 'Reason shown to the client')}
             </label>

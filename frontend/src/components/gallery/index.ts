@@ -5,7 +5,6 @@ export { ExpirationBanner } from './ExpirationBanner';
 export { CountdownTimer } from './CountdownTimer';
 export { GalleryLayout } from './GalleryLayout';
 export { PhotoFilterBar } from './PhotoFilterBar';
-export { UserPhotoUpload } from './UserPhotoUpload';
 export { PhotoFeedback } from './PhotoFeedback';
 export { PhotoRating } from './PhotoRating';
 export { PhotoLikes } from './PhotoLikes';

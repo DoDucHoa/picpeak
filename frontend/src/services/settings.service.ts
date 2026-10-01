@@ -7,6 +7,11 @@ export interface BrandingSettings {
   support_email: string;
   footer_text: string;
   watermark_enabled: boolean;
+  watermark_downloads_enabled?: boolean;
+  // Hero logo position and the logo on the gallery password page, for every
+  // gallery (P3, spec 5.10).
+  hero_logo_position?: 'top' | 'center' | 'bottom';
+  gallery_password_logo_visible?: boolean;
   watermark_position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
   watermark_opacity?: number;
   watermark_size?: number;
@@ -372,6 +377,9 @@ export const settingsService = {
       support_email: rawSettings.branding_support_email || '',
       footer_text: rawSettings.branding_footer_text || '',
       watermark_enabled: this._parseBoolean(rawSettings.branding_watermark_enabled, false),
+      watermark_downloads_enabled: this._parseBoolean(rawSettings.branding_watermark_downloads_enabled, false),
+      hero_logo_position: (['top', 'center', 'bottom'] as const).find((p) => p === rawSettings.branding_hero_logo_position) ?? 'top',
+      gallery_password_logo_visible: this._parseBoolean(rawSettings.branding_gallery_password_logo_visible, true),
       watermark_position: rawSettings.branding_watermark_position || 'bottom-right',
       watermark_opacity: rawSettings.branding_watermark_opacity || 50,
       watermark_size: rawSettings.branding_watermark_size || 15,

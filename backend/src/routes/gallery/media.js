@@ -13,10 +13,13 @@ const { pipeStreamToResponse } = require('../../utils/streamResponse');
 
 const { errorResponse } = require('../../utils/routeHelpers');
 const { blockHiddenGallery } = require('../../utils/revealMode');
+const { isPhotoHiddenFromViewer } = require('../../utils/photoVisibility');
 const { ensureThumbnail, ensureHeroImage, ensurePreviewImage, withLocalCopy } = require('../../services/imageProcessor');
+const { heroQueryRedirect } = require('../../utils/heroAnchor');
 const { getStorage } = require('../../services/storage');
 const fs = require('fs');
 const { getStoragePath } = require('../../config/storage');
+const { safePathJoin } = require('../../utils/fileSecurityUtils');
 
 router.post('/:slug/photo/:photoId/view',
   verifyGalleryAccess,
@@ -30,7 +33,7 @@ router.post('/:slug/photo/:photoId/view',
       if (!photo) {
         return res.status(404).json({ error: 'Photo not found' });
       }
-      if (photo.visibility === 'hidden' && req.accessLevel !== 'client') {
+      if (isPhotoHiddenFromViewer(photo, req.accessLevel)) {
         return res.status(403).json({ error: 'Photo not available' });
       }
       // Admin preview (#981 review) is excluded from per-photo view analytics.
@@ -60,31 +63,19 @@ router.get('/:slug/photo/:photoId',
       }
 
       // Block guest access to hidden photos
-      if (photo.visibility === 'hidden' && req.accessLevel !== 'client') {
+      if (isPhotoHiddenFromViewer(photo, req.accessLevel)) {
         return res.status(403).json({ error: 'Photo not available' });
       }
 
       // Check if this is a video
       const isVideo = photo.media_type === 'video' || (photo.mime_type && photo.mime_type.startsWith('video/'));
 
-      // Check protection level - basic and standard protection allow direct JWT access
-      const protectionLevel = req.event.protection_level || 'standard';
-
-      // Videos are exempt (#1370). The secure-images endpoint this bounces to
-      // pipes every byte through sharp (secureImageService.processProtectedImage),
-      // which throws on an mp4 — so under enhanced/maximum a video was
-      // unservable by either route, and the lightbox showed a poster stuck at
-      // 0:00. Serving it here instead is not a new exposure: thumbnails of the
-      // same videos already come from this route at every protection level, and
-      // the guest still needs a valid gallery token to get here at all.
-      if (!isVideo && (protectionLevel === 'enhanced' || protectionLevel === 'maximum')) {
-        // For enhanced/maximum protection, redirect to secure endpoint
-        return res.status(302).json({
-          error: 'Secure access required',
-          secureEndpoint: `/api/secure-images/${req.params.slug}/generate-token`,
-          photoId: photoId
-        });
-      }
+      // Every protection level is served here. Enhanced/maximum used to answer
+      // a 302 JSON pointing at /api/secure-images/.../generate-token, which no
+      // shipped frontend code calls, so still images at those levels were a
+      // broken tile (#1370 exempted videos from the same bounce). The levels
+      // are client-side rendering modes; the guest still needs a valid gallery
+      // token to get here at all.
 
       // Resolve where to read the photo bytes from. For external/reference
       // photos the source is always a local mount path. For managed photos
@@ -243,7 +234,13 @@ router.get('/:slug/photo/:photoId',
                 return pipeStreamToResponse(wmStream, res, { context: `watermarked photo ${photo.id}` });
               }
             } else {
-              const watermarkFilePath = path.join(getStoragePath(), photo.watermark_path);
+              // The column is a storage-relative key written by
+              // watermarkService, but it is read straight from a row that a
+              // crafted .picpeak import (or a compromised DB) can poison, so
+              // a raw join would let a `../` value hand any file the process
+              // can read to a gallery guest. safePathJoin throws on escape and
+              // the catch below falls back to on-the-fly watermarking.
+              const watermarkFilePath = safePathJoin(getStoragePath(), photo.watermark_path);
               if (fs.existsSync(watermarkFilePath)) {
                 res.set({
                   'Content-Type': resolvePhotoContentType(photo),
@@ -255,7 +252,7 @@ router.get('/:slug/photo/:photoId',
               }
             }
           } catch (err) {
-            logger.warn(`Pre-generated watermark not found for photo ${photoId}, falling back to on-the-fly`);
+            logger.warn(`Pre-generated watermark unusable for photo ${photoId} (${err.message}), falling back to on-the-fly`);
           }
         }
 
@@ -318,7 +315,7 @@ router.get('/:slug/thumbnail/:photoId',
       }
 
       // Block guest access to hidden photos
-      if (photo.visibility === 'hidden' && req.accessLevel !== 'client') {
+      if (isPhotoHiddenFromViewer(photo, req.accessLevel)) {
         return res.status(403).json({ error: 'Photo not available' });
       }
 
@@ -434,7 +431,7 @@ router.get('/:slug/hero/:photoId',
       }
 
       // Block guest access to hidden photos
-      if (photo.visibility === 'hidden' && req.accessLevel !== 'client') {
+      if (isPhotoHiddenFromViewer(photo, req.accessLevel)) {
         return res.status(403).json({ error: 'Photo not available' });
       }
 
@@ -445,8 +442,20 @@ router.get('/:slug/hero/:photoId',
         return res.redirect(withPreview(req, `/api/gallery/${req.params.slug}/photo/${photoId}`));
       }
 
-      // Ensure hero image exists and is valid, regenerate if needed
-      const heroPath = await ensureHeroImage(photo);
+      // The rendition follows the event's focal point and the response below
+      // is cached for an hour under the URL it was requested at (issue 1737).
+      // A URL whose `fp` is not the current anchor — an open tab whose payload
+      // predates the admin moving it — is sent to the current crop's URL
+      // instead of being served bytes that would then sit in the cache under
+      // the wrong URL. A redirect is not cached.
+      const redirectQuery = heroQueryRedirect(req.query, req.event.hero_image_anchor);
+      if (redirectQuery !== null) {
+        return res.redirect(`/api/gallery/${req.params.slug}/hero/${photoId}${redirectQuery}`);
+      }
+
+      // Ensure hero image exists, is valid and was cut at the event's focal
+      // point (issue 1737); regenerate if needed.
+      const heroPath = await ensureHeroImage(photo, { anchor: req.event.hero_image_anchor });
 
       if (!heroPath) {
         // If hero generation fails, fall back to original photo
@@ -532,7 +541,7 @@ router.get('/:slug/preview/:photoId',
         return res.status(404).json({ error: 'Photo not found' });
       }
 
-      if (photo.visibility === 'hidden' && req.accessLevel !== 'client') {
+      if (isPhotoHiddenFromViewer(photo, req.accessLevel)) {
         return res.status(403).json({ error: 'Photo not available' });
       }
 

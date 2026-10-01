@@ -3,20 +3,32 @@ import { useExpiryRefresh } from '../../hooks/useExpiryRefresh';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 
 import { Button, Card, Loading } from '../../components/common';
-import { PasswordResetModal, PublishGalleryDialog, SendGalleryEmailDialog, DuplicateEventDialog, EventRenameDialog, AdminGuestsList } from '../../components/admin';
+import { PublishGalleryDialog, SendGalleryEmailDialog, DuplicateEventDialog, EventRenameDialog, AdminGuestsList } from '../../components/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
-import { isGalleryPublic, normalizeRequirePassword } from '../../utils/accessControl';
+import { isGalleryPublic } from '../../utils/accessControl';
+import { splitMediaCount } from '../../utils/mediaCounts';
 import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters } from '../../services/photos.service';
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
-import { cssTemplatesService, type EnabledTemplate } from '../../services/cssTemplates.service';
+import { cssTemplatesService } from '../../services/cssTemplates.service';
 import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
-import { safeParseDate } from './event-details/utils';
-import { INITIAL_EDIT_FORM, type EditFormState, type EventDetailsTab } from './event-details/types';
+import { safeParseDate, eventHasGuests } from './event-details/utils';
+import { INITIAL_EDIT_FORM, type EventDetailsTab, type ThemeDraft } from './event-details/types';
+import { eventFormValues, themeValue } from './event-details/draft/serverValues';
+import { useDraftObject, useEventDraft } from './event-details/draft/useEventDraft';
+import { buildEventPayload, runSave, validateDraft } from './event-details/draft/saveDraft';
+import { changesFor, isChangedElsewhere, type DraftPart } from './event-details/draft/eventDraft';
+import { useNavigationGuard } from '../../hooks/useNavigationGuard';
+import { usePermissions } from '../../contexts/PermissionsContext';
+import { api } from '../../config/api';
+import { EventSettingsContext } from './event-details/settings/EventSettingsContext';
+import { EventSettingsTab, useSectionLabel } from './event-details/settings/EventSettingsTab';
+import { sectionOf, type SectionId } from './event-details/settings/sectionFields';
+import { useExpertMode } from './event-details/settings/AdvancedArea';
+import { EventSaveBar } from './event-details/EventSaveBar';
 import { EventDetailsHeader } from './event-details/EventDetailsHeader';
 import { EventTabs } from './event-details/EventTabs';
 import { OverviewTab } from './event-details/OverviewTab';
@@ -24,19 +36,18 @@ import { PhotosTab } from './event-details/PhotosTab';
 import { CategoriesTab } from './event-details/CategoriesTab';
 import { DownloadLedgerTab } from '../../components/admin/DownloadLedgerTab';
 
-const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests', 'downloads'];
+const ALL_TAB_KEYS: EventDetailsTab[] = ['overview', 'photos', 'categories', 'guests', 'downloads', 'settings'];
 
 function isValidTab(value: string | null): value is EventDetailsTab {
   return value !== null && (ALL_TAB_KEYS as string[]).includes(value);
 }
 
-export const EventDetailsPage: React.FC = () => {
+const EventDetailsPageContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { format } = useLocalizedDate();
 
   // Validate ID parameter
   React.useEffect(() => {
@@ -45,24 +56,6 @@ export const EventDetailsPage: React.FC = () => {
     }
   }, [id, navigate]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<EditFormState>(INITIAL_EDIT_FORM);
-  const [feedbackSettings, setFeedbackSettings] = useState<FeedbackSettingsType>({
-    feedback_enabled: false,
-    allow_ratings: true,
-    allow_likes: true,
-    allow_comments: true,
-    allow_favorites: true,
-    allow_reactions: true,
-    allow_color_labels: false,
-    keybind_mode: 'colors',
-    require_name_email: false,
-    moderate_comments: true,
-    show_feedback_to_guests: true,
-    enable_rate_limiting: false,
-    rate_limit_window_minutes: 15,
-    rate_limit_max_requests: 10,
-  });
   // Read ?tab=… on mount, same shape as SettingsPage so both surfaces answer
   // deep links identically; an unknown value falls back to the default tab and
   // the sync effect below rewrites the URL to match (QA follow-up).
@@ -88,31 +81,10 @@ export const EventDetailsPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeConfig | null>(null);
-  const [currentPresetName, setCurrentPresetName] = useState<string>('default');
-  // Tracks whether the admin actually interacted with the theme picker
-  // during this edit session. Prevents the save handler from writing the
-  // initial display state back to `events.color_theme`, which silently
-  // overwrote branding inheritance on events with a NULL color_theme
-  // (API-created events — #550 follow-up).
-  const [themeChanged, setThemeChanged] = useState(false);
-  const [cssTemplates, setCssTemplates] = useState<EnabledTemplate[]>([]);
-
-  // Fetch CSS templates when component mounts or editing starts
-  useEffect(() => {
-    if (isEditing) {
-      cssTemplatesService.getEnabledTemplates()
-        .then(setCssTemplates)
-        .catch(err => console.error('Failed to load CSS templates:', err));
-    }
-  }, [isEditing]);
-
   // Photo filters state
   const [photoFilters, setPhotoFilters] = useState<PhotoFilterParams>({
     category_id: undefined as number | null | undefined,
@@ -157,22 +129,19 @@ export const EventDetailsPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // Guests is only rendered in guest identity mode, so a ?tab=guests deep link
-  // on any other event would show an empty content area. Snap back once the
-  // settings have actually loaded — not while they're still undefined.
+  // Guests exist in guest identity mode, and for uploader names (#1561) in
+  // any mode — the host must be able to remove or merge those too.
+  const showGuestsTab = eventHasGuests(event, eventFeedbackSettings);
+
+  // Guests is only rendered when the event can have any, so a ?tab=guests
+  // deep link on any other event would show an empty content area. Snap back
+  // once both have actually loaded — not while they're still undefined.
   useEffect(() => {
-    if (feedbackSettingsLoading) return;
-    if (activeTab === 'guests' && eventFeedbackSettings?.identity_mode !== 'guest') {
+    if (feedbackSettingsLoading || eventLoading) return;
+    if (activeTab === 'guests' && !showGuestsTab) {
       setActiveTab('overview');
     }
-  }, [feedbackSettingsLoading, eventFeedbackSettings?.identity_mode, activeTab]);
-
-  // Update local feedback settings when fetched from server
-  useEffect(() => {
-    if (eventFeedbackSettings) {
-      setFeedbackSettings(eventFeedbackSettings);
-    }
-  }, [eventFeedbackSettings]);
+  }, [feedbackSettingsLoading, eventLoading, showGuestsTab, activeTab]);
 
   // Statistics are now fetched with the event details from the admin API
 
@@ -196,7 +165,7 @@ export const EventDetailsPage: React.FC = () => {
   const { data: photos = [], isLoading: photosLoading, isError: photosError, refetch: refetchPhotos } = useQuery({
     queryKey: ['admin-event-photos', id, combinedPhotoFilters],
     queryFn: () => photosService.getEventPhotos(parseInt(id!), combinedPhotoFilters),
-    enabled: !!id && (activeTab === 'photos' || isEditing),
+    enabled: !!id && activeTab === 'photos',
     refetchInterval: (query) => {
       const data = query.state.data as AdminPhoto[] | undefined;
       if (!Array.isArray(data)) return false;
@@ -207,6 +176,20 @@ export const EventDetailsPage: React.FC = () => {
     },
   });
 
+  // The hero picker offers every photo, not the Photos tab's filtered view (spec P2).
+  const { data: heroPhotos = [] } = useQuery({
+    queryKey: ['admin-event-photos', id, 'hero-picker'],
+    queryFn: () => photosService.getEventPhotos(parseInt(id!), {}),
+    enabled: !!id && activeTab === 'settings',
+  });
+
+  // CSS templates for the Appearance section, loaded with the Settings tab.
+  const { data: cssTemplates = [] } = useQuery({
+    queryKey: ['css-templates-enabled'],
+    queryFn: () => cssTemplatesService.getEnabledTemplates(),
+    enabled: activeTab === 'settings',
+  });
+
   // Fetch filter summary for feedback filters
   const { data: filterSummary } = useQuery({
     queryKey: ['admin-event-filter-summary', id],
@@ -214,19 +197,13 @@ export const EventDetailsPage: React.FC = () => {
     enabled: !!id && activeTab === 'photos',
   });
 
-  const mediaTypes = useMemo(() => {
-    const types = new Set<'photo' | 'video'>();
-    photos.forEach((p) => {
-      const mediaType = (p.media_type as 'photo' | 'video' | undefined)
-        || ((p.mime_type && String(p.mime_type).startsWith('video/')) || p.type === 'video' ? 'video' : 'photo');
-      if (mediaType === 'video' || mediaType === 'photo') {
-        types.add(mediaType);
-      }
-    });
-    return types;
-  }, [photos]);
-
-  const showMediaFilter = mediaTypes.has('photo') && mediaTypes.has('video');
+  // The photo / video select is offered when the event holds both. Read from
+  // the event's counts, not from the rows on screen: those are what the select
+  // filters, so an answer derived from them would hide the select the moment a
+  // type is chosen. (The old derivation also never matched: the API reports a
+  // photo as 'image', and it looked for 'photo'.)
+  const eventMedia = splitMediaCount(event?.photo_count, event?.video_count);
+  const showMediaFilter = eventMedia.photos > 0 && eventMedia.videos > 0;
 
   useEffect(() => {
     if (!showMediaFilter && photoFilters.media_type) {
@@ -235,6 +212,13 @@ export const EventDetailsPage: React.FC = () => {
   }, [showMediaFilter, photoFilters.media_type]);
 
   const { data: publicSettings } = usePublicSettings();
+  // Whether a copy of the gallery password is stored: then publish and send
+  // leave it to the server (P4). Same key as the share card and Access.
+  const { data: passwordStatus } = useQuery({
+    queryKey: ['admin-event-password-status', event?.id],
+    queryFn: () => eventsService.getGalleryPasswordStatus(event!.id),
+    enabled: !!event,
+  });
   const phoneFieldEnabled = publicSettings?.event_phone_field_enabled === true;
 
   // Fetch categories for the event
@@ -247,37 +231,110 @@ export const EventDetailsPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => eventsService.updateEvent(parseInt(id!), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
-      toast.success(t('toast.eventUpdated'));
-      setIsEditing(false);
-    },
-    onError: (error: any) => {
-      if (error.response?.data?.errors) {
-        const errorMessage = error.response.data.errors[0].msg + ' (field: ' + error.response.data.errors[0].path + ')';
-        toast.error(errorMessage);
-      } else {
-        toast.error(error.response?.data?.error || t('toast.saveError'));
+  // The Settings tab's draft (spec 5.2): only what the user changed.
+  const draft = useEventDraft();
+  const serverForm = useMemo(() => (event ? eventFormValues(event) : INITIAL_EDIT_FORM), [event]);
+  const [editForm, setEditForm] = useDraftObject(draft, 'event', serverForm);
+  const serverFeedback = useMemo(() => (eventFeedbackSettings ?? {}) as FeedbackSettingsType, [eventFeedbackSettings]);
+  const [feedbackSettings, setFeedbackSettings] = useDraftObject(draft, 'feedback', serverFeedback);
+  const serverTheme = useMemo<ThemeDraft>(
+    () => (event
+      ? themeValue(event, publicSettings?.theme_config as ThemeConfig | undefined)
+      : { config: GALLERY_THEME_PRESETS.default.config, preset: 'default' }),
+    [event, publicSettings?.theme_config],
+  );
+  const theme = (draft.state['event.__theme']?.value as ThemeDraft | undefined) ?? serverTheme;
+  const { update: updateDraft } = draft;
+  const setTheme = useCallback(
+    (fn: (current: ThemeDraft) => ThemeDraft) => updateDraft('event', '__theme', (cur) => fn(cur as ThemeDraft), serverTheme),
+    [updateDraft, serverTheme],
+  );
+  const [expert, setExpert] = useExpertMode();
+  const { hasPermission } = usePermissions();
+  // Archived, or no events.edit: Settings is read-only (spec 5.2). A draft
+  // made before the event got archived (from the Overview) is dropped, or the
+  // guard would ask about changes the hidden bar can no longer save.
+  const settingsLocked = !!event && (Boolean(event.is_archived) || !hasPermission('events.edit'));
+  // Stops guarding in the same render the page locks, not one render later
+  // when the effect below has discarded the draft.
+  const { allowNextNavigation } = useNavigationGuard(draft.isDirty && !settingsLocked);
+  const { discard: discardDraft, isDirty: draftDirty } = draft;
+  useEffect(() => {
+    if (settingsLocked && draftDirty) discardDraft();
+  }, [settingsLocked, draftDirty, discardDraft]);
+  // Read-only setters: a disabled fieldset stops form controls, not a
+  // clickable image like the focal point picker, so nothing may write.
+  const noop = useCallback(() => undefined, []);
+  const lockedDraft = useMemo(() => ({ ...draft, set: noop, update: noop }), [draft, noop]);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const section = (searchParams.get('section') as SectionId | null) ?? 'details';
+  const setSection = (sectionId: SectionId) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('section', sectionId);
+    setSearchParams(next, { replace: true });
+  };
+  const sectionLabel = useSectionLabel();
+  const changedElsewhereSections = useMemo(() => {
+    const server: Record<string, unknown> = { 'event.__theme': serverTheme };
+    for (const [k, v] of Object.entries(serverForm)) server[`event.${k}`] = v;
+    for (const [k, v] of Object.entries(serverFeedback)) server[`feedback.${k}`] = v;
+    const ids = new Set<SectionId>();
+    for (const key of Object.keys(draft.state)) {
+      if (key in server && isChangedElsewhere(draft.state, key, server[key])) {
+        const sectionId = sectionOf(key);
+        if (sectionId) ids.add(sectionId);
       }
-    },
-  });
+    }
+    return [...ids].map(sectionLabel);
+  }, [draft.state, serverForm, serverFeedback, serverTheme, sectionLabel]);
+
+  const PART_LABEL: Record<DraftPart, [string, string]> = {
+    event: ['events.saveBar.partEvent', 'event details'],
+    feedback: ['events.saveBar.partFeedback', 'guest feedback'],
+    quota: ['events.saveBar.partQuota', 'download allowance'],
+    resolution: ['events.saveBar.partResolution', 'download resolution'],
+  };
+
+  // Event PUT, then feedback, allowance and resolution, each only when changed.
+  const handleSave = async () => {
+    if (!event) return;
+    const changed = new Set(Object.keys(changesFor(draft.state, 'event')));
+    const invalid = validateDraft(changed, editForm, serverForm, { hasClientPassword: event.has_client_password === true });
+    if (invalid) {
+      toast.error(t(invalid.key, invalid.fallback));
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    const result = await runSave(draft.state, () => buildEventPayload(changed, editForm, theme, serverTheme), {
+      updateEvent: (payload) => eventsService.updateEvent(event.id, payload),
+      updateFeedback: (payload) => feedbackService.updateEventFeedbackSettings(String(event.id), payload),
+      updateQuota: (payload) => api.put(`/admin/events/${event.id}/download-quota`, payload),
+      updateResolution: (payload) => api.patch(`/admin/events/${event.id}/download-resolutions`, payload),
+    });
+    setIsSaving(false);
+    draft.dropParts(result.saved);
+    if (result.saved.includes('event')) {
+      queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+      // A saved password changes what is stored (Settings > Access, publish).
+      queryClient.invalidateQueries({ queryKey: ['admin-event-password-status', event.id] });
+    }
+    if (result.saved.includes('feedback')) queryClient.invalidateQueries({ queryKey: ['admin-event-feedback-settings', id] });
+    if (result.saved.includes('quota')) queryClient.invalidateQueries({ queryKey: ['admin-download-quota', event.id] });
+    if (result.saved.includes('resolution')) {
+      queryClient.invalidateQueries({ queryKey: ['event-download-resolutions', event.id] });
+      refetchEvent();
+    }
+    if (result.failed) {
+      const [key, fallback] = PART_LABEL[result.failed.part];
+      setSaveError(t('events.saveBar.failed', 'Not saved: {{parts}}. Your other changes were saved.', { parts: t(key, fallback) }));
+    } else {
+      toast.success(t('toast.eventUpdated'));
+    }
+  };
 
   // Archive mutation
-  // Reveal now (#838)
-  const revealMutation = useMutation({
-    mutationFn: () => eventsService.revealEvent(Number(id)),
-    onSuccess: () => {
-      toast.success(t('events.revealedToast', 'Gallery revealed — guests can see the photos now'));
-      refetchEvent();
-    },
-    onError: () => {
-      toast.error(t('events.revealError', 'Failed to reveal the gallery'));
-    },
-  });
-
   const archiveMutation = useMutation({
     mutationFn: () => eventsService.archiveEvent(parseInt(id!)),
     onSuccess: () => {
@@ -353,6 +410,7 @@ export const EventDetailsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       toast.success(t('events.duplicateDialog.successToast', 'Gallery duplicated.'));
       setShowDuplicateDialog(false);
+      allowNextNavigation();
       navigate(`/admin/events/${result.id}`);
     },
     onError: (err: any) => {
@@ -388,7 +446,7 @@ export const EventDetailsPage: React.FC = () => {
   if (eventError || !event) {
     return (
       <Card padding="lg">
-        <p className="text-neutral-900 dark:text-neutral-100">{t('events.notFound', 'Event not found')}</p>
+        <p className="text-heading">{t('events.notFound', 'Event not found')}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/events')}>
           {t('events.backToEvents')}
         </Button>
@@ -406,271 +464,12 @@ export const EventDetailsPage: React.FC = () => {
     : null;
   const isExpiring = !isExpired && daysUntilExpiration !== null && daysUntilExpiration > 0 && daysUntilExpiration <= 7;
 
-  const handleStartEdit = () => {
-    setEditForm({
-      welcome_message: event.welcome_message || '',
-      color_theme: event.color_theme || '',
-      css_template_id: event.css_template_id || null,
-      expires_at: expiresAtDate ? format(expiresAtDate, 'yyyy-MM-dd') : '',
-      allow_user_uploads: event.allow_user_uploads || false,
-      reveal_mode: event.reveal_mode || false,
-      // datetime-local wants local "YYYY-MM-DDTHH:mm"
-      reveal_at: event.reveal_at
-        ? (() => { const d = new Date(event.reveal_at); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })()
-        : '',
-      upload_category_id: event.upload_category_id || null,
-      hero_photo_id: event.hero_photo_id || null,
-      customer_name: event.customer_name || '',
-      customer_email: event.customer_email || '',
-      customer_phone: event.customer_phone || '',
-      source_mode: event.source_mode === 'reference' ? 'reference' : 'managed',
-      external_path: event.external_path || '',
-      external_watch: Boolean(event.external_watch),
-      require_password: normalizeRequirePassword(event.require_password),
-      new_password: '',
-      confirm_new_password: '',
-      // Load protection settings from event
-      protection_level: event.protection_level || 'standard',
-      disable_right_click: event.disable_right_click ?? true,
-      allow_downloads: event.allow_downloads ?? true,
-      watermark_downloads: event.watermark_downloads ?? false,
-      enable_devtools_protection: event.enable_devtools_protection ?? true,
-      use_canvas_rendering: event.use_canvas_rendering ?? false,
-      // Load hero logo settings from event. Preserve null = "inherit global"
-      // (#756) — don't collapse it to true, or saving would snapshot an override.
-      hero_logo_visible: event.hero_logo_visible ?? null,
-      // Preserve null = "inherit global size" (#756) — don't collapse to medium.
-      hero_logo_size: event.hero_logo_size ?? null,
-      hero_logo_position: event.hero_logo_position || 'top',
-      // #894: null = default (show); only false hides the password-page logo.
-      // Boolean() folds SQLite's 0/1 into real booleans so the edit form's
-      // strict `=== false` check reads a persisted hide correctly.
-      login_logo_visible: event.login_logo_visible == null ? null : Boolean(event.login_logo_visible),
-      // Hero image anchor position (#162)
-      hero_image_anchor: event.hero_image_anchor || 'center',
-      // Photo cap
-      photo_cap: event.photo_cap || 0,
-      // Default photo sort
-      default_photo_sort: event.default_photo_sort || 'upload_date_desc',
-      // Per-event promotional override (#440)
-      promo_mode: ((event as { promo_mode?: 'inherit' | 'custom' | 'off' }).promo_mode) || 'inherit',
-      info_mode: ((event as { info_mode?: 'inherit' | 'custom' | 'off' }).info_mode) || 'inherit',
-      promo_markdown: (event as { promo_markdown?: string }).promo_markdown || '',
-      info_markdown: (event as { info_markdown?: string }).info_markdown || '',
-      // Customer accounts (#354). The backend returns
-      // `customer_accounts: [{ id, email, display_name, ... }]`; map to
-      // the picker's shape.
-      customer_accounts: ((event as { customer_accounts?: Array<{ id: number; email: string; display_name?: string | null }> }).customer_accounts || [])
-        .map((c) => ({ id: c.id, email: c.email, displayName: c.display_name ?? null })),
-      // Per-event social-share opt-in (#474). Coerce explicitly so
-      // SQLite's 0/1 and Postgres's true/false both render the switch
-      // in the right state on first paint.
-      og_image_share_enabled: event.og_image_share_enabled === true,
-    });
-
-    setShowNewPassword(false);
-
-    // Set feedback settings if available
-    if (eventFeedbackSettings) {
-      setFeedbackSettings(eventFeedbackSettings);
-    }
-
-    // Parse theme configuration
-    if (event.color_theme) {
-      try {
-        if (event.color_theme.startsWith('{')) {
-          const parsedTheme = JSON.parse(event.color_theme);
-          setCurrentTheme(parsedTheme);
-          // Try to find matching preset
-          const matchingPreset = Object.entries(GALLERY_THEME_PRESETS).find(
-            ([_, preset]) => JSON.stringify(preset.config) === JSON.stringify(parsedTheme)
-          );
-          setCurrentPresetName(matchingPreset ? matchingPreset[0] : 'custom');
-        } else {
-          // Legacy theme name
-          const preset = GALLERY_THEME_PRESETS[event.color_theme];
-          if (preset) {
-            setCurrentTheme(preset.config);
-            setCurrentPresetName(event.color_theme);
-          }
-        }
-      } catch {
-        setCurrentTheme(GALLERY_THEME_PRESETS.default.config);
-        setCurrentPresetName('default');
-      }
-    } else {
-      // No color_theme stored — the gallery renders with the site
-      // branding theme as a fallback. Mirror that here so the picker
-      // shows the same palette the admin sees on the gallery, rather
-      // than the hardcoded Classic Grid preset that has nothing to do
-      // with their branding (#550 follow-up). currentPresetName=custom
-      // because the inherited config isn't a named preset; combined
-      // with themeChanged=false below, saving without touching the
-      // picker leaves color_theme NULL and preserves inheritance.
-      const branding = publicSettings?.theme_config as ThemeConfig | undefined;
-      setCurrentTheme(branding ?? GALLERY_THEME_PRESETS.default.config);
-      setCurrentPresetName(branding ? 'custom' : 'default');
-    }
-    setThemeChanged(false);
-
-    setIsEditing(true);
-  };
-
-  const handleSaveEdit = async () => {
-    // Prepare color_theme - if we have a custom theme, serialize it
-    let themeToSave = editForm.color_theme;
-    if (currentTheme && currentPresetName === 'custom') {
-      themeToSave = JSON.stringify(currentTheme);
-    } else if (currentPresetName && currentPresetName !== 'custom') {
-      // Use preset name for non-custom themes
-      themeToSave = currentPresetName;
-    }
-
-    const externalPathToSave = editForm.external_path?.trim() || '';
-
-    const currentRequirePassword = normalizeRequirePassword(event.require_password);
-    const requirePasswordChanged = editForm.require_password !== currentRequirePassword;
-
-    if (editForm.require_password) {
-      if (requirePasswordChanged && !editForm.new_password) {
-        toast.error(t('events.newPasswordRequired', 'Please set a password before enabling protection.'));
-        return;
-      }
-      if (editForm.new_password) {
-        if (editForm.new_password.length < 6) {
-          toast.error(t('validation.passwordMinLength'));
-          return;
-        }
-        if (editForm.new_password !== editForm.confirm_new_password) {
-          toast.error(t('validation.passwordsDoNotMatch'));
-          return;
-        }
-      }
-    }
-
-    if (editForm.source_mode === 'reference' && !externalPathToSave) {
-      toast.error(t('events.externalFolderRequired', 'Please select an external folder before saving.'));
-      return;
-    }
-
-    // No expiration-required validation on edit (#426). The global
-    // `event_require_expiration` setting only enforces a default at
-    // create-time — once an event exists, an admin can clear the
-    // expiration via this form. The matching backend gate was dropped
-    // in adminEvents.js.
-
-    // Clean up the data - remove undefined values
-    const updateData: any = {
-      expires_at: editForm.expires_at || null,
-      allow_user_uploads: editForm.allow_user_uploads,
-      reveal_mode: editForm.allow_user_uploads && editForm.reveal_mode,
-      reveal_at: editForm.allow_user_uploads && editForm.reveal_mode && editForm.reveal_at
-        ? new Date(editForm.reveal_at).toISOString()
-        : null,
-      require_password: editForm.require_password,
-      css_template_id: editForm.css_template_id,
-      // Download protection settings
-      protection_level: editForm.protection_level,
-      disable_right_click: editForm.disable_right_click,
-      allow_downloads: editForm.allow_downloads,
-      watermark_downloads: editForm.watermark_downloads,
-      enable_devtools_protection: editForm.enable_devtools_protection,
-      use_canvas_rendering: editForm.use_canvas_rendering,
-      // Hero logo settings
-      hero_logo_visible: editForm.hero_logo_visible,
-      hero_logo_size: editForm.hero_logo_size,
-      hero_logo_position: editForm.hero_logo_position,
-      login_logo_visible: editForm.login_logo_visible,
-      // Hero image anchor position (#162)
-      hero_image_anchor: editForm.hero_image_anchor,
-      // Photo cap
-      photo_cap: editForm.photo_cap > 0 ? editForm.photo_cap : null,
-      // Default photo sort
-      default_photo_sort: editForm.default_photo_sort,
-      // Header style settings (decoupled from layout, #158)
-      header_style: currentTheme?.headerStyle || 'standard',
-      hero_divider_style: currentTheme?.heroDividerStyle || 'wave',
-      // Per-event promotional override (#440). Backend nulls
-      // promo_markdown automatically when mode != 'custom'.
-      promo_mode: editForm.promo_mode,
-      promo_markdown: editForm.promo_mode === 'custom' ? editForm.promo_markdown : null,
-      info_mode: editForm.info_mode,
-      info_markdown: editForm.info_mode === 'custom' ? editForm.info_markdown : null,
-      // Customer accounts (#354) — flat array of ids. Backend diffs
-      // against existing assignments in one transaction.
-      customer_account_ids: editForm.customer_accounts.map((c) => c.id),
-    };
-
-    // Only include fields that have defined values
-    if (editForm.welcome_message !== undefined && editForm.welcome_message !== null) {
-      updateData.welcome_message = editForm.welcome_message;
-    }
-    // Only persist color_theme when the admin actually interacted with
-    // the picker. Writing the initial display state back to the row
-    // silently overwrote NULL (= "inherit branding") with the picker's
-    // default preset on any save (#550 follow-up).
-    if (themeChanged && themeToSave) {
-      updateData.color_theme = themeToSave;
-    }
-    if (editForm.upload_category_id !== undefined) {
-      updateData.upload_category_id = editForm.upload_category_id;
-    }
-    if (editForm.hero_photo_id !== undefined) {
-      updateData.hero_photo_id = editForm.hero_photo_id;
-    }
-    // Per-event hero-photo OG share opt-in (#474). Always send the
-    // current state — the backend writes through formatBoolean either
-    // way, so an explicit save can flip the value back to false.
-    updateData.og_image_share_enabled = editForm.og_image_share_enabled;
-    updateData.source_mode = editForm.source_mode;
-    updateData.external_path = editForm.source_mode === 'reference'
-      ? externalPathToSave
+  // Archived events and users without events.edit see Settings read-only (spec 5.2).
+  const settingsLock = event.is_archived
+    ? t('events.settings.lockedArchived', 'This event is archived. Its settings are read-only.')
+    : !hasPermission('events.edit')
+      ? t('events.settings.lockedPermission', 'Locked: needs the {{permission}} permission', { permission: 'events.edit' })
       : null;
-    // Always sent, like og_image_share_enabled: the backend writes through
-    // formatBoolean, so a save can switch the watcher off again.
-    updateData.external_watch = editForm.source_mode === 'reference' && editForm.external_watch;
-    if (editForm.customer_name !== undefined && editForm.customer_name !== null) {
-      updateData.customer_name = editForm.customer_name;
-    }
-    if (editForm.customer_email !== undefined && editForm.customer_email !== null && editForm.customer_email.trim()) {
-      updateData.customer_email = editForm.customer_email;
-    }
-    if (editForm.customer_phone !== undefined) {
-      // Send empty string as null so an admin can clear the field. Backend
-      // strips this entirely if the global phone-field toggle is off.
-      updateData.customer_phone = editForm.customer_phone.trim() || null;
-    }
-
-    if (editForm.new_password) {
-      updateData.password = editForm.new_password;
-    }
-
-    // Remove any keys with undefined values
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined) {
-        delete updateData[key];
-      }
-    });
-
-    // Event update with validation
-
-    // Update event details
-    updateMutation.mutate(updateData);
-
-    // Update feedback settings separately. This is its own request, so a
-    // failure here is NOT covered by updateMutation's onError (#1030) — the
-    // old bare catch left the admin looking at "Event updated successfully"
-    // while the Guest Feedback toggle silently never persisted.
-    try {
-      await feedbackService.updateEventFeedbackSettings(id!, feedbackSettings);
-      queryClient.invalidateQueries({ queryKey: ['admin-event-feedback-settings', id] });
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.error
-        || t('feedback.settingsUpdateError', 'Failed to update settings')
-      );
-    }
-  };
 
   return (
     <div>
@@ -678,12 +477,7 @@ export const EventDetailsPage: React.FC = () => {
       <EventDetailsHeader
         event={event}
         id={id}
-        isEditing={isEditing}
-        setIsEditing={setIsEditing}
-        handleStartEdit={handleStartEdit}
-        handleSaveEdit={handleSaveEdit}
-        isSaving={updateMutation.isPending}
-        feedbackSettings={feedbackSettings}
+        feedbackSettings={eventFeedbackSettings}
         setShowRenameDialog={setShowRenameDialog}
         setShowPublishDialog={setShowPublishDialog}
         isPublishing={publishMutation.isPending}
@@ -707,21 +501,19 @@ export const EventDetailsPage: React.FC = () => {
           event={event}
           id={id}
           passwordVersion={eventUpdatedAt}
-          isEditing={isEditing}
-          editForm={editForm}
-          setEditForm={setEditForm}
-          showNewPassword={showNewPassword}
-          setShowNewPassword={setShowNewPassword}
-          feedbackSettings={feedbackSettings}
-          setFeedbackSettings={setFeedbackSettings}
+          feedbackSettings={eventFeedbackSettings}
           categories={categories}
-          photos={photos}
           phoneFieldEnabled={phoneFieldEnabled}
           daysUntilExpiration={daysUntilExpiration}
-          onRevealNow={() => revealMutation.mutate()}
           refetchEvent={refetchEvent}
           setActiveTab={setActiveTab}
-          setShowPasswordReset={setShowPasswordReset}
+          openSettings={(sectionId) => {
+            const next = new URLSearchParams(searchParams);
+            next.set('tab', 'settings');
+            next.set('section', sectionId);
+            setSearchParams(next);
+            setActiveTab('settings');
+          }}
           setShowPublishDialog={setShowPublishDialog}
           setShowDuplicateDialog={setShowDuplicateDialog}
           onSendGalleryEmail={() => setShowSendEmailDialog(true)}
@@ -730,12 +522,6 @@ export const EventDetailsPage: React.FC = () => {
           isArchiving={archiveMutation.isPending}
           isPublishing={publishMutation.isPending}
           isDuplicating={duplicateMutation.isPending}
-          currentTheme={currentTheme}
-          setCurrentTheme={setCurrentTheme}
-          currentPresetName={currentPresetName}
-          setCurrentPresetName={setCurrentPresetName}
-          setThemeChanged={setThemeChanged}
-          cssTemplates={cssTemplates}
         />
       )}
 
@@ -763,8 +549,8 @@ export const EventDetailsPage: React.FC = () => {
         <CategoriesTab id={id} />
       )}
 
-      {/* Guests Tab (only visible when identity_mode === 'guest') */}
-      {activeTab === 'guests' && eventFeedbackSettings?.identity_mode === 'guest' && (
+      {/* Guests Tab (guest identity mode, or uploader names on) */}
+      {activeTab === 'guests' && showGuestsTab && (
         <AdminGuestsList eventId={parseInt(id!)} eventName={event.event_name} />
       )}
 
@@ -773,19 +559,33 @@ export const EventDetailsPage: React.FC = () => {
         <DownloadLedgerTab eventId={parseInt(id!)} />
       )}
 
-      {/* Password Reset Modal */}
-      {showPasswordReset && (
-        <PasswordResetModal
-          eventName={event.event_name}
-          eventDate={event.event_date ?? undefined}
-          eventType={event.event_type}
-          onConfirm={async (sendEmail, password) => {
-            const result = await eventsService.resetPassword(event.id, sendEmail, password);
-            // refetch so the share card drops a revealed password (#1271)
-            queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
-            return result;
-          }}
-          onClose={() => setShowPasswordReset(false)}
+      {/* Settings tab (spec 5.1): one section at a time, saved by the bar */}
+      {activeTab === 'settings' && (
+        <EventSettingsContext.Provider value={{
+          event,
+          editForm,
+          setEditForm: settingsLock === null ? setEditForm : noop,
+          feedbackSettings,
+          setFeedbackSettings: settingsLock === null ? setFeedbackSettings : noop,
+          savedFeedbackSettings: serverFeedback,
+          theme,
+          setTheme: settingsLock === null ? setTheme : noop,
+          draft: settingsLock === null ? draft : lockedDraft,
+          readOnly: settingsLock !== null, lockReason: settingsLock, expert, setExpert, refetchEvent,
+          categories, phoneFieldEnabled, heroPhotos, cssTemplates,
+        }}>
+          <EventSettingsTab section={section} onSection={setSection} />
+        </EventSettingsContext.Provider>
+      )}
+
+      {settingsLock === null && (
+        <EventSaveBar
+          count={draft.count}
+          isSaving={isSaving}
+          error={saveError}
+          changedElsewhere={changedElsewhereSections}
+          onSave={handleSave}
+          onDiscard={() => { draft.discard(); setSaveError(null); }}
         />
       )}
 
@@ -812,6 +612,7 @@ export const EventDetailsPage: React.FC = () => {
           gallery_created email carries the real plaintext, not the sentinel. */}
       {showPublishDialog && (
         <PublishGalleryDialog
+          storedPassword={passwordStatus?.password_stored === true}
           eventName={event.event_name}
           requirePassword={!isGalleryPublic(event.require_password)}
           customerEmail={event.customer_email}
@@ -831,6 +632,7 @@ export const EventDetailsPage: React.FC = () => {
           never collected one. */}
       {showSendEmailDialog && (
         <SendGalleryEmailDialog
+          storedPassword={passwordStatus?.password_stored === true}
           eventName={event.event_name}
           recipient={event.customer_email}
           // Only the inline-email path carries the password. With no
@@ -864,6 +666,20 @@ export const EventDetailsPage: React.FC = () => {
 
     </div>
   );
+};
+
+EventDetailsPageContent.displayName = 'EventDetailsPageContent';
+
+/**
+ * One page instance per event. React Router keeps the element mounted from
+ * /admin/events/7 to /admin/events/8, and the Settings draft lives in page
+ * state, so without the key a draft made on one event would carry over to
+ * the next, including through the post-duplicate redirect the guard lets
+ * through.
+ */
+export const EventDetailsPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <EventDetailsPageContent key={id} />;
 };
 
 EventDetailsPage.displayName = 'EventDetailsPage';

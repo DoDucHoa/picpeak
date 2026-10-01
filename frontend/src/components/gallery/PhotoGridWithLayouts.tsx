@@ -229,6 +229,16 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
     setSelectedPhotos(new Set(photos.map(p => p.id)));
   };
 
+  // Issue 1716: a layout's own "select all" over the photos it currently
+  // shows (a search may hide some), in one write.
+  const selectMany = (photoIds: number[]) => {
+    if (!isSelectionMode) {
+      if (parentToggleSelectionMode) parentToggleSelectionMode();
+      else setLocalSelectionMode(true);
+    }
+    setSelectedPhotos(new Set([...selectedPhotos, ...photoIds]));
+  };
+
   const deselectAll = () => {
     setSelectedPhotos(new Set());
   };
@@ -246,10 +256,9 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
 
     try {
       await galleryService.downloadSelectedPhotos(slug, ids);
-      // Charge the allowance the same way the single-photo button does. The
-      // server writes the ledger after the response has been flushed, so a
-      // refetch here would read the pre-download numbers and leave the badge
-      // and the "Already downloaded" marks stale until a manual reload.
+      // Re-read the allowance the same way the single-photo button does. The
+      // server claims the slots before it streams, so a refetch reads the new
+      // numbers for the badge and the "Already downloaded" marks.
       refreshDownloadQuota(slug);
       analyticsService.trackGalleryEvent('bulk_download', { gallery: slug, photo_count: ids.length });
       // Only a download that actually happened ends the selection. This used
@@ -315,6 +324,9 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
     onFeedbackChange: onFeedbackChange,
     onDownload: handleDownload,
     heroPhotoOverride,
+    // Issue 1709: the Story layout reads its grid mode from the theme's
+    // gallerySettings, defaulting to the original fixed tiles.
+    storyGridMode: theme.gallerySettings?.storyGridMode,
     selectedPhotos,
     allowDownloads,
     protectionLevel,
@@ -324,6 +336,11 @@ export const PhotoGridWithLayouts: React.FC<PhotoGridWithLayoutsProps> = ({
     onPhotoSelect: handlePhotoSelect,
     onSelectAll: selectAll,
     onDeselectAll: deselectAll,
+    // Issue 1716: the Story layout renders its own selection controls and
+    // must drive the same mode, selection and download path as this toolbar.
+    onToggleSelectionMode: toggleSelectionMode,
+    onSelectMany: selectMany,
+    onDownloadSelected: handleDownloadSelected,
     eventName,
     eventLogo,
     eventDate,

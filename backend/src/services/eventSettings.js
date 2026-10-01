@@ -21,7 +21,6 @@ const getEventFieldRequirements = async () => {
       .whereIn('setting_key', [
         'event_require_customer_name',
         'event_require_customer_email',
-        'event_require_admin_email',
         'event_require_event_date',
         'event_require_expiration'
       ])
@@ -30,7 +29,6 @@ const getEventFieldRequirements = async () => {
     const requirements = {
       require_customer_name: true,
       require_customer_email: true,
-      require_admin_email: true,
       require_event_date: true,
       require_expiration: true
     };
@@ -46,7 +44,6 @@ const getEventFieldRequirements = async () => {
       }
       if (s.setting_key === 'event_require_customer_name') requirements.require_customer_name = value;
       if (s.setting_key === 'event_require_customer_email') requirements.require_customer_email = value;
-      if (s.setting_key === 'event_require_admin_email') requirements.require_admin_email = value;
       if (s.setting_key === 'event_require_event_date') requirements.require_event_date = value;
       if (s.setting_key === 'event_require_expiration') requirements.require_expiration = value;
     });
@@ -57,7 +54,6 @@ const getEventFieldRequirements = async () => {
     return {
       require_customer_name: true,
       require_customer_email: true,
-      require_admin_email: true,
       require_event_date: true,
       require_expiration: true
     };
@@ -110,6 +106,24 @@ const readBooleanSetting = async (key) => {
 // (#317 — admin disabled it globally but new events still got it ON).
 const getDownloadProtectionDefaults = async () => {
   return { enable_devtools_protection: await readBooleanSetting('enable_devtools_protection') };
+};
+
+/**
+ * The three guest protections, one switch each in Image security and live
+ * for every gallery (P1 of the event form redesign). The event columns of
+ * the same names are still written on create but decide nothing.
+ */
+const getGalleryProtectionSettings = async () => {
+  const [rightClick, devtools, canvas] = await Promise.all([
+    readBooleanSetting('disable_right_click'),
+    readBooleanSetting('enable_devtools_protection'),
+    readBooleanSetting('enable_canvas_rendering'),
+  ]);
+  return {
+    disable_right_click: rightClick ?? true,
+    enable_devtools_protection: devtools ?? true,
+    use_canvas_rendering: canvas ?? false,
+  };
 };
 
 /**
@@ -254,53 +268,31 @@ const resolveImageSecurityColumns = (body = {}, defaults = {}) => {
   return columns;
 };
 
-// Helper to get branding defaults for new events (Feature 7: Branding Inheritance).
-//
-// Note: `branding_logo_position` (header bar — left/center/right) is a
-// different concept from `hero_logo_position` (hero block — top/center/
-// bottom) and must NOT be mapped here. A previous version copied the
-// branding value over, which wrote 'left'/'right' into per-event
-// hero_logo_position columns and broke any subsequent PUT validation
-// (#357). Migration 084 heals existing rows.
-const getBrandingDefaults = async () => {
-  try {
-    const settings = await db('app_settings')
-      .whereIn('setting_key', [
-        'branding_logo_display_hero',
-        'branding_logo_size'
-      ])
-      .select('setting_key', 'setting_value');
+const HERO_LOGO_POSITIONS = ['top', 'center', 'bottom'];
 
-    const defaults = {
-      hero_logo_visible: true,
-      hero_logo_size: 'medium',
-      hero_logo_position: 'top'
-    };
-
-    settings.forEach(s => {
-      let value = s.setting_value;
-      if (typeof value === 'string') {
-        try { value = JSON.parse(value); } catch (e) { /* use as-is */ }
-      }
-      if (s.setting_key === 'branding_logo_display_hero') {
-        defaults.hero_logo_visible = value !== false;
-      }
-      if (s.setting_key === 'branding_logo_size' && value) {
-        defaults.hero_logo_size = value;
-      }
-    });
-
-    return defaults;
-  } catch (error) {
-    logger.error('Failed to get branding defaults', { error: error.message });
-    return {
-      hero_logo_visible: true,
-      hero_logo_size: 'medium',
-      hero_logo_position: 'top'
-    };
-  }
+/**
+ * Hero logo size and position, and the logo on the gallery password page, for
+ * every gallery (P3, spec 5.10). Branding decides; the per-event columns are
+ * no longer read. Values are decoded the way decodeSettingValue does, since
+ * they may be stored JSON encoded more than once.
+ *
+ * branding_logo_position (the header bar: left, center, right) is a different
+ * setting from the hero position and is not read here (#357).
+ */
+const getHeroLogoGlobals = async () => {
+  const rows = await db('app_settings')
+    .whereIn('setting_key', ['branding_logo_size', 'branding_hero_logo_position'])
+    .select('setting_key', 'setting_value');
+  const value = (key) => decodeSettingValue(rows.find((r) => r.setting_key === key)?.setting_value);
+  const size = value('branding_logo_size');
+  const position = value('branding_hero_logo_position');
+  const passwordLogo = await readBooleanSetting('branding_gallery_password_logo_visible');
+  return {
+    hero_logo_size: typeof size === 'string' && size ? size : 'medium',
+    hero_logo_position: HERO_LOGO_POSITIONS.includes(position) ? position : 'top',
+    login_logo_visible: passwordLogo ?? true,
+  };
 };
-
 // Use parseStringInput from shared parsers for customer data extraction
 const getCustomerNameFromPayload = (payload = {}) => parseStringInput(payload.customer_name);
 const getCustomerEmailFromPayload = (payload = {}) => parseStringInput(payload.customer_email);
@@ -350,7 +342,10 @@ const mapEventForApi = (event) => {
     ...rest,
     customer_name: customer_name ?? host_name ?? null,
     customer_email: customer_email ?? host_email ?? null,
-    customer_phone: customer_phone ?? null
+    customer_phone: customer_phone ?? null,
+    // P4 (spec 5.4): whether a client password exists, so Settings > Access
+    // can say "No client password set". A boolean, never the hash.
+    has_client_password: Boolean(_cph)
   };
 };
 
@@ -388,9 +383,10 @@ module.exports = {
   readBooleanSetting,
   decodeSettingValue,
   getDownloadProtectionDefaults,
+  getGalleryProtectionSettings,
   getImageSecurityDefaults,
   resolveImageSecurityColumns,
-  getBrandingDefaults,
+  getHeroLogoGlobals,
   getCustomerNameFromPayload,
   getCustomerEmailFromPayload,
   getCustomerPhoneFromPayload,

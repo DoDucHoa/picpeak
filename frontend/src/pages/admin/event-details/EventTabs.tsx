@@ -4,6 +4,7 @@ import { Download, Image } from 'lucide-react';
 import type { Event } from '../../../types';
 import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
 import type { EventDetailsTab } from './types';
+import { eventHasGuests } from './utils';
 
 interface EventTabsProps {
   event: Event;
@@ -21,14 +22,15 @@ export const EventTabs: React.FC<EventTabsProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="mb-6 border-b border-neutral-200 dark:border-neutral-700">
-      <nav className="-mb-px flex space-x-8">
+    <div className="mb-6 border-b border-line overflow-x-auto">
+      {/* Scrolls sideways below sm rather than wrapping (spec 5.1). */}
+      <nav className="-mb-px flex space-x-8 whitespace-nowrap">
         <button
           onClick={() => setActiveTab('overview')}
           className={`py-2 px-1 border-b-2 font-medium text-sm ${
             activeTab === 'overview'
               ? 'border-accent text-accent'
-              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
           }`}
         >
           {t('events.overview')}
@@ -38,13 +40,13 @@ export const EventTabs: React.FC<EventTabsProps> = ({
           className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
             activeTab === 'photos'
               ? 'border-accent text-accent'
-              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
           }`}
         >
           <Image className="w-4 h-4" />
-          <span>{t('events.photos')}</span>
+          <span>{(event.video_count ?? 0) > 0 ? t('events.media', 'Media') : t('events.photos')}</span>
           {event.photo_count !== undefined && event.photo_count > 0 && (
-            <span className="ml-1 px-2 py-0.5 text-xs font-medium bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-full">
+            <span className="ml-1 px-2 py-0.5 text-xs font-medium bg-inset text-body rounded-full">
               {event.photo_count}
             </span>
           )}
@@ -54,7 +56,7 @@ export const EventTabs: React.FC<EventTabsProps> = ({
           className={`py-2 px-1 border-b-2 font-medium text-sm ${
             activeTab === 'categories'
               ? 'border-accent text-accent'
-              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
           }`}
         >
           {t('events.categories')}
@@ -64,24 +66,34 @@ export const EventTabs: React.FC<EventTabsProps> = ({
           className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
             activeTab === 'downloads'
               ? 'border-accent text-accent'
-              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
           }`}
         >
           <Download className="w-4 h-4" />
           <span>{t('downloadQuotaAdmin.ledger.tab', 'Downloads')}</span>
         </button>
-        {eventFeedbackSettings?.identity_mode === 'guest' && (
+        {eventHasGuests(event, eventFeedbackSettings) && (
           <button
             onClick={() => setActiveTab('guests')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'guests'
                 ? 'border-accent text-accent'
-                : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
+                : 'border-transparent text-muted hover:text-body hover:border-line-strong'
             }`}
           >
             {t('admin.events.tabs.guests', 'Guests')}
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            activeTab === 'settings'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-body hover:border-line-strong'
+          }`}
+        >
+          {t('events.settings.tab', 'Settings')}
+        </button>
       </nav>
     </div>
   );

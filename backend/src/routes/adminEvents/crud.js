@@ -7,7 +7,7 @@ const { db, logActivity } = require('../../database/db');
 const { formatBoolean } = require('../../utils/dbCompat');
 
 const { adminAuth } = require('../../middleware/auth');
-const { requirePermission, userHasAllPermissions } = require('../../middleware/permissions');
+const { requirePermission, userHasAllPermissions, userHasAnyPermission } = require('../../middleware/permissions');
 const { IDENTITY_PRESERVING_NORMALIZE_EMAIL } = require('../../utils/emailNormalization');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -24,14 +24,32 @@ const { parseBooleanInput } = require('../../utils/parsers');
 const eventTypeService = require('../../services/eventTypeService');
 const { normaliseEventTimeTriple } = require('../../services/eventService');
 const { hasColumnCached } = require('../../utils/schemaCache');
-const { requireEventOwnership } = require('../../middleware/ownership');
+const { requireEventOwnership, scopeEventsListQuery, withoutForeignEventSecrets, scopeEventsQuery } = require('../../middleware/ownership');
+const { applyEventListSort } = require('./listSort');
+const { VIDEO_COUNT_SQL, VIDEO_DURATION_SQL } = require('../../utils/mediaTypeSql');
 
-const { galleryPasswordColumns, dropCopiesIfStorageOff } = require('../../utils/galleryPasswordVault');
+const { galleryPasswordColumns, dropCopiesIfStorageOff, readGalleryPassword } = require('../../utils/galleryPasswordVault');
+const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCredentialCutoff');
 
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
-const downloadZipService = require('../../services/downloadZipService');
 const { KEYBIND_MODES } = require('../../services/feedbackDefaults');
-const { validateHeroImageAnchor, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
+const { GUEST_NAME_MODES } = require('../../services/photoCredit');
+const { validateHeroImageAnchor, getEventFieldRequirements, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
+
+// Client PIN floor. The PIN guards the client review page and used to accept
+// any string, one character included. Six is the least that the login
+// lockout makes worth guessing at. An empty string keeps its meaning: "no
+// client password" on create, "leave it alone" on update. Existing events
+// are not touched; only a submitted value is checked, before it is hashed.
+const CLIENT_PASSWORD_MIN_LENGTH = 6;
+const validateClientPassword = (value) => {
+  if (typeof value !== 'string') throw new Error('Client password must be a string');
+  // Counted trimmed, so spaces cannot pad a short password past the floor.
+  if (value.length > 0 && value.trim().length < CLIENT_PASSWORD_MIN_LENGTH) {
+    throw new Error(`Client password must be at least ${CLIENT_PASSWORD_MIN_LENGTH} characters`);
+  }
+  return true;
+};
 
 /**
  * `events.slug` is UNIQUE, and both routes that mint one do a read-then-insert
@@ -166,7 +184,10 @@ async function queueGalleryCreatedEmail(event, { password, requirePassword } = {
       welcome_message: event.welcome_message || ''
     }),
     status: 'pending',
-    created_at: new Date()
+    created_at: new Date(),
+    // Explicit NULL: the column default is text on SQLite and never comes
+    // due (issue 1670) — see queueEmail.
+    scheduled_at: null
   });
   return true;
 }
@@ -225,6 +246,9 @@ module.exports = (router) => {
     body('color_theme').optional().trim(),
     body('allow_user_uploads').optional().isBoolean().toBoolean(),
     body('upload_category_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+    // Uploader names (#1561).
+    body('guest_name_mode').optional().isIn(GUEST_NAME_MODES),
+    body('show_credits_to_guests').optional().isBoolean().toBoolean(),
     body('allow_downloads').optional().isBoolean(),
     body('disable_right_click').optional().isBoolean(),
     body('enable_devtools_protection').optional().isBoolean(),
@@ -259,23 +283,17 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString().custom((value) => {
-      // Same floor as the gallery password above (#client-access-password):
-      // client access is a second way into the gallery, so an empty-ish
-      // secret must not be settable through the API either.
-      if (value === undefined || value === null || value === '') {
-        return true;
-      }
-      if (typeof value !== 'string' || value.trim().length < 6) {
-        throw new Error('Client password must be at least 6 characters long');
-      }
-      return true;
-    }),
+    body('client_password').optional().custom(validateClientPassword),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',
       'capture_date_desc', 'capture_date_asc',
       'filename_asc', 'filename_desc'
     ]),
+    // Photo source (P5, spec 5.5); the watcher's permission is checked in
+    // the service through canEnableWatch.
+    body('source_mode').optional().isIn(['managed', 'reference']),
+    body('external_path').optional({ nullable: true }).isString().trim(),
+    body('external_watch').optional().isBoolean(),
     // Per-event promotional override (#440). Three-way mode:
     //   inherit → fall back to global branding_promo_markdown
     //   custom  → render this event's promo_markdown verbatim
@@ -309,6 +327,7 @@ module.exports = (router) => {
       const created = await require('../../services/eventCreationService').createEvent(req.body, {
         actor: req.admin,
         frontendUrl: await getAbsoluteFrontendUrl(req, { override: process.env.APP_URL }),
+        canEnableWatch: () => userHasAllPermissions(req.admin.id, ['photos.upload']),
       });
       res.json(created);
     } catch (error) {
@@ -329,17 +348,17 @@ module.exports = (router) => {
       const offset = (page - 1) * limit;
       const search = req.query.search || '';
       const status = req.query.status || 'all';
-      const allowedSortBy = ['created_at', 'event_name', 'slug', 'updated_at', 'expires_at', 'capture_date'];
-      const sortBy = allowedSortBy.includes(req.query.sortBy) ? req.query.sortBy : 'created_at';
-      const sortOrder = ['asc', 'desc'].includes(req.query.sortOrder) ? req.query.sortOrder : 'desc';
+      // Lowercased to match the slug normalisation every other slug_prefix
+      // comparison applies (eventTypeService.getEventTypeBySlug and friends);
+      // otherwise a hand-typed ?type=Wedding silently returns an empty list.
+      const eventType = typeof req.query.type === 'string' ? req.query.type.trim().toLowerCase() : '';
 
       // Build query
       let query = db('events');
 
-      // Editor role can only see their own events
-      if (req.admin.roleName === 'editor') {
-        query = query.where('created_by', req.admin.id);
-      }
+      // Roles other than super_admin and admin see their own events plus
+      // ownerless ones, the rule requireEventOwnership applies per event.
+      query = scopeEventsListQuery(query, req.admin);
 
       // Apply search filter
       if (search) {
@@ -350,6 +369,14 @@ module.exports = (router) => {
             .orWhereRaw(likeWithEscape('customer_email'), [pattern])
             .orWhereRaw(likeWithEscape('slug'), [pattern]);
         });
+      }
+
+      // Apply event type filter. The value is the event_types.slug_prefix the
+      // event row stores, so it is compared as-is; a rename cascades to
+      // events.event_type (eventTypeService.updateEventType) and a type in use
+      // cannot be deleted, so a slug shown in the filter always matches rows.
+      if (eventType && eventType !== 'all') {
+        query = query.where('event_type', eventType);
       }
 
       // Apply status filter
@@ -375,35 +402,46 @@ module.exports = (router) => {
       const countQuery = query.clone();
       const [{ count }] = await countQuery.count('* as count');
 
-      // Apply sorting and pagination
-      const events = await query
-        .orderBy(sortBy, sortOrder)
+      // Apply sorting and pagination. Ordering is added after the count clone
+      // above so the count never pays for the photo_count subquery.
+      const events = await applyEventListSort(query, req.query.sortBy, req.query.sortOrder)
         .limit(limit)
         .offset(offset);
 
-      // Get photo counts for each event
+      // Get photo counts for each event. photo_count stays the number of rows
+      // of either type (it is what the list sorts on and what the photo cap
+      // counts); video_count and video_duration say how much of it is video.
       const eventIds = events.map(e => e.id);
       const photoCounts = await db('photos')
         .whereIn('event_id', eventIds)
         .groupBy('event_id')
         .select('event_id')
-        .count('* as count');
+        .count('* as count')
+        .select(db.raw(`${VIDEO_COUNT_SQL} as video_count`))
+        .select(db.raw(`${VIDEO_DURATION_SQL} as video_duration`));
 
-      // Map photo counts to events
-      const photoCountMap = photoCounts.reduce((acc, { event_id, count }) => {
-        acc[event_id] = parseInt(count);
+      // Map photo counts to events. Number(): Postgres hands aggregates back
+      // as strings.
+      const photoCountMap = photoCounts.reduce((acc, { event_id, count, video_count, video_duration }) => {
+        acc[event_id] = {
+          count: parseInt(count),
+          videoCount: Number(video_count) || 0,
+          videoDuration: Number(video_duration) || 0,
+        };
         return acc;
       }, {});
 
       // Add photo counts to events and convert dates
       const eventsWithCounts = events.map(event => ({
         ...event,
-        photo_count: photoCountMap[event.id] || 0,
+        photo_count: photoCountMap[event.id]?.count || 0,
+        video_count: photoCountMap[event.id]?.videoCount || 0,
+        video_duration: photoCountMap[event.id]?.videoDuration || 0,
         // Convert Unix timestamps to ISO strings
         created_at: event.created_at ? new Date(event.created_at).toISOString() : null,
         expires_at: event.expires_at ? new Date(event.expires_at).toISOString() : null,
         archived_at: event.archived_at ? new Date(event.archived_at).toISOString() : null
-      })).map(mapEventForApi);
+      })).map((event) => withoutForeignEventSecrets(mapEventForApi(event), req.admin));
 
       res.json({
         events: eventsWithCounts,
@@ -424,23 +462,20 @@ module.exports = (router) => {
     try {
       const { id } = req.params;
 
-      let query = db('events').where('id', id);
-
-      // Editor role can only see their own events
-      if (req.admin.roleName === 'editor') {
-        query = query.where('created_by', req.admin.id);
-      }
-
-      const event = await query.first();
+      // Same visibility as the list: a role limited to its own events gets a
+      // 404 for anyone else's, not a 403 that confirms the event exists.
+      const event = await scopeEventsListQuery(db('events').where('id', id), req.admin).first();
 
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
 
-      // Get photo count
-      const [{ count: photoCount }] = await db('photos')
+      // Get photo count, and how much of it is video
+      const [{ count: photoCount, video_count: videoCount, video_duration: videoDuration }] = await db('photos')
         .where('event_id', id)
-        .count('* as count');
+        .count('* as count')
+        .select(db.raw(`${VIDEO_COUNT_SQL} as video_count`))
+        .select(db.raw(`${VIDEO_DURATION_SQL} as video_duration`));
 
       // Get total size
       const [{ totalSize }] = await db('photos')
@@ -481,10 +516,24 @@ module.exports = (router) => {
       } catch (e) {
         logger.warn('Failed to load customer assignments for event', { eventId: id, error: e.message });
       }
+      // Their customer groups (#1443) — only for an admin who may read
+      // customers; this route is guarded by events.view alone. Decoration:
+      // a failure here leaves the groups out rather than failing the page.
+      let groupsByCustomer = null;
+      try {
+        if (customerAccounts.length > 0 && await userHasAnyPermission(req.admin.id, ['customers.view'])) {
+          groupsByCustomer = await require('../../services/customerGroupsService')
+            .groupsForCustomers(customerAccounts.map((c) => c.id));
+        }
+      } catch (e) {
+        logger.warn('Failed to load customer groups for event', { eventId: id, error: e.message });
+      }
 
-      res.json(mapEventForApi({
+      res.json(withoutForeignEventSecrets(mapEventForApi({
         ...event,
         photo_count: parseInt(photoCount) || 0,
+        video_count: Number(videoCount) || 0,
+        video_duration: Number(videoDuration) || 0,
         total_size: parseInt(totalSize) || 0,
         total_views: parseInt(totalViews) || 0,
         total_downloads: parseInt(totalDownloads) || 0,
@@ -503,8 +552,9 @@ module.exports = (router) => {
           // button that then 400'd — or worse, reported success.
           is_active: c.is_active,
           can_sign_in: c.can_sign_in,
+          ...(groupsByCustomer ? { groups: groupsByCustomer.get(Number(c.id)) || [] } : {}),
         })),
-      }));
+      }), req.admin));
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to fetch event details');
     }
@@ -572,15 +622,30 @@ module.exports = (router) => {
         const policyError = await checkGalleryPasswordPolicy(password, event.event_name);
         if (policyError) return res.status(400).json(policyError);
 
-        await db('events').where('id', id).update({
-          password_hash: await bcrypt.hash(password, getBcryptRounds()),
-          ...(await galleryPasswordColumns({ password })),
-        });
+        // Re-entering the current password is not a change: keep the hash and
+        // the sessions opened with it. A new password ends those sessions.
+        const copyColumns = await galleryPasswordColumns({ password });
+        // Kept only while the stored hash is still the one compared: a reset
+        // landing in between must not leave this request's copy (and email)
+        // disagreeing with the hash. Otherwise it is written as a change.
+        const keptHash = await sameAsStored(password, event.password_hash)
+          && await db('events').where({ id, password_hash: event.password_hash })
+            .update(Object.keys(copyColumns).length ? copyColumns : { updated_at: new Date().toISOString() });
+        if (!keptHash) {
+          await db('events').where('id', id).update({
+            password_hash: await bcrypt.hash(password, getBcryptRounds()),
+            ...(await credentialChangeColumns('gallery')),
+            ...copyColumns,
+          });
+        }
         await dropCopiesIfStorageOff(id);
       }
 
+      // P4 (ruling 1): no typed password means the stored copy, as resend does.
+      const stored = hasInlineRecipient && requirePassword && !password ? await readGalleryPassword(id) : null;
+      const mailPassword = password || stored?.password || undefined;
       const queued = hasInlineRecipient
-        && await queueGalleryCreatedEmail(event, { password, requirePassword });
+        && await queueGalleryCreatedEmail(event, { password: mailPassword, requirePassword });
       if (!queued) {
         // No inline recipient, but the gallery may be assigned to registered
         // customer account(s) — the same path publish takes. Without this the
@@ -623,6 +688,7 @@ module.exports = (router) => {
 
       res.json({
         message: 'Gallery email queued',
+        usedStoredPassword: Boolean(stored?.password),
         recipient: event.customer_email || event.host_email,
       });
     } catch (error) {
@@ -666,6 +732,9 @@ module.exports = (router) => {
 
       const requirePassword = parseBooleanInput(event.require_password, true);
       const publishUpdates = { is_draft: formatBoolean(false) };
+      let publishKeepsHash = false;
+      let usedStoredPassword = false;
+      let publishWritesPassword = false;
       if (requirePassword && password) {
       // Re-hash so the stored hash matches what the email carries — even if
       // the admin mistypes vs. what was set at draft creation, the gallery
@@ -673,11 +742,24 @@ module.exports = (router) => {
         const policyError = await checkGalleryPasswordPolicy(password, event.event_name);
         if (policyError) return res.status(400).json(policyError);
 
-        publishUpdates.password_hash = await bcrypt.hash(password, getBcryptRounds());
         Object.assign(publishUpdates, await galleryPasswordColumns({ password }));
+        publishKeepsHash = await sameAsStored(password, event.password_hash);
+        publishWritesPassword = true;
       }
-      await db('events').where('id', id).update(publishUpdates);
-      if (publishUpdates.password_hash) await dropCopiesIfStorageOff(id);
+      // An unchanged password keeps the hash only while it is still the one
+      // compared; a password change landing in between makes this a change.
+      const published = publishKeepsHash
+        ? await db('events').where({ id, password_hash: event.password_hash }).update(publishUpdates)
+        : 0;
+      if (!published) {
+        if (publishWritesPassword) {
+          publishUpdates.password_hash = await bcrypt.hash(password, getBcryptRounds());
+          Object.assign(publishUpdates, await credentialChangeColumns('gallery'));
+        }
+        await db('events').where('id', id).update(publishUpdates);
+      }
+      // Whenever a recoverable copy was written, not only when the hash changed.
+      if (publishWritesPassword) await dropCopiesIfStorageOff(id);
 
       // Notify the customer — unless the admin asked to publish quietly
       // (#1235). Everything else about publishing still happens: the gallery
@@ -685,9 +767,14 @@ module.exports = (router) => {
       // fires, because those describe a state change rather than a message to
       // a customer.
       const customerEmail = event.customer_email || event.host_email;
+      // P4 (ruling 1): no typed password means the stored copy, as resend does.
+      // Read once: the email and the WhatsApp message carry the same value.
+      const stored = notifyCustomer && requirePassword && !password ? await readGalleryPassword(id) : null;
+      const mailPassword = password || stored?.password || undefined;
       if (notifyCustomer) {
         if (customerEmail) {
-          await queueGalleryCreatedEmail(event, { password, requirePassword });
+          usedStoredPassword = Boolean(stored?.password);
+          await queueGalleryCreatedEmail(event, { password: mailPassword, requirePassword });
         } else {
         // No inline email, but the gallery may be assigned to registered
         // customer account(s). Notify them via the account "your galleries"
@@ -723,10 +810,10 @@ module.exports = (router) => {
               customer_name: event.customer_name || event.host_name || '',
               event_name: event.event_name,
               gallery_link: shareUrlForWa || `${await getFrontendBaseUrl()}/gallery/${event.slug}`,
-              // Plaintext only when the admin re-typed at publish; otherwise
-              // omit so the buildComponents() helper renders an empty {{4}}
-              // line instead of leaking the "(set at creation)" sentinel.
-              gallery_password: requirePassword && password ? password : '',
+              // The typed or stored plaintext; otherwise omit so the
+              // buildComponents() helper renders an empty {{4}} line instead
+              // of leaking the "(set at creation)" sentinel.
+              gallery_password: requirePassword && mailPassword ? mailPassword : '',
               expiry_date: event.expires_at ? new Date(event.expires_at).toISOString() : null,
               language: null, // resolved by processor via general_default_language
             });
@@ -767,6 +854,7 @@ module.exports = (router) => {
         message: 'Event published successfully',
         is_draft: false,
         notified_customer: notifyCustomer,
+        usedStoredPassword,
       });
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to publish event');
@@ -867,7 +955,8 @@ module.exports = (router) => {
         } : {}),
         host_name: customer_name || null,
         host_email: customer_email || null,
-        admin_email: source.admin_email || null,
+        // The global notification email when set (spec 5.11).
+        admin_email: (await require('../../services/notificationEmail').getNotificationEmail()) || source.admin_email || null,
         password_hash,
         welcome_message: source.welcome_message || '',
         color_theme: source.color_theme,
@@ -877,8 +966,9 @@ module.exports = (router) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         created_by: req.admin.id,
-        allow_user_uploads: source.allow_user_uploads,
-        upload_category_id: source.upload_category_id,
+        // Uploader names are part of the gallery's configuration (#1561).
+        guest_name_mode: source.guest_name_mode || 'off',
+        show_credits_to_guests: formatBoolean(parseBooleanInput(source.show_credits_to_guests, false)),
         allow_downloads: source.allow_downloads,
         disable_right_click: source.disable_right_click,
         enable_devtools_protection: source.enable_devtools_protection,
@@ -1001,6 +1091,12 @@ module.exports = (router) => {
   router.put('/:id', adminAuth, requirePermission('events.edit'), requireEventOwnership, [
     body('event_name').optional().trim().notEmpty(),
     body('event_date').optional({ values: 'falsy' }).isDate(),
+    // P4 (spec 5.9): validated only when sent, so an event whose type was
+    // deactivated later still saves its other fields.
+    body('event_type').optional().isString().trim().toLowerCase().custom(async (value) => {
+      if (!(await eventTypeService.isValidEventType(value))) throw new Error('Invalid event type');
+      return true;
+    }),
     // Migration 137 — calendar time fields. Same regex/range rule as POST.
     body('event_time_start').optional({ values: 'falsy', nullable: true })
       .matches(/^([01]\d|2[0-3]):[0-5]\d$/)
@@ -1015,6 +1111,9 @@ module.exports = (router) => {
     body('welcome_message').optional({ nullable: true, checkFalsy: true }).trim(),
     body('color_theme').optional({ nullable: true }),
     body('allow_user_uploads').optional().isBoolean(),
+    // Uploader names (#1561).
+    body('guest_name_mode').optional().isIn(GUEST_NAME_MODES),
+    body('show_credits_to_guests').optional().isBoolean(),
     // Reveal mode (#838): hide the gallery from guests until reveal.
     body('reveal_mode').optional().isBoolean(),
     body('reveal_at').optional({ nullable: true, checkFalsy: true }).isISO8601(),
@@ -1028,7 +1127,9 @@ module.exports = (router) => {
     body('event_reminder_body_override').optional({ nullable: true, checkFalsy: true })
       .isString().isLength({ max: 10_000 }),
     body('customer_name').optional({ nullable: true, checkFalsy: true }).trim(),
-    body('customer_email').optional().isEmail().normalizeEmail(IDENTITY_PRESERVING_NORMALIZE_EMAIL),
+    // Empty or null skips validation and reaches the handler, which clears
+    // the email unless Settings require one (finding 14).
+    body('customer_email').optional({ values: 'falsy' }).isEmail().normalizeEmail(IDENTITY_PRESERVING_NORMALIZE_EMAIL),
     body('customer_phone').optional({ nullable: true, checkFalsy: true })
       .isString().trim()
       .isLength({ max: 32 }).withMessage('Phone number must be at most 32 characters'),
@@ -1081,18 +1182,7 @@ module.exports = (router) => {
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
     body('client_access_enabled').optional().isBoolean(),
-    body('client_password').optional().isString().custom((value) => {
-      // Same floor as the gallery password above (#client-access-password):
-      // client access is a second way into the gallery, so an empty-ish
-      // secret must not be settable through the API either.
-      if (value === undefined || value === null || value === '') {
-        return true;
-      }
-      if (typeof value !== 'string' || value.trim().length < 6) {
-        throw new Error('Client password must be at least 6 characters long');
-      }
-      return true;
-    }),
+    body('client_password').optional().custom(validateClientPassword),
     body('regenerate_client_token').optional().isBoolean(),
     body('default_photo_sort').optional().isIn([
       'upload_date_desc', 'upload_date_asc',
@@ -1181,6 +1271,9 @@ module.exports = (router) => {
         'archive_size',
         // Server-managed timestamps
         'download_zip_generated_at', 'archived_at', 'revealed_at', 'event_reminder_sent_at',
+        // Credential-change cutoffs: clearing one would revive the sessions
+        // the password change ended.
+        'gallery_password_changed_at', 'client_password_changed_at',
         // Lifecycle — governed by dedicated permission-gated routes
         // (events.archive/restore, publish, activate/deactivate), not events.edit.
         'is_archived', 'is_draft', 'is_active',
@@ -1189,6 +1282,10 @@ module.exports = (router) => {
         'project_id', 'quote_id',
         // Legacy mirrors — rejected explicitly below in favour of customer_*.
         'host_name', 'host_email',
+        // Reveal mode and guest uploads are removed (P3, spec 5.12): the PUT
+        // accepts the fields and ignores them, so old clients keep working and
+        // the columns keep their values.
+        'reveal_mode', 'reveal_at', 'allow_user_uploads', 'upload_category_id',
       ];
       // Only canonical keys reach the UPDATE. SQLite resolves quoted
       // identifiers case-insensitively, so `{ "Event_Name": ... }` lands on
@@ -1223,7 +1320,14 @@ module.exports = (router) => {
           }
           updates.host_name = nextName;
         } else {
-          delete updates.customer_name;
+          // An empty name clears it, unless Settings require one (finding 14).
+          const requirements = await getEventFieldRequirements();
+          if (requirements.require_customer_name) {
+            return res.status(400).json({ error: 'Customer name is required' });
+          }
+          if (customerColumnsAvailable) updates.customer_name = null;
+          else delete updates.customer_name;
+          updates.host_name = null;
         }
       }
 
@@ -1237,7 +1341,15 @@ module.exports = (router) => {
           }
           updates.host_email = nextEmail;
         } else {
-          delete updates.customer_email;
+          // An empty email clears it, unless Settings require one (finding 14).
+          // host_email is NOT NULL on older schemas; '' is its empty value.
+          const requirements = await getEventFieldRequirements();
+          if (requirements.require_customer_email) {
+            return res.status(400).json({ error: 'Customer email is required' });
+          }
+          if (customerColumnsAvailable) updates.customer_email = null;
+          else delete updates.customer_email;
+          updates.host_email = '';
         }
       }
 
@@ -1330,6 +1442,12 @@ module.exports = (router) => {
       // Plaintexts to remember after the row is written (#1271); each key is
       // only set when this request changed that password.
       const recoverable = {};
+      // Credentials this request changed; sessions opened with the old one end.
+      const credentialChanges = new Set();
+      // Hashes left alone because the submitted password matched; the write is
+      // conditional on them so a concurrent change cannot slip underneath.
+      let keptGalleryHash = false;
+      let keptClientHash = false;
       if (Object.prototype.hasOwnProperty.call(updates, 'client_password') && updates.client_password) {
         updates.client_password_hash = await bcrypt.hash(updates.client_password, getBcryptRounds());
         recoverable.clientPassword = updates.client_password;
@@ -1339,6 +1457,7 @@ module.exports = (router) => {
       }
       if (updates.regenerate_client_token) {
         updates.client_share_token = crypto.randomBytes(32).toString('hex');
+        credentialChanges.add('client');
       }
       delete updates.regenerate_client_token;
 
@@ -1389,25 +1508,38 @@ module.exports = (router) => {
       });
 
       // Check if event exists
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only edit their own events
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
 
       const currentRequirePassword = parseBooleanInput(event.require_password, true);
 
+      // Resubmitting the current client password is not a change: keep the hash
+      // and the client sessions opened with it.
+      if (updates.client_password_hash) {
+        if (await sameAsStored(recoverable.clientPassword, event.client_password_hash)) {
+          delete updates.client_password_hash;
+          keptClientHash = true;
+        } else {
+          credentialChanges.add('client');
+        }
+      }
+
       if (hasRequirePasswordUpdate && requirePasswordUpdate === true && !currentRequirePassword && !newPasswordPlain) {
         return res.status(400).json({ error: 'Password must be provided when enabling password requirement.' });
       }
 
       if (newPasswordPlain) {
-        updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
         recoverable.password = newPasswordPlain;
+        if (!(await sameAsStored(newPasswordPlain, event.password_hash))) {
+          updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
+          credentialChanges.add('gallery');
+        } else {
+          keptGalleryHash = true;
+        }
       } else if (hasRequirePasswordUpdate && requirePasswordUpdate === false && currentRequirePassword) {
         updates.password_hash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), getBcryptRounds());
         recoverable.password = null;
@@ -1510,42 +1642,17 @@ module.exports = (router) => {
         }
       }
 
-      // Reveal mode (#838). Turning the toggle ON from off clears
-      // revealed_at, so a gallery can be re-hidden after a reveal;
-      // reveal_at accepts null/'' to drop a schedule.
-      if (Object.prototype.hasOwnProperty.call(updates, 'reveal_mode')) {
-        const nextRevealMode = parseBooleanInput(updates.reveal_mode, false);
-        updates.reveal_mode = formatBoolean(nextRevealMode);
-        const wasOn = event.reveal_mode === true || event.reveal_mode === 1 || event.reveal_mode === '1';
-        if (nextRevealMode && !wasOn) {
-          updates.revealed_at = null;
-          // A stale PAST schedule from a previous cycle would instantly
-          // re-open the gate on re-arm. Only bites partial API updates —
-          // isGalleryHidden() with the stamp cleared tells us whether the
-          // stored schedule still hides anything.
-          const { isGalleryHidden } = require('../../utils/revealMode');
-          if (!Object.prototype.hasOwnProperty.call(updates, 'reveal_at')
-              && event.reveal_at
-              && !isGalleryHidden({ reveal_mode: true, revealed_at: null, reveal_at: event.reveal_at })) {
-            updates.reveal_at = null;
-          }
-        }
-      }
-      if (Object.prototype.hasOwnProperty.call(updates, 'reveal_at')) {
-        // ISO string, not a Date object — the SQLite driver stringifies raw
-        // Dates uselessly; ISO round-trips on both engines.
-        updates.reveal_at = updates.reveal_at ? new Date(updates.reveal_at).toISOString() : null;
-        // Scheduling a FUTURE reveal on an already-revealed gallery re-arms
-        // hiding — that's the only way this state can be reached, since
-        // "Reveal now" and the scheduler both clear/consume the schedule.
-        if (updates.reveal_at && new Date(updates.reveal_at) > new Date() && event.revealed_at) {
-          updates.revealed_at = null;
-        }
+      // Written through formatBoolean like the other event flags (#1561).
+      if (Object.prototype.hasOwnProperty.call(updates, 'show_credits_to_guests')) {
+        updates.show_credits_to_guests = formatBoolean(parseBooleanInput(updates.show_credits_to_guests, false));
       }
 
       // Handle client access fields (#172)
       if (Object.prototype.hasOwnProperty.call(updates, 'client_access_enabled')) {
         updates.client_access_enabled = formatBoolean(updates.client_access_enabled);
+        if (!parseBooleanInput(updates.client_access_enabled, false) && parseBooleanInput(event.client_access_enabled, false)) {
+          credentialChanges.add('client');
+        }
         // Auto-generate client share token when first enabling
         if (parseBooleanInput(updates.client_access_enabled, false) && !event.client_share_token && !updates.client_share_token) {
           updates.client_share_token = crypto.randomBytes(32).toString('hex');
@@ -1557,10 +1664,25 @@ module.exports = (router) => {
       // which would surface as a 500 for an otherwise-valid no-op request
       // (e.g. a body of only protected fields). (codex review.)
       if (Object.keys(recoverable).length > 0) Object.assign(updates, await galleryPasswordColumns(recoverable));
+      if (credentialChanges.size > 0) Object.assign(updates, await credentialChangeColumns(...credentialChanges));
       if (Object.keys(updates).length > 0) {
-        await db('events')
-          .where('id', id)
-          .update(updates);
+        let eventUpdate = db('events').where('id', id);
+        if (keptGalleryHash) eventUpdate = eventUpdate.where('password_hash', event.password_hash);
+        if (keptClientHash) eventUpdate = eventUpdate.where('client_password_hash', event.client_password_hash);
+        const updated = await eventUpdate.update(updates);
+        if (!updated && (keptGalleryHash || keptClientHash)) {
+          // A password changed underneath: write the submitted ones as changes.
+          if (keptGalleryHash) {
+            updates.password_hash = await bcrypt.hash(newPasswordPlain, getBcryptRounds());
+            credentialChanges.add('gallery');
+          }
+          if (keptClientHash) {
+            updates.client_password_hash = await bcrypt.hash(recoverable.clientPassword, getBcryptRounds());
+            credentialChanges.add('client');
+          }
+          Object.assign(updates, await credentialChangeColumns(...credentialChanges));
+          await db('events').where('id', id).update(updates);
+        }
       }
       if (Object.keys(recoverable).length > 0) await dropCopiesIfStorageOff(id);
 
@@ -1591,12 +1713,6 @@ module.exports = (router) => {
         { type: 'admin', id: req.admin.id, name: req.admin.username }
       );
 
-      // Invalidate download zip if watermark settings changed
-      const changeKeys = Object.keys(req.body);
-      if (changeKeys.includes('watermark_downloads') || changeKeys.includes('watermark_text')) {
-        downloadZipService.invalidate(parseInt(id));
-      }
-
       res.json({ message: 'Event updated successfully' });
     } catch (error) {
       errorResponse(res, error, 500, 'Failed to update event');
@@ -1604,58 +1720,6 @@ module.exports = (router) => {
   });
 
   // Delete event
-  // Reveal now (#838): stamp revealed_at so the gallery opens for guests
-  // immediately. Idempotent — revealing an already-revealed event no-ops.
-  router.post('/:id/reveal', adminAuth, requirePermission('events.edit'), requireEventOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const event = await db('events').where('id', id).first();
-      if (!event) {
-        return res.status(404).json({ error: 'Event not found' });
-      }
-      const isOn = event.reveal_mode === true || event.reveal_mode === 1 || event.reveal_mode === '1';
-      if (!isOn) {
-        return res.status(400).json({ error: 'Reveal mode is not enabled for this event' });
-      }
-
-      const now = new Date().toISOString();
-      // Also clear a pending schedule — "reveal now" makes it obsolete, and
-      // a stale future reveal_at would re-arm hiding on the next form save.
-      const stamped = await db('events')
-        .where('id', id)
-        .whereNull('revealed_at')
-        .update({ revealed_at: now, reveal_at: null });
-
-      if (stamped === 1) {
-        await logActivity('gallery_revealed', { scheduled: false }, id, {
-          type: 'admin', id: req.admin.id, name: req.admin.username,
-        });
-        try {
-          await require('../../services/workflows').emitWorkflowEvent('gallery.revealed', {
-            entityType: 'event',
-            entityId: parseInt(id, 10),
-            dedupSuffix: String(new Date(now).getTime()),
-            payload: {
-              eventId: parseInt(id, 10),
-              slug: event.slug,
-              eventName: event.event_name,
-              revealedAt: now,
-              scheduled: false,
-            },
-          });
-        } catch (e) {
-          logger.warn('Failed to emit gallery.revealed workflow event', { eventId: id, error: e.message });
-        }
-      }
-
-      const fresh = await db('events').where('id', id).first();
-      res.json({ message: 'Gallery revealed', revealed_at: fresh.revealed_at });
-    } catch (error) {
-      logger.error('Failed to reveal gallery:', error);
-      res.status(500).json({ error: 'Failed to reveal gallery' });
-    }
-  });
-
   router.delete('/:id', adminAuth, requirePermission('events.delete'), requireEventOwnership, async (req, res) => {
     try {
       const { id } = req.params;
@@ -1680,12 +1744,9 @@ module.exports = (router) => {
     try {
       const { id } = req.params;
 
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only edit their own events
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
@@ -1730,13 +1791,9 @@ module.exports = (router) => {
       const { id } = req.params;
       const { days } = req.body;
 
-      let eventQuery = db('events').where('id', id);
-      // Editor role can only touch their own events (defence in depth alongside
-      // requireEventOwnership).
-      if (req.admin.roleName === 'editor') {
-        eventQuery = eventQuery.where('created_by', req.admin.id);
-      }
-      const event = await eventQuery.first();
+      // Ownership: the rule requireEventOwnership already enforced, kept as
+      // defence in depth (issue 1670, §2.4).
+      const event = await scopeEventsQuery(db('events').where('id', id), req.admin).first();
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }

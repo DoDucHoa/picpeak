@@ -56,8 +56,6 @@ beforeAll(async () => {
   app.use('/api', require('../../src/middleware/csrf'));
   app.use('/api/admin/events', require('../../src/routes/adminEvents'));
   app.use('/api/gallery', require('../../src/routes/gallery'));
-  app.use('/api/images', require('../../src/routes/protectedImages'));
-  app.use('/api/secure-images', require('../../src/routes/secureImages'));
 }, 120000);
 
 beforeEach(async () => {
@@ -110,39 +108,24 @@ it.each(['ISO', 'epoch'])('enforces expiry immediately for public and JWT access
   await expectDirect(undefined, 404); await expectDirect(token(), 404);
   await expectDirect(mintAdminToken(adminId), 200, '?admin_preview=1');
 });
-it.each(['revocation', 'restore', 'expiry', 'customer'])('rechecks signed and secure image grants after %s', async (reason) => {
-  const bearer = token(reason === 'customer' ? { via: 'customer', customerId } : {});
-  const signed = await request(app).post(`/api/images/${slug}/photo/${photoId}/generate-url`).set('Authorization', `Bearer ${bearer}`).send({});
-  expect(signed.status).toBe(200);
-  const minted = await request(app).post(`/api/secure-images/${slug}/generate-token`).set('Authorization', `Bearer ${bearer}`).send({ photoId });
-  expect(minted.status).toBe(200);
-  const secureUrl = `/api/secure-images/${slug}/secure/${photoId}/${minted.body.token}`;
-  expect((await get(signed.body.url)).status).toBe(200);
-  expect((await get(secureUrl)).status).toBe(200);
-  if (reason === 'revocation') await revokeToken(bearer, 'test');
-  if (reason === 'restore') await cutoff.setSessionsValidAfter(Math.floor(Date.now() / 1000));
-  if (reason === 'expiry') await db('events').where({ id: eventId }).update({ expires_at: new Date(Date.now() - 1000).toISOString() });
-  if (reason === 'customer') await db('customer_accounts').where({ id: customerId }).update({ is_active: 0 });
-  const status = reason === 'expiry' ? 404 : 401;
-  expect((await get(signed.body.url)).status).toBe(status);
-  expect((await get(secureUrl)).status).toBe(status);
-});
-
-it('blocks an empty cross-site cookie POST before the reveal state changes', async () => {
-  await db('events').where({ id: eventId }).update({ reveal_mode: 1, revealed_at: null });
+it('blocks an empty cross-site cookie POST before the event state changes', async () => {
+  await db('events').where({ id: eventId }).update({ is_active: 1 });
   const cookie = `admin_token=${mintAdminToken(adminId)}`;
-  const url = `/api/admin/events/${eventId}/reveal`;
+  const url = `/api/admin/events/${eventId}/toggle-status`;
   const blocked = await request(app).post(url).set('Cookie', cookie).set('Origin', 'https://attacker.example')
     .set('Sec-Fetch-Site', 'cross-site').set('Content-Type', 'application/x-www-form-urlencoded').send('');
   expect(blocked.status).toBe(403);
-  expect((await db('events').where({ id: eventId }).first()).revealed_at).toBeNull();
+  expect(Boolean((await db('events').where({ id: eventId }).first()).is_active)).toBe(true);
   process.env.ADMIN_URL = 'https://admin.example.test';
   try {
     const allowed = await request(app).post(url).set('Cookie', cookie).set('Origin', process.env.ADMIN_URL)
       .set('Sec-Fetch-Site', 'cross-site').send({});
     expect(allowed.status).toBe(200);
-    expect((await db('events').where({ id: eventId }).first()).revealed_at).not.toBeNull();
-  } finally { delete process.env.ADMIN_URL; }
+    expect(Boolean((await db('events').where({ id: eventId }).first()).is_active)).toBe(false);
+  } finally {
+    delete process.env.ADMIN_URL;
+    await db('events').where({ id: eventId }).update({ is_active: 1 });
+  }
 });
 
 it('toggles status on a fully migrated fresh database and records updated_at', async () => {

@@ -34,17 +34,16 @@ async function updateEventSettings(
 }
 
 test.describe('Optional email fields in event creation (#217)', () => {
-  test('event creation succeeds with empty emails when set to optional', async ({ page }) => {
+  test('event creation succeeds with an empty customer email when it is optional', async ({ page }) => {
     const token = await getAdminToken(page);
 
-    // Disable email requirements
+    // Make the customer email optional
     await updateEventSettings(page, token, {
       event_require_customer_email: false,
-      event_require_admin_email: false,
     });
 
     try {
-      // Create event with empty email fields
+      // Create an event with an empty customer email
       const eventRes = await page.request.post('/api/admin/events', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -56,7 +55,6 @@ test.describe('Optional email fields in event creation (#217)', () => {
           event_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
           customer_name: 'Test Host',
           customer_email: '',
-          admin_email: '',
           password: 'TestPass123!',
           expiration_days: 30,
         },
@@ -74,18 +72,16 @@ test.describe('Optional email fields in event creation (#217)', () => {
       // Revert settings to required
       await updateEventSettings(page, token, {
         event_require_customer_email: true,
-        event_require_admin_email: true,
       });
     }
   });
 
-  test('event creation still fails with empty emails when set to required', async ({ page }) => {
+  test('event creation still fails with an empty customer email when it is required', async ({ page }) => {
     const token = await getAdminToken(page);
 
-    // Ensure email requirements are enabled
+    // Make the customer email required
     await updateEventSettings(page, token, {
       event_require_customer_email: true,
-      event_require_admin_email: true,
     });
 
     const eventRes = await page.request.post('/api/admin/events', {
@@ -99,7 +95,6 @@ test.describe('Optional email fields in event creation (#217)', () => {
         event_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
         customer_name: 'Test Host',
         customer_email: '',
-        admin_email: '',
         password: 'TestPass123!',
         expiration_days: 30,
       },
@@ -109,20 +104,18 @@ test.describe('Optional email fields in event creation (#217)', () => {
     const body = await eventRes.json();
     const paths = body.errors.map((e: { path: string }) => e.path);
     expect(paths).toContain('customer_email');
-    expect(paths).toContain('admin_email');
   });
 
-  test('event creation succeeds with missing email fields when optional', async ({ page }) => {
+  test('event creation succeeds with no customer email when it is optional', async ({ page }) => {
     const token = await getAdminToken(page);
 
-    // Disable email requirements
+    // Make the customer email optional
     await updateEventSettings(page, token, {
       event_require_customer_email: false,
-      event_require_admin_email: false,
     });
 
     try {
-      // Create event without email fields at all (undefined, not empty string)
+      // Create an event without a customer email at all (undefined, not empty string)
       const eventRes = await page.request.post('/api/admin/events', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -149,7 +142,6 @@ test.describe('Optional email fields in event creation (#217)', () => {
     } finally {
       await updateEventSettings(page, token, {
         event_require_customer_email: true,
-        event_require_admin_email: true,
       });
     }
   });

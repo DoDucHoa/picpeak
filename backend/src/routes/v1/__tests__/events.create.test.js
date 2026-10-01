@@ -72,3 +72,14 @@ it.each([{ feedback_enabled: 'maybe' }, { event_type: 'unknown' }])('rejects inv
     expect(response.status).toBe(400);
   }
 });
+it.each(['admin', 'v1', 'legacy'])('%s ignores allow_user_uploads, so the event takes no guest uploads (P3)', async source => {
+  const created = await create(source, { allow_user_uploads: true, upload_category_id: 1 });
+  const row = await db('events').where({ id: created.id }).first();
+  expect(Boolean(row.allow_user_uploads)).toBe(false);
+  expect(row.upload_category_id).toBeNull();
+});
+it.each(['admin', 'v1', 'legacy'])('%s stores the default hero logo position whatever the body says (P3)', async source => {
+  const created = await create(source, { hero_logo_position: 'bottom' });
+  const row = await db('events').where({ id: created.id }).first();
+  expect(row.hero_logo_position).toBe('top');
+});

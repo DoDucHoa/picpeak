@@ -656,7 +656,16 @@
       "message": "Xóa vĩnh viễn {{name}}? Hành động này không thể hoàn tác. Các lời mời đang chờ và token API của người này sẽ bị xóa; các bản ghi họ đã tạo ở nơi khác vẫn được giữ lại nhưng sẽ không còn gắn với họ."
     },
     "activate": "Kích hoạt lại",
-    "delete": "Xóa vĩnh viễn"
+    "delete": "Xóa vĩnh viễn",
+    "ssoNotConfirmed": "Email chưa được xác nhận cho SSO",
+    "confirmEmailForSso": "Xác nhận email cho SSO",
+    "confirmEmail": "Xác nhận email",
+    "emailConfirmed": "Đã xác nhận email cho đăng nhập một lần",
+    "confirmEmailError": "Không thể xác nhận email",
+    "confirmEmailForSsoDialog": {
+      "title": "Xác nhận email này cho SSO?",
+      "message": "Xác nhận {{email}} là địa chỉ của {{name}}? Khi đó, mọi lượt đăng nhập SSO đến kèm email đã xác minh này sẽ được liên kết với tài khoản này. Bản thân địa chỉ email không bị thay đổi. Chỉ xác nhận nếu bạn biết địa chỉ này thuộc về người đó."
+    }
   },
   "systemHealth": {
     "title": "Tình trạng hệ thống",
@@ -699,6 +708,44 @@
       "lastRun": "Lượt chạy gần nhất {{when}}",
       "neverRan": "Chưa từng chạy kể từ khi phiên bản này khởi động.",
       "lastResult": "{{sent}} đã gửi, {{failed}} thất bại"
+    },
+    "customerDocuments": {
+      "title": "Tài liệu khách hàng",
+      "counts": "{{pending}} đang chờ xem xét, {{rejected}} bị từ chối.",
+      "hint": "Tệp khách hàng tải lên sẽ chưa khả dụng với họ cho đến khi được đánh dấu là sạch trong hồ sơ khách hàng. Các tệp bị từ chối sẽ bị xóa sau thời gian lưu giữ.",
+      "abuse": "24 giờ qua: {{forbidden}} lần thử truy cập tài liệu của khách hàng khác, {{quota}} lượt tải lên bị từ chối do vượt hạn mức, {{rate}} lần chạm giới hạn tốc độ.",
+      "abuseAlert": "{{count}} khách hàng đã vượt ngưỡng cảnh báo; đã gửi email đến địa chỉ doanh nghiệp.",
+      "scannerOff": "Trình quét phần mềm độc hại: chưa được cấu hình. Tệp khách hàng tải lên sẽ chờ xem xét thủ công.",
+      "scannerOk": "Trình quét phần mềm độc hại (ClamAV): kết nối được.",
+      "scannerDown": "Trình quét phần mềm độc hại (ClamAV): không kết nối được. Các tệp tải lên mới sẽ ở trạng thái chờ cho đến khi trình quét hoạt động trở lại; lượt quét lại hằng giờ sẽ xử lý bù.",
+      "scannerLastSuccess": "Lần quét thành công gần nhất: {{date}}.",
+      "scannerLastError": "Sự cố gần nhất: {{error}} ({{date}})."
+    },
+    "evidenceKey": {
+      "title": "Khóa bằng chứng ký",
+      "env": "Được thiết lập bằng PICPEAK_EVIDENCE_KEY.",
+      "file": "Được lưu trong business-docs/keys/evidence.key, tệp này nằm trong mọi bản sao lưu.",
+      "none": "Chưa được tạo. Khóa sẽ được tạo khi có chữ ký đầu tiên.",
+      "unreadable": "Không thể đọc tệp khóa. Hãy khôi phục tệp từ bản sao lưu, nếu không bằng chứng ký đã lưu sẽ không thể giải mã.",
+      "id": "Mã khóa {{id}}",
+      "hint": "Địa chỉ IP và trình duyệt của người ký được lưu mã hóa bằng khóa này. Không có khóa, bằng chứng đó không thể đọc được; chữ ký và các tệp PDF vẫn hợp lệ.",
+      "mismatch": "Bằng chứng đã lưu được ghi bằng khóa {{stored}}, nên không thể đọc được nữa, và tên cùng địa chỉ email của những người ký đó sẽ hiển thị trống. {{unreadable}} trên {{total}} giá trị đã lưu bị ảnh hưởng. Hãy đặt lại khóa trước đó, nếu không các hợp đồng đã ký trước đây sẽ hiển thị tên trống.",
+      "olderKeys": "{{count}} trên {{total}} giá trị đã lưu vẫn dùng một khóa cũ hơn nhưng còn đọc được. Chạy scripts/rotate-evidence-key.js để chuyển chúng sang khóa hiện tại, và giữ khóa cũ cho đến khi script báo không còn giá trị nào."
+    },
+    "signingSignals": {
+      "title": "Liên kết ký: hoạt động bất thường (24 giờ)",
+      "kind": {
+        "unknown_token": "Liên kết hoặc phiên không xác định",
+        "stale_token": "Liên kết đã bị rút lại, bị thay thế hoặc đã hết hạn",
+        "otp_failure": "Mã sai",
+        "rate_limited": "Yêu cầu bị từ chối do giới hạn tốc độ",
+        "idempotency_reuse": "Khóa chữ ký bị dùng lại với thông tin khác",
+        "cross_contract": "Tệp được yêu cầu từ sai hợp đồng"
+      },
+      "alerts": "Đã gửi {{count}} cảnh báo đến email doanh nghiệp trong 24 giờ qua.",
+      "hint": "Được đếm theo giờ mà không lưu bất kỳ địa chỉ, token hay mã nào. Khi vượt ngưỡng, bạn sẽ nhận một email cho mỗi loại trong mỗi giờ; ngưỡng được đặt tại Cài đặt → CRM.",
+      "modeGlobal": "Địa chỉ IP không được lưu, nên các liên kết không xác định được đếm chung cho tất cả khách truy cập.",
+      "modePerClient": "Các liên kết không xác định được đếm theo từng khách truy cập (dưới dạng hash có khóa của địa chỉ) và chung cho tất cả khách truy cập."
     }
   },
   "common": {
@@ -796,15 +843,15 @@
     "someFilesFailed": "Một số tệp không thể tải lên",
     "failures": {
       "title": "{{count}} tệp không thể tải lên",
-      "toast": "{{count}} tệp không thể tải lên: xem danh sách bên dưới.",
+      "toast": "{{count}} tệp không thể tải lên, xem chi tiết trong thanh tải lên ở phía trên.",
       "kindRejected": "Bị từ chối",
       "kindTransfer": "Truyền tệp thất bại",
       "kindProcessing": "Xử lý thất bại",
       "transferReason": "Truyền tệp thất bại",
       "unknownReason": "Lỗi không xác định",
       "unknownFile": "Tệp không xác định",
-      "toast_one": "{{count}} tệp không thể tải lên: xem danh sách bên dưới.",
-      "toast_other": "{{count}} tệp không thể tải lên: xem danh sách bên dưới.",
+      "toast_one": "{{count}} tệp không thể tải lên, xem chi tiết trong thanh tải lên ở phía trên.",
+      "toast_other": "{{count}} tệp không thể tải lên, xem chi tiết trong thanh tải lên ở phía trên.",
       "title_one": "{{count}} tệp không thể tải lên",
       "title_other": "{{count}} tệp không thể tải lên"
     },
@@ -820,7 +867,26 @@
     "replacedFiles_other": "{{count}} ảnh đã được thay thế",
     "uploadingChunks_one": "{{count}} phần đang tải lên",
     "uploadingChunks_other": "{{count}} phần đang tải lên",
-    "fileTooLarge": "Tệp quá lớn: {{name}} (tối đa {{limit}}MB)"
+    "fileTooLarge": "Tệp quá lớn: {{name}} (tối đa {{limit}}MB)",
+    "takePhoto": "Chụp ảnh",
+    "photoCapReached": "Bộ sưu tập ảnh này đã đạt giới hạn ảnh ({{limit}} ảnh). Không thể tải lên thêm ảnh.",
+    "uploadingAs": "Đang tải lên với tên {{name}}",
+    "notYou": "Không phải bạn?",
+    "yourName": "Tên của bạn",
+    "yourNameOptional": "Tên của bạn (không bắt buộc)",
+    "nameRequired": "Vui lòng nhập tên của bạn để tải lên.",
+    "nameSaveFailed": "Không thể lưu tên của bạn. Vui lòng thử lại.",
+    "namePrivacyShown": "Tên của bạn được lưu cùng ảnh của bạn và hiển thị cho các khách khác. Người tổ chức có thể xóa tên bất cứ lúc nào.",
+    "namePrivacyHidden": "Tên của bạn được lưu cùng ảnh của bạn để người tổ chức biết. Các khách khác không thấy tên này, và người tổ chức có thể xóa tên bất cứ lúc nào.",
+    "alreadyRunning": "Một lượt tải lên đang chạy. Lượt này phải hoàn tất trước khi có thể bắt đầu lượt tiếp theo.",
+    "bar": {
+      "uploading_one": "Đang tải lên {{count}} tệp",
+      "uploading_other": "Đang tải lên {{count}} tệp",
+      "uploaded_one": "Đã tải lên {{count}} tệp",
+      "uploaded_other": "Đã tải lên {{count}} tệp",
+      "viewEvent": "Xem sự kiện",
+      "statusUnavailable": "Không thể đọc trạng thái xử lý. Ảnh đã được đưa vào hàng đợi và sẽ xuất hiện khi bộ xử lý hoàn tất."
+    }
   },
   "navigation": {
     "dashboard": "Bảng điều khiển",
@@ -841,7 +907,9 @@
     "clients": "CRM",
     "accounting": "Kế toán",
     "workflows": "Quy trình làm việc",
-    "betaTag": "Beta"
+    "betaTag": "Beta",
+    "automation": "Tự động hóa",
+    "sharing": "Chia sẻ"
   },
   "transfers": {
     "title": "PicTransfer",
@@ -887,7 +955,9 @@
       "status": "Trạng thái",
       "downloads": "Lượt tải xuống",
       "expires": "Hết hạn",
-      "uploads": "Lượt tải lên"
+      "uploads": "Lượt tải lên",
+      "kind": "Loại",
+      "deadline": "Hạn chót"
     },
     "status": {
       "active": "Đang hoạt động",
@@ -913,7 +983,12 @@
       "recipientsCount": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
       "recipientsHint": "Phân tách nhiều địa chỉ bằng dấu phẩy. Mỗi người nhận sẽ có liên kết tải xuống.",
       "recipientsCount_one": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
-      "recipientsCount_other": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống"
+      "recipientsCount_other": "{{count}} người nhận, mỗi người nhận sẽ có liên kết tải xuống",
+      "requestTitlePlaceholder": "vd: Logo và tài liệu thương hiệu của gia đình Smith",
+      "requestMessage": "Bạn cần gì từ khách hàng? (tùy chọn)",
+      "requestMessagePlaceholder": "Hiển thị cho khách hàng trên trang tải lên",
+      "uploadWindowDays": "Nhận tệp tải lên trong (số ngày)",
+      "requestRecipientsHint": "Phân tách nhiều địa chỉ bằng dấu phẩy. Mỗi người nhận sẽ có liên kết tải lên."
     },
     "picker": {
       "title": "Chọn ảnh từ các sự kiện khác",
@@ -954,8 +1029,51 @@
       "send": "Tải lên {{count}} tệp",
       "failed": "Tải lên thất bại. Vui lòng thử lại.",
       "send_one": "Tải lên {{count}} tệp",
-      "send_other": "Tải lên {{count}} tệp"
-    }
+      "send_other": "Tải lên {{count}} tệp",
+      "typeRejected": "Loại tệp không được chấp nhận: {{names}}",
+      "tooBigNamed": "Quá lớn (tối đa {{mb}} MB): {{names}}",
+      "toomany": "Chỉ có thể tải lên {{count}} tệp đầu tiên mỗi lần.",
+      "someRejected": "Các tệp sau không được chấp nhận: {{names}}",
+      "anyType": "Chấp nhận mọi loại tệp.",
+      "acceptedTypes": "Chấp nhận: {{types}}",
+      "someFailed": "Không thể lưu các tệp sau. Vui lòng thử lại: {{names}}"
+    },
+    "newSend": "Gửi tệp",
+    "newRequest": "Yêu cầu tệp",
+    "emptyTab": "Tab này chưa có mục nào.",
+    "requestCreated": "Đã tạo yêu cầu tệp",
+    "requestCreateFailed": "Không thể tạo yêu cầu tệp",
+    "createRequest": "Tạo yêu cầu",
+    "createRequestAndSend": "Tạo & gửi yêu cầu",
+    "someRejected": "{{count}} tệp không thuộc loại được phép nên đã bị bỏ qua: {{names}}",
+    "uploadBy": "Nhận tệp tải lên đến",
+    "filesReceived": "Tệp đã nhận",
+    "closeRequest": "Đóng yêu cầu",
+    "requestClosed": "Đã đóng yêu cầu",
+    "resend": "Gửi lại",
+    "emailResent": "Đã gửi lại email",
+    "askedOf": "Đã yêu cầu từ",
+    "uploadCode": "Mã tải lên ngắn",
+    "issueCode": "Cấp mã",
+    "rotateCode": "Mã mới",
+    "revokeCode": "Thu hồi",
+    "codeIssued": "Đã cấp mã tải lên",
+    "codeRevoked": "Đã thu hồi mã tải lên",
+    "codeHint": "Tùy chọn: một mã ngắn bạn có thể đọc qua điện thoại. Liên kết đầy đủ ở trên luôn hoạt động.",
+    "unscannedNote": "Các tệp này được lưu đúng như khi nhận và PicPeak không bao giờ mở hay quét chúng. Hãy kiểm tra trước khi sử dụng hoặc chuyển tiếp.",
+    "deleteRequestConfirmTitle": "Xóa yêu cầu tệp?",
+    "deleteRequestConfirmBody": "Thao tác này sẽ xóa liên kết tải lên và xóa vĩnh viễn mọi tệp khách hàng đã gửi.",
+    "tab": {
+      "all": "Tất cả",
+      "sent": "Đã gửi",
+      "requested": "Đã yêu cầu"
+    },
+    "kind": {
+      "send": "Gửi",
+      "request": "Yêu cầu"
+    },
+    "emptyReadOnly": "Chưa có mục nào.",
+    "someDropped": "{{count}} tệp đính kèm không được giữ lại vì yêu cầu tệp chỉ dùng để thu thập tệp: {{names}}"
   },
   "workflows": {
     "title": "Quy trình tự động",
@@ -1042,7 +1160,10 @@
       "gatePrompt": "Câu hỏi cho quản trị viên",
       "gatePromptPh": "ví dụ: Chưa nhận được thanh toán, gửi nhắc nhở?",
       "gateTimeout": "Tự động hết hạn sau (ngày, tùy chọn)",
-      "gateHint": "Gửi email cho quản trị viên kèm liên kết xác nhận/từ chối; chuyển sang nhánh \"xác nhận\" hoặc \"từ chối\"."
+      "gateHint": "Gửi email cho quản trị viên kèm liên kết xác nhận/từ chối; chuyển sang nhánh \"xác nhận\" hoặc \"từ chối\".",
+      "groups": "Nhóm khách hàng",
+      "groupsNoPermission": "Cần quyền customers.view để liệt kê nhóm khách hàng.",
+      "groupsHint": "Được kiểm tra khi bước này chạy. Cần có khách hàng trong lượt chạy: các điều kiện kích hoạt khách hàng, báo giá, hợp đồng và hóa đơn đều có khách hàng; với điều kiện kích hoạt bộ sưu tập ảnh và sự kiện, kết quả luôn là “không”."
     }
   },
   "archives": {
@@ -1209,7 +1330,8 @@
       "forgetMeConfirm": "Tên và các lựa chọn của bạn sẽ bị xóa khỏi bộ sưu tập ảnh này.",
       "forgetMe": "Quên tôi ({{name}})",
       "notYou": "Không phải bạn?",
-      "socials": "Mạng xã hội"
+      "socials": "Mạng xã hội",
+      "forgetMeConfirmUploads": "Tên của bạn sẽ bị xóa khỏi các ảnh bạn đã tải lên bộ sưu tập ảnh này."
     },
     "photosCount_one": "{{count}} ảnh",
     "photosCount_other": "{{count}} ảnh",
@@ -1304,7 +1426,34 @@
     "preparingProgress_one": "Đã đóng gói {{count}} ảnh",
     "preparingProgress_other": "Đã đóng gói {{count}} ảnh",
     "videoFormatUnsupported": "Định dạng video này không thể phát trong trình duyệt này. Hãy tải xuống để xem.",
-    "videoLoadFailed": "Không thể tải video này."
+    "videoLoadFailed": "Không thể tải video này.",
+    "passwordChangeRequired": "Hãy đổi mật khẩu trong khu vực quản trị trước khi xem trước bộ sưu tập ảnh này.",
+    "goToAdminArea": "Đi đến khu vực quản trị",
+    "adminSessionExpired": "Phiên quản trị của bạn đã hết hạn. Hãy đăng nhập lại để xem trước bộ sưu tập ảnh này.",
+    "signInAgain": "Đăng nhập lại",
+    "credits": {
+      "filterLabel": "Theo",
+      "everyone": "Tất cả",
+      "unnamedGuests": "Khách không có tên",
+      "photographer": "Nhiếp ảnh gia",
+      "uploadedBy": "Tải lên bởi {{name}}",
+      "photoBy": "Ảnh chụp bởi {{name}}"
+    },
+    "favoriteSelected_other": "Yêu thích {{count}} ảnh",
+    "unfavoriteSelected_other": "Bỏ {{count}} ảnh yêu thích",
+    "favoritesAdded_other": "Đã thêm {{count}} ảnh vào mục yêu thích",
+    "favoritesRemoved_other": "Đã bỏ {{count}} ảnh khỏi mục yêu thích",
+    "favoriteSelectedError": "Không thể lưu một số ảnh yêu thích",
+    "downloadLimit": {
+      "reached": "Đã đạt giới hạn tải xuống. Vui lòng liên hệ nhiếp ảnh gia để có thêm lượt tải.",
+      "notEnough": "Chỉ còn {{remaining}} lượt tải. Vui lòng chọn ít ảnh hơn hoặc liên hệ nhiếp ảnh gia.",
+      "counter": "Đã dùng {{used}}/{{limit}} lượt tải",
+      "selectionCost": "Dùng {{cost}} trong {{remaining}} lượt tải còn lại của bạn",
+      "selectionTooLarge": "Giới hạn tải xuống: lựa chọn này cần {{cost}} lượt tải, chỉ còn {{remaining}}",
+      "downloadAllBlocked": "Bộ sưu tập ảnh này có nhiều ảnh hơn số lượt tải còn lại của bạn",
+      "previewOnly": "Ảnh tải xuống trong bộ sưu tập này ở kích thước xem trước. Tệp gốc dành cho khách hàng.",
+      "videoClientOnly": "Video này chỉ dành cho khách hàng."
+    }
   },
   "categories": {
     "title": "Danh mục ảnh",
@@ -1475,7 +1624,7 @@
     "galleryPassword": "Mật khẩu bộ sưu tập ảnh",
     "requirePasswordToggle": "Yêu cầu mật khẩu cho bộ sưu tập ảnh này",
     "requirePasswordToggleHelp": "Tắt tùy chọn này nếu bạn muốn chia sẻ bộ sưu tập ảnh mà không cần mật khẩu. Bất kỳ ai có liên kết đều có thể xem ảnh.",
-    "publicGalleryWarning": "Bộ sưu tập ảnh công khai có thể được truy cập bởi bất kỳ ai có liên kết. Cân nhắc bật hình mờ khi tải xuống và theo dõi hoạt động.",
+    "publicGalleryWarning": "Bộ sưu tập ảnh công khai có thể được truy cập bởi bất kỳ ai có liên kết. Cân nhắc bật watermark cho file tải về trong mục Thương hiệu và theo dõi hoạt động.",
     "passwordHelperText": "Bạn có thể dùng ngày tháng như \"04.07.2025\" hoặc bất kỳ văn bản nào có từ 6 ký tự trở lên",
     "confirmPassword": "Xác nhận mật khẩu",
     "newPasswordLabel": "Mật khẩu mới của bộ sưu tập ảnh",
@@ -1527,10 +1676,10 @@
     "enableDevtoolsProtection": "Phát hiện công cụ dành cho nhà phát triển",
     "useCanvasRendering": "Kết xuất bằng canvas trong hộp xem ảnh (bảo vệ nâng cao)",
     "protectionInfo": "Các tính năng bảo vệ giúp ngăn chặn việc tải xuống trái phép nhưng không thể chặn được mọi cách thức.",
-    "protectionLevelBasic": "Cơ bản: Chỉ chặn chuột phải",
+    "protectionLevelBasic": "Cơ bản: không thêm bảo vệ nào ngoài các công tắc bên dưới",
     "protectionLevelStandard": "Tiêu chuẩn: Chặn phím tắt",
     "protectionLevelEnhanced": "Nâng cao: Phát hiện chụp màn hình",
-    "protectionLevelMaximum": "Tối đa: Phát hiện DevTools & kết xuất bằng canvas",
+    "protectionLevelMaximum": "Tối đa: rời khỏi gallery khi phát hiện công cụ nhà phát triển (khi bật phát hiện công cụ nhà phát triển)",
     "heroLogoSettings": "Cài đặt logo ảnh bìa",
     "heroLogoVisible": "Hiển thị logo trong phần ảnh bìa",
     "heroLogoInherit": "Dùng mặc định theo thương hiệu",
@@ -1701,7 +1850,8 @@
       "warningTitle": "Lưu ý:",
       "warning1": "URL bộ sưu tập ảnh sẽ thay đổi",
       "warning2": "URL cũ sẽ tự động chuyển hướng đến URL mới",
-      "warning3": "File ảnh có thể bị đổi tên"
+      "warning3": "File ảnh có thể bị đổi tên",
+      "warning4": "Địa chỉ mới được tạo từ loại, tên và ngày hiện tại của sự kiện."
     },
     "bulkArchiveSuccess_one": "Đã lưu trữ thành công {{count}} sự kiện",
     "bulkArchiveSuccess_other": "Đã lưu trữ thành công {{count}} sự kiện",
@@ -1778,7 +1928,166 @@
       "noResultsCanCreate": "Không có kết quả khớp. Dùng “Tạo khách hàng mới” để thêm khách hàng.",
       "noResultsNoPermission": "Không có kết quả khớp, và vai trò của bạn không thể tạo khách hàng. Hãy nhờ quản trị viên thêm khách hàng này."
     },
-    "downloadsDisabledNotice": "Gallery này đang tắt tải ảnh nên các thiết lập ở đây không có tác dụng. Bật \"Allow photo downloads\" trong mục Download Protection để dùng được."
+    "downloadsDisabledNotice": "Gallery này đang tắt tải ảnh nên các thiết lập ở đây không có tác dụng. Bật \"Allow photo downloads\" trong mục Download Protection để dùng được.",
+    "shareLinkOwnerOnly": "Chỉ chủ sở hữu bộ sưu tập ảnh mới có thể xem và chia sẻ liên kết này.",
+    "uploaderNames": {
+      "label": "Tên người tải lên",
+      "help": "Cho phép khách thêm tên khi tải lên, để bạn biết ai đã tải lên ảnh nào.",
+      "modes": {
+        "off": "Tắt",
+        "optional": "Không bắt buộc",
+        "required": "Bắt buộc"
+      },
+      "showToGuests": "Hiển thị tên người tải lên cho khách",
+      "showToGuestsHelp": "Khách sẽ thấy tên trên các ảnh được tải lên trong lúc tùy chọn này bật; tên được nhập khi tùy chọn đang tắt chỉ bạn và người tổ chức thấy. Tắt tùy chọn sẽ ẩn mọi tên khỏi khách. Tùy chọn này cũng áp dụng cho tên nhiếp ảnh gia đọc từ EXIF.",
+      "shownToGuests": "Hiển thị cho khách",
+      "hiddenFromGuests": "Chỉ bạn thấy"
+    },
+    "saveBar": {
+      "label": "Thay đổi chưa lưu",
+      "count_other": "{{count}} thay đổi chưa lưu",
+      "discard": "Bỏ thay đổi",
+      "save": "Lưu",
+      "changedElsewhere": "Đã bị thay đổi ở nơi khác từ lúc bạn bắt đầu: {{sections}}",
+      "failed": "Chưa lưu được: {{parts}}. Các thay đổi khác đã được lưu.",
+      "partEvent": "thông tin sự kiện",
+      "partFeedback": "phản hồi của khách",
+      "partQuota": "hạn mức tải",
+      "partResolution": "độ phân giải tải về"
+    },
+    "settings": {
+      "unsaved": "thay đổi chưa lưu",
+      "showAdvanced": "Hiện tùy chọn nâng cao",
+      "hideAdvanced": "Ẩn tùy chọn nâng cao",
+      "expertMode": "Chế độ chuyên gia",
+      "expertModeHelp": "Hiện tùy chọn nâng cao của mọi mục",
+      "railLabel": "Cài đặt sự kiện",
+      "tab": "Cài đặt",
+      "sectionDetails": "Thông tin",
+      "sectionAccess": "Truy cập",
+      "sectionAppearance": "Giao diện",
+      "sectionGuests": "Tương tác của khách",
+      "sectionDownloads": "Tải về",
+      "sectionAdvanced": "Nâng cao",
+      "sectionExtra": "Tính năng bổ sung",
+      "lockedPermission": "Đã khóa: cần quyền {{permission}}",
+      "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
+    },
+    "changePasswordLink": "Đổi mật khẩu",
+    "credits": {
+      "showToGuests": "Hiện tên tác giả ảnh cho khách",
+      "showToGuestsHelp": "Khách thấy tên nhiếp ảnh gia được lưu trong từng ảnh. Bạn luôn thấy tên này."
+    },
+    "heroLogoInfoGlobal": "Kích thước và vị trí logo lấy từ phần Branding và áp dụng cho mọi gallery.",
+    "feedbackMode": {
+      "label": "Phản hồi của khách",
+      "off": "Tắt",
+      "offHelp": "Khách chỉ xem và tải ảnh.",
+      "picks": "Khách hàng chọn ảnh",
+      "picksHelp": "Khách chỉ đánh dấu ảnh yêu thích.",
+      "full": "Phản hồi đầy đủ",
+      "fullHelp": "Yêu thích, thích, chấm điểm, bình luận và biểu cảm.",
+      "custom": "Tuỳ chỉnh",
+      "customHelp": "Các công tắc riêng trong phần tuỳ chọn nâng cao quyết định.",
+      "customFromSettings": "Tuỳ chỉnh (theo Cài đặt)",
+      "customFromSettingsHelp": "Các công tắc phản hồi đặt trong Cài đặt > Sự kiện."
+    },
+    "expiry": {
+      "label": "Gallery hết hạn",
+      "days_other": "{{count}} ngày",
+      "never": "Không bao giờ",
+      "expiresOn": "Hết hạn ngày {{date}}",
+      "neverExpires": "Không bao giờ hết hạn",
+      "quickHelp": "Tính từ hôm nay."
+    },
+    "details": {
+      "eventDate": "Ngày sự kiện",
+      "eventType": "Loại sự kiện",
+      "inactiveType": "{{name}} (ngừng dùng)",
+      "eventDateRequired": "Ngày sự kiện không được để trống."
+    },
+    "welcomeEditor": {
+      "tip": "Nhấn Enter để xuống dòng. Mỗi dòng là một đoạn riêng trong email.",
+      "preview": "Xem trước:",
+      "lineBreaks": "Email giữ nguyên các lần xuống dòng"
+    },
+    "typeTheme": {
+      "title": "Thay giao diện đã tuỳ chỉnh?",
+      "message": "Giao diện của gallery này đã được chỉnh tay. Dùng giao diện của loại {{type}} thay thế?",
+      "confirm": "Dùng giao diện mới",
+      "keep": "Giữ giao diện của tôi"
+    },
+    "access": {
+      "currentPassword": "Mật khẩu hiện tại",
+      "notViewable": "Đã đặt, không xem được",
+      "notViewableHelp": "Mật khẩu này chỉ lưu dạng băm. Đặt mật khẩu mới để sau này xem được ở đây.",
+      "show": "Hiện",
+      "hide": "Ẩn",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép",
+      "regenerate": "Tạo lại",
+      "newPassword": "Mật khẩu mới",
+      "newPasswordKeep": "Mật khẩu mới (để trống để giữ mật khẩu hiện tại)",
+      "galleryPassword": "Mật khẩu gallery",
+      "turnOffTitle": "Bỏ mật khẩu?",
+      "turnOffMessage": "Gallery này đã công khai. Không có mật khẩu thì ai có đường dẫn cũng xem được ảnh.",
+      "turnOffConfirm": "Bỏ mật khẩu"
+    },
+    "mailPassword": {
+      "storedNote": "Email sẽ kèm mật khẩu gallery đã lưu.",
+      "useDifferent": "Dùng mật khẩu khác",
+      "useStored": "Dùng mật khẩu đã lưu"
+    },
+    "bannerOverride": {
+      "usesGlobal": "Dùng banner trong phần Branding.",
+      "noGlobal": "Branding chưa đặt banner nên không có banner nào hiện.",
+      "override": "Ghi đè cho sự kiện này",
+      "backToGlobal": "Dùng lại banner trong Branding"
+    },
+    "nextSteps": {
+      "title": "Các bước tiếp theo",
+      "uploadPhotos": "Tải ảnh lên",
+      "uploadAction": "Tải lên",
+      "chooseHero": "Chọn ảnh bìa",
+      "chooseHeroAction": "Chọn",
+      "publish": "Xuất bản và gửi cho khách hàng",
+      "publishAction": "Xuất bản",
+      "done": "đã xong",
+      "needsPermission": "Cần quyền {{permission}}"
+    },
+    "media": "Media",
+    "mediaStatistics": "Thống kê media",
+    "videos": "Video",
+    "videoRuntime": "Thời lượng video",
+    "photosCount_other": "{{count}} ảnh",
+    "videosCount_other": "{{count}} video",
+    "manageMedia": "Quản lý media",
+    "downloadLimit": "Giới hạn tải xuống",
+    "downloadLimitHelp": "Số ảnh tối đa khách hàng có thể tải xuống. 0 = không giới hạn",
+    "downloadLimitUsage": "Đã tải {{used}} / {{limit}}",
+    "downloadLimitReset": "Đặt lại",
+    "downloadLimitResetConfirm": "Đặt lại lượt tải của bộ sưu tập ảnh này? Khách hàng sẽ có lại toàn bộ giới hạn, và ảnh đã tải sẽ được tính lại.",
+    "downloadLimitResetDone": "Đã đặt lại lượt tải",
+    "downloadLimitResetFailed": "Không thể đặt lại lượt tải",
+    "sortNameAsc": "A đến Z",
+    "sortNameDesc": "Z đến A",
+    "sortDateNewest": "Mới nhất trước",
+    "sortDateOldest": "Cũ nhất trước",
+    "sortCreatedNewest": "Tạo gần đây",
+    "sortCreatedOldest": "Tạo sớm nhất",
+    "sortPhotosMost": "Nhiều ảnh nhất",
+    "sortPhotosFewest": "Ít ảnh nhất",
+    "sortStatusActive": "Đang hoạt động trước",
+    "sortStatusArchived": "Đã lưu trữ trước",
+    "sortExpiresSoonest": "Sắp hết hạn nhất",
+    "sortExpiresLatest": "Hết hạn muộn nhất",
+    "filterAllTypes": "Tất cả loại",
+    "filterByType": "Lọc theo loại",
+    "sortByName": "Sắp xếp theo tên",
+    "sortByDate": "Sắp xếp theo ngày",
+    "sortByPhotos": "Sắp xếp theo số ảnh",
+    "sortByStatus": "Sắp xếp theo trạng thái",
+    "sortByExpiry": "Sắp xếp theo hạn"
   },
   "settings": {
     "title": "Cài đặt hệ thống",
@@ -1829,7 +2138,14 @@
       "timeFormat": "Định dạng giờ",
       "timeFormat24h": "24 giờ (14:30)",
       "timeFormat12h": "12 giờ (2:30 PM)",
-      "timeFormatHelp": "Kiểm soát cách hiển thị thời gian trong các màn hình quản trị, trang hướng đến khách hàng và file PDF. Dữ liệu lưu trữ luôn theo định dạng 24 giờ (HH:mm); chỉ phần hiển thị thay đổi."
+      "timeFormatHelp": "Kiểm soát cách hiển thị thời gian trong các màn hình quản trị, trang hướng đến khách hàng và file PDF. Dữ liệu lưu trữ luôn theo định dạng 24 giờ (HH:mm); chỉ phần hiển thị thay đổi.",
+      "notificationEmail": "Email nhận thông báo",
+      "notificationEmailHelp": "PicPeak gửi thư quản trị về gallery tới địa chỉ này, ví dụ khi lưu trữ xong hoặc gallery hết hạn. Khách hàng cũng thấy đây là địa chỉ liên hệ. Để trống thì dùng địa chỉ lưu trong từng sự kiện.",
+      "useBusinessEmail": "Dùng {{email}}",
+      "notificationEmailInvalid": "Nhập một địa chỉ email hợp lệ, ví dụ studio@example.com",
+      "adminLanguage": "Ngôn ngữ quản trị của bạn",
+      "adminLanguageHelp": "Áp dụng cho khu vực quản trị, chỉ cho bạn trên thiết bị này. Có hiệu lực ngay, không cần lưu.",
+      "customerLanguage": "Ngôn ngữ bộ sưu tập ảnh & khách xem"
     },
     "publicSite": {
       "badge": "Trang chủ công khai",
@@ -1971,7 +2287,8 @@
       "failed": "Thất bại",
       "lastUpdate": "Cập nhật lần cuối",
       "emailProcessorStopped": "Không chạy: email được ghi vào hàng đợi nhưng không có gì gửi chúng đi.",
-      "emailProcessorDegraded": "Đang chạy, nhưng lần xử lý gần nhất không thể gửi: {{error}}"
+      "emailProcessorDegraded": "Đang chạy, nhưng lần xử lý gần nhất không thể gửi: {{error}}",
+      "description": "Dịch vụ, hàng đợi, bộ nhớ lưu trữ và phiên bản: những gì hệ thống này đang chạy lúc này."
     },
     "photoDimensions": {
       "title": "Kích thước ảnh",
@@ -2042,7 +2359,11 @@
       "defaultAllowColorLabels": "Nhãn màu",
       "defaultKeybindMode": "Phím tắt hộp xem mặc định",
       "keybindColors": "Chỉ màu: 1 xanh lá, 2 vàng, 3 đỏ",
-      "keybindLightroom": "Lightroom: 1-5 sao, 6-9 màu"
+      "keybindLightroom": "Lightroom: 1-5 sao, 6-9 màu",
+      "keybindMode": "Phím tắt trong lightbox",
+      "keybindModeHelp": "Áp dụng ngay cho mọi gallery, kể cả gallery đã có.",
+      "defaultDownloadLimit": "Giới hạn tải xuống mặc định",
+      "defaultDownloadLimitHelp": "Điền sẵn cho sự kiện mới: số ảnh khách hàng có thể tải xuống. 0 = không giới hạn."
     },
     "imageSecurity": {
       "title": "Bảo vệ hình ảnh",
@@ -2050,11 +2371,12 @@
       "saveError": "Không thể lưu cài đặt",
       "loadError": "Không thể tải cài đặt bảo vệ hình ảnh",
       "defaultProtection": "Cài đặt bảo vệ mặc định",
-      "defaultProtectionHelp": "Các cài đặt này áp dụng cho mọi sự kiện mới. Từng sự kiện riêng lẻ có thể ghi đè các giá trị mặc định này.",
+      "defaultProtectionHelp": "Mức bảo vệ và chất lượng ảnh được chép vào mỗi sự kiện mới. Các công tắc bên dưới áp dụng ngay cho mọi gallery.",
       "protectionLevel": "Mức bảo vệ mặc định",
       "imageQuality": "Chất lượng ảnh mặc định",
-      "enableDevtools": "Bật phát hiện DevTools theo mặc định",
-      "enableCanvas": "Bật kết xuất canvas trong hộp xem theo mặc định (bảo vệ nâng cao)",
+      "disableRightClick": "Chặn chuột phải trong mọi gallery",
+      "enableDevtools": "Phát hiện công cụ nhà phát triển trong mọi gallery",
+      "enableCanvas": "Kết xuất canvas trong hộp xem của mọi gallery (bảo vệ nâng cao)",
       "rateLimiting": "Giới hạn tốc độ",
       "rateLimitingHelp": "Giới hạn số lượng ảnh có thể được yêu cầu để ngăn chặn việc thu thập dữ liệu tự động.",
       "requestsPerMinute": "Số yêu cầu mỗi phút",
@@ -2138,7 +2460,9 @@
       "fit_fill": "Fill (kéo giãn)",
       "fit_inside": "Inside (thu nhỏ để vừa)",
       "fit_outside": "Outside (mở rộng để lấp đầy)",
-      "fitRecommendation": "Khuyến nghị: dùng \"Inside\" cho bố cục masonry / mosaic / justified (giữ nguyên tỉ lệ khung hình); dùng \"Cover\" cho các ô lưới đồng nhất tỉ lệ 1:1."
+      "fitRecommendation": "Khuyến nghị: dùng \"Inside\" cho bố cục masonry / mosaic / justified (giữ nguyên tỉ lệ khung hình); dùng \"Cover\" cho các ô lưới đồng nhất tỉ lệ 1:1.",
+      "regenerateRunning": "Một lượt tạo lại đang chạy. Hãy thử lại khi lượt đó đã hoàn tất.",
+      "readOnly": "Chỉ quản trị viên có quyền chỉnh sửa cài đặt mới có thể thay đổi các giá trị này hoặc tạo lại toàn bộ kho ảnh."
     },
     "seo": {
       "title": "SEO & Robots",
@@ -2224,7 +2548,8 @@
       "system": "Hệ thống",
       "appearance": "Nội dung & Giao diện",
       "communication": "Giao tiếp",
-      "crm": "Cài đặt CRM"
+      "crm": "Cài đặt CRM",
+      "people": "Người dùng & quyền truy cập"
     },
     "contracts": {
       "title": "Hợp đồng"
@@ -2504,7 +2829,13 @@
         "title": "Người trong bộ sưu tập ảnh",
         "description": "Nhóm ảnh trong mỗi bộ sưu tập theo những người xuất hiện trong đó, để khách xem ảnh có thể tìm thấy chính mình chỉ với hai lần chạm và tải xuống riêng ảnh của họ. Chạy hoàn toàn trên máy chủ riêng của bạn trong một container riêng biệt, tùy chọn: không có gì được gửi đi bất cứ đâu. Khuôn mặt được nhận diện là dữ liệu cá nhân, nên tính năng này luôn tắt cho đến khi bạn bật riêng cho từng bộ sưu tập ảnh.",
         "lockedSingleContainer": "Không khả dụng trên bản dựng all-in-one. Việc nhận diện khuôn mặt cần một container ML riêng và sẽ cạnh tranh CPU cũng như bộ nhớ với việc xử lý ảnh, làm chậm toàn bộ hệ thống."
-      }
+      },
+      "documents": {
+        "title": "Tài liệu khách hàng",
+        "description": "Chia sẻ tài liệu với khách hàng trong cổng khách hàng của họ và nhận tài liệu từ họ. Tệp khách hàng tải lên sẽ chưa khả dụng cho đến khi bạn đánh dấu là sạch trong hồ sơ khách hàng. Mặc định chỉ nhận PDF; thêm loại tệp, giới hạn kích thước và dung lượng lưu trữ tại Cài đặt → CRM."
+      },
+      "configure": "Cấu hình",
+      "sidebarInSettings": "Không có mục ở thanh bên, nằm trong Cài đặt"
     },
     "customerSurface": {
       "brandingTitle": "Tiêu đề bảng điều khiển khách hàng",
@@ -2513,7 +2844,7 @@
       "showLogoHint": "Dùng cùng logo thương hiệu đã cấu hình ở trên.",
       "showCompanyName": "Hiển thị tên công ty trong tiêu đề khách hàng",
       "showCompanyNameHint": "Ẩn nếu logo của bạn đã bao gồm sẵn tên công ty.",
-      "save": "Lưu thay đổi",
+      "save": "Lưu cài đặt tiêu đề",
       "saved": "Đã lưu thương hiệu bảng điều khiển khách hàng",
       "error": "Không thể lưu cài đặt"
     },
@@ -2534,7 +2865,7 @@
       "vat": {
         "title": "VAT",
         "registered": "Đã đăng ký VAT (tính VAT đầu ra + hoàn VAT đầu vào)",
-        "registeredHint": "Tắt = doanh nghiệp nhỏ / dưới ngưỡng: không tính VAT, VAT đầu vào là một khoản chi phí (không được hoàn lại).",
+        "registeredHint": "Tắt = doanh nghiệp nhỏ / dưới ngưỡng: không tính VAT, VAT đầu vào là một khoản chi phí (không được hoàn lại). Khi đó, hóa đơn và báo giá không có VAT sẽ không hiển thị dòng VAT; ghi chú VAT trong cài đặt CRM sẽ được dùng thay thế.",
         "reclaimCountries": "Các quốc gia được hoàn VAT đầu vào",
         "reclaimCountriesHint": "Thường là quốc gia sở tại của bạn (CH / LI). Chi phí từ các quốc gia khác được coi là VAT nước ngoài không được hoàn lại. Nhấn giữ Cmd/Ctrl để chọn nhiều.",
         "defaultOutputCode": "Mã VAT mặc định cho hóa đơn mới",
@@ -2548,7 +2879,10 @@
         "vatLabelHint": "Được in làm nhãn dòng VAT trên PDF hóa đơn / báo giá. Để trống để dùng mặc định theo ngôn ngữ tài liệu.",
         "hourlyRate": "Mức phí theo giờ mặc định",
         "hourlyRatePlaceholder": "ví dụ: 120.00",
-        "hourlyRateHint": "Mức phí dự phòng dùng khi khách hàng không có mức phí riêng (ghi nhận giờ làm việc). Theo {{currency}}, đơn vị chính. Để trống để bắt buộc mức phí theo từng khách hàng hoặc từng khoản."
+        "hourlyRateHint": "Mức giá dự phòng khi khách hàng không có mức giá riêng (ghi nhận giờ làm và các dòng báo giá tính theo giờ). Tính bằng {{currency}}, đơn vị chính. Để trống để bắt buộc có mức giá theo từng khách hàng hoặc từng mục.",
+        "dayRate": "Mức phí theo ngày mặc định",
+        "dayRateHint": "Dùng cho các dòng báo giá tính theo ngày khi khách hàng không có mức phí theo ngày riêng. Theo {{currency}}, đơn vị chính.",
+        "dayRatePlaceholder": "ví dụ: 1200.00"
       },
       "rebillAttachProof": "Đính kèm chứng từ nhà cung cấp vào hóa đơn tái lập theo mặc định",
       "rebillAttachProofHint": "Khi một hóa đơn nhà cung cấp đã ghi nhận được tái lập hoặc chuyển tiếp, hãy đính kèm PDF đã lưu của nó vào email hóa đơn khách hàng như một chứng từ riêng. Đây là mặc định: có thể thay đổi mỗi lần qua tùy chọn ghi đè theo từng khách hàng và lựa chọn theo từng file trong hộp thoại Gửi.",
@@ -2679,7 +3013,8 @@
         "logoutFromIdp": "Cũng đăng xuất khỏi nhà cung cấp danh tính",
         "logoutFromIdpHint": "Đăng xuất khỏi PicPeak cũng sẽ kết thúc phiên IdP (đăng xuất khởi tạo từ RP). Chỉ áp dụng cho các phiên đã đăng nhập qua SSO; nếu không bật, đăng xuất khỏi PicPeak sẽ để phiên IdP vẫn hoạt động và lần nhấn SSO tiếp theo sẽ đăng nhập trở lại ngay.",
         "postLogoutRedirectUri": "Post-logout redirect URI (đăng ký giá trị này trên client của IdP, ví dụ Keycloak \"Valid post logout redirect URIs\")"
-      }
+      },
+      "superAdminOnly": "Chỉ super admin mới có thể đổi nhà cung cấp danh tính (issuer URL và client ID). Mọi mục khác trên tab này vẫn chỉnh sửa được."
     },
     "downloads": {
       "title": "Độ phân giải tải xuống",
@@ -2726,7 +3061,287 @@
       "staleTiers_other": "{{count}} kích thước đã lưu trong bộ nhớ đệm không thể xóa được và sẽ tiếp tục hiển thị hướng ảnh cũ: hãy chạy lại khi ổ lưu trữ có thể ghi được."
     },
     "saved": "Đã lưu cài đặt",
-    "saveError": "Không thể lưu cài đặt"
+    "saveError": "Không thể lưu cài đặt",
+    "creditBackfill": {
+      "title": "Ghi công ảnh",
+      "description": "Đọc thông tin ghi công nhiếp ảnh gia (EXIF Artist, XMP Creator hoặc tên trong Copyright) cho những ảnh được thêm trước khi hệ thống bắt đầu ghi nhận ghi công. Ảnh do khách tải lên và tên bạn đặt thủ công sẽ không bao giờ bị thay đổi.",
+      "withCredit": "Có ghi công",
+      "undecided": "Chưa đọc",
+      "result": "Lần chạy gần nhất: {{success}} đã ghi công, {{noCredit}} không có tên trong tệp, {{failed}} không truy cập được",
+      "running": "Đang đọc ghi công...",
+      "noneToRead": "Không còn ảnh nào cần đọc",
+      "button": "Đọc ghi công từ EXIF"
+    },
+    "saveBar": {
+      "unsaved": "Bạn có thay đổi chưa được lưu",
+      "leaveTitle": "Hủy các thay đổi chưa lưu?",
+      "leaveMessage": "Bạn có thay đổi chưa lưu trên trang này. Rời đi bây giờ sẽ hủy các thay đổi đó.",
+      "leaveConfirm": "Hủy và rời đi",
+      "leaveCancel": "Ở lại"
+    },
+    "health": {
+      "title": "Tình trạng",
+      "description": "Các lỗi chạy nền cần xử lý: email bị kẹt, kiểm tra thất bại và dọn dẹp."
+    },
+    "search": {
+      "placeholder": "Tìm cài đặt…",
+      "label": "Tìm cài đặt",
+      "noResults": "Không có cài đặt nào khớp với “{{query}}”."
+    },
+    "keywords": {
+      "accounting": {
+        "0": "kế toán",
+        "1": "hệ thống tài khoản",
+        "2": "sổ cái",
+        "3": "vat",
+        "4": "thuế",
+        "5": "ghi sổ",
+        "6": "banana"
+      },
+      "analytics": {
+        "0": "phân tích",
+        "1": "theo dõi",
+        "2": "thống kê",
+        "3": "khách truy cập"
+      },
+      "apiTokens": {
+        "0": "api",
+        "1": "token",
+        "2": "khóa api",
+        "3": "tích hợp"
+      },
+      "backup": {
+        "0": "sao lưu",
+        "1": "khôi phục",
+        "2": "xuất",
+        "3": "nhập",
+        "4": "bản chụp",
+        "5": "khôi phục sau sự cố"
+      },
+      "branding": {
+        "0": "thương hiệu",
+        "1": "logo",
+        "2": "favicon",
+        "3": "màu sắc",
+        "4": "màu",
+        "5": "giao diện",
+        "6": "tên công ty"
+      },
+      "businessProfile": {
+        "0": "hồ sơ doanh nghiệp",
+        "1": "bên phát hành",
+        "2": "địa chỉ công ty",
+        "3": "mã số vat",
+        "4": "mã số thuế",
+        "5": "iban",
+        "6": "ngân hàng"
+      },
+      "categories": {
+        "0": "danh mục",
+        "1": "danh mục ảnh",
+        "2": "thẻ"
+      },
+      "cms": {
+        "0": "cms",
+        "1": "trang",
+        "2": "thông tin pháp lý",
+        "3": "impressum",
+        "4": "chính sách quyền riêng tư",
+        "5": "điều khoản",
+        "6": "pháp lý"
+      },
+      "contracts": {
+        "0": "hợp đồng",
+        "1": "khối",
+        "2": "điều khoản",
+        "3": "chữ ký",
+        "4": "mẫu"
+      },
+      "crm": {
+        "0": "crm",
+        "1": "báo giá",
+        "2": "hóa đơn",
+        "3": "đánh số",
+        "4": "mặc định chứng từ"
+      },
+      "downloads": {
+        "0": "tải xuống",
+        "1": "độ phân giải",
+        "2": "kích thước xuất",
+        "3": "tệp gốc"
+      },
+      "email": {
+        "0": "email",
+        "1": "smtp",
+        "2": "imap",
+        "3": "máy chủ thư",
+        "4": "người gửi",
+        "5": "mẫu",
+        "6": "chữ ký"
+      },
+      "eventTypes": {
+        "0": "loại sự kiện",
+        "1": "đám cưới",
+        "2": "chân dung",
+        "3": "phân loại sự kiện"
+      },
+      "events": {
+        "0": "tạo sự kiện",
+        "1": "mặc định",
+        "2": "hết hạn",
+        "3": "giới hạn tải lên"
+      },
+      "features": {
+        "0": "tính năng",
+        "1": "cờ",
+        "2": "bật tắt",
+        "3": "bật",
+        "4": "tắt",
+        "5": "mô-đun"
+      },
+      "general": {
+        "0": "chung",
+        "1": "ngôn ngữ",
+        "2": "múi giờ",
+        "3": "định dạng ngày",
+        "4": "định dạng giờ",
+        "5": "url trang web",
+        "6": "tên miền",
+        "7": "tài khoản",
+        "8": "mật khẩu",
+        "9": "mfa",
+        "10": "2fa"
+      },
+      "health": {
+        "0": "tình trạng hệ thống",
+        "1": "email bị kẹt",
+        "2": "chẩn đoán",
+        "3": "dọn dẹp",
+        "4": "kiểm tra",
+        "5": "khắc phục sự cố"
+      },
+      "imageSecurity": {
+        "0": "bảo vệ ảnh",
+        "1": "watermark",
+        "2": "chuột phải",
+        "3": "chống tải xuống"
+      },
+      "moderation": {
+        "0": "kiểm duyệt",
+        "1": "phản hồi",
+        "2": "bình luận",
+        "3": "báo cáo",
+        "4": "bị gắn cờ"
+      },
+      "security": {
+        "0": "bảo mật",
+        "1": "giới hạn tần suất",
+        "2": "đăng nhập",
+        "3": "khóa tài khoản",
+        "4": "phiên đăng nhập",
+        "5": "chính sách mật khẩu"
+      },
+      "seo": {
+        "0": "seo",
+        "1": "robots",
+        "2": "sitemap",
+        "3": "thẻ meta",
+        "4": "công cụ tìm kiếm",
+        "5": "lập chỉ mục"
+      },
+      "slideshow": {
+        "0": "trình chiếu",
+        "1": "kiosk",
+        "2": "thuyết trình",
+        "3": "hiển thị"
+      },
+      "sso": {
+        "0": "sso",
+        "1": "đăng nhập một lần",
+        "2": "oidc",
+        "3": "saml",
+        "4": "oauth",
+        "5": "nhà cung cấp danh tính"
+      },
+      "status": {
+        "0": "trạng thái hệ thống",
+        "1": "dịch vụ",
+        "2": "hàng đợi",
+        "3": "worker",
+        "4": "ổ đĩa",
+        "5": "phiên bản"
+      },
+      "styling": {
+        "0": "css tùy chỉnh",
+        "1": "css",
+        "2": "stylesheet",
+        "3": "định kiểu"
+      },
+      "thumbnails": {
+        "0": "ảnh thu nhỏ",
+        "1": "kích thước xem trước",
+        "2": "kích thước ảnh"
+      },
+      "usage": {
+        "0": "mức sử dụng",
+        "1": "giấy phép",
+        "2": "license",
+        "3": "gói",
+        "4": "hạn mức"
+      },
+      "users": {
+        "0": "người dùng",
+        "1": "tài khoản",
+        "2": "vai trò",
+        "3": "quyền",
+        "4": "mời",
+        "5": "nhóm",
+        "6": "nhân viên",
+        "7": "quyền truy cập"
+      },
+      "webhooks": {
+        "0": "webhook",
+        "1": "callback",
+        "2": "http hook",
+        "3": "luồng sự kiện"
+      },
+      "whatsapp": {
+        "0": "whatsapp",
+        "1": "nhắn tin",
+        "2": "điện thoại",
+        "3": "business api"
+      },
+      "transfers": {
+        "0": "chuyển tệp",
+        "1": "pictransfer",
+        "2": "tải lên",
+        "3": "loại tệp",
+        "4": "mime",
+        "5": "svg",
+        "6": "danh sách cho phép",
+        "7": "chấp nhận tất cả",
+        "8": "kích thước tệp",
+        "9": "yêu cầu tệp"
+      }
+    },
+    "transfers": {
+      "title": "PicTransfer",
+      "description": "Những loại tệp khách hàng được gửi cho bạn, và kích thước tối đa.",
+      "uploadsTitle": "Khách hàng được gửi gì cho bạn",
+      "uploadsIntro": "Áp dụng cho yêu cầu tệp và tệp bạn đính kèm vào lượt chuyển tệp. Không thay đổi những gì được tải lên bộ sưu tập ảnh.",
+      "acceptAll": "Chấp nhận mọi loại tệp",
+      "acceptAllHint": "Mọi tệp khách hàng chọn đều được chấp nhận. Giới hạn kích thước, số lượng tệp và thời hạn liên kết vẫn được áp dụng.",
+      "acceptAllWarning": "Tệp tải lên được lưu và gửi đi dưới dạng tệp tải xuống nguyên khối. PicPeak không bao giờ mở, hiển thị hay quét chúng, và chúng không bao giờ được phục vụ như nội dung web. Nhưng PicPeak cũng không thể cho bạn biết một tệp có an toàn hay không. Hãy kiểm tra mọi tệp bạn mở hoặc chuyển tiếp.",
+      "allowedTypes": "Loại tệp được phép",
+      "addType": "Thêm loại",
+      "allowedTypesHint": "Một tệp được chấp nhận khi loại của nó khớp và phần mở rộng nằm trong danh sách. Để trống phần mở rộng để chỉ so khớp theo loại.",
+      "noTypes": "Chưa có loại nào. Hãy thêm ít nhất một loại, hoặc bật \"Chấp nhận mọi loại tệp\".",
+      "mime": "Loại tệp",
+      "extensions": "Phần mở rộng",
+      "maxSize": "Kích thước tệp tối đa (MB)",
+      "maxSizeHint": "Áp dụng cho từng tệp, không phải cho mỗi lượt tải lên.",
+      "readOnly": "Chỉ quản trị viên có quyền sửa cài đặt mới thay đổi được những gì khách hàng được gửi."
+    }
   },
   "analytics": {
     "title": "Bảng điều khiển phân tích",
@@ -2787,7 +3402,9 @@
     "faviconHelp": "Định dạng PNG, ICO hoặc SVG. Dùng ảnh vuông: SVG (hoặc PNG 512×512px) cho hiển thị sắc nét nhất trên màn hình độ phân giải cao; kích thước nhỏ hơn vẫn dùng được.",
     "watermarkSettings": "Cài đặt watermark",
     "enableWatermarks": "Bật watermark",
-    "watermarkHelp": "Thêm tên công ty của bạn làm watermark trên ảnh tải xuống",
+    "watermarkHelp": "Hiển thị watermark trên ảnh khi khách xem gallery. File tải về theo công tắc bên dưới.",
+    "watermarkDownloads": "Đóng watermark lên file tải về",
+    "watermarkDownloadsHelp": "Tắt: khách và khách hàng tải về file sạch, kể cả khi gallery đang hiển thị watermark.",
     "watermarkLogo": "Logo watermark",
     "currentWatermark": "Watermark hiện tại",
     "uploadWatermarkLogo": "Tải lên logo watermark",
@@ -3074,7 +3691,148 @@
       "title": "Mạng xã hội",
       "help": "Thêm URL để hiển thị biểu tượng mạng xã hội ở chân trang bộ sưu tập ảnh. Để trống một ô để ẩn biểu tượng đó.",
       "whatsappHelp": "Một URL wa.me hoặc số điện thoại kèm mã quốc gia (sẽ được chuyển đổi)."
-    }
+    },
+    "pdfTheme": {
+      "title": "Giao diện PDF",
+      "description": "Màu sắc, phông chữ, chân trang và số trang cho báo giá, hóa đơn và hợp đồng. Các trường để trống sẽ kế thừa từ \"Tất cả tài liệu\", sau đó từ hồ sơ doanh nghiệp của bạn.",
+      "scopeLabel": "Loại tài liệu",
+      "scope": {
+        "default": "Tất cả tài liệu",
+        "quote": "Báo giá",
+        "invoice": "Hóa đơn",
+        "contract": "Hợp đồng"
+      },
+      "colors": "Màu sắc",
+      "color": {
+        "text": "Chữ",
+        "accent": "Tiêu đề và đề mục",
+        "muted": "Chữ phụ",
+        "subtle": "Chân trang và số trang",
+        "rule": "Đường kẻ"
+      },
+      "inherited": "Kế thừa",
+      "inherit": "Kế thừa ({{value}})",
+      "reset": "Đặt lại",
+      "titleSize": "Cỡ tiêu đề",
+      "font": "Phông chữ",
+      "pageNumbers": "Số trang",
+      "pageNumbersOption": {
+        "bottom-right": "Dưới bên phải",
+        "bottom-center": "Dưới ở giữa",
+        "none": "Không có"
+      },
+      "foldingMarks": "Dấu gấp",
+      "foldingOption": {
+        "none": "Không có",
+        "half": "Gấp đôi",
+        "third": "Gấp ba (DIN 5008)",
+        "both": "Gấp đôi và gấp ba"
+      },
+      "footer": "Chân trang",
+      "footerMode": {
+        "address": "Địa chỉ doanh nghiệp",
+        "custom": "Văn bản tùy chỉnh",
+        "none": "Không có chân trang"
+      },
+      "footerText": "Nội dung chân trang",
+      "marginsNote": "Lề trên được xác định bởi cửa sổ địa chỉ và tiêu đề thư. Trang chữ ký của hợp đồng luôn giữ bố cục cố định bất kể lề thế nào, để chữ ký luôn nằm đúng trong ô.",
+      "preview": "Xem trước PDF",
+      "resetScope": "Đặt lại về giá trị kế thừa",
+      "save": "Lưu giao diện",
+      "saved": "Đã lưu giao diện PDF",
+      "saveFailed": "Không thể lưu giao diện PDF",
+      "previewFailed": "Không thể tạo bản xem trước",
+      "presets": "Bắt đầu từ mẫu có sẵn",
+      "presetsHint": "Mẫu có sẵn chỉ điền sẵn biểu mẫu; chưa có gì được lưu cho đến khi bạn lưu giao diện.",
+      "preset": {
+        "classic": "Cổ điển",
+        "modern": "Hiện đại",
+        "compact": "Gọn",
+        "largePrint": "Chữ lớn"
+      },
+      "layout": "Bố cục",
+      "margin": {
+        "left": "Lề trái",
+        "right": "Lề phải",
+        "bottom": "Lề dưới"
+      },
+      "marginStandard": "tiêu chuẩn",
+      "addressWindow": "Cửa sổ địa chỉ",
+      "addressWindowOption": {
+        "on": "Cho phong bì có cửa sổ (DIN 5008)",
+        "off": "Tắt: địa chỉ đi theo phần tiêu đề thư"
+      },
+      "logoPosition": "Vị trí logo",
+      "logoPositionOption": {
+        "right": "Bên phải, trong tiêu đề thư",
+        "left": "Trên cùng bên trái",
+        "center": "Trên cùng ở giữa"
+      },
+      "logoStack": "Logo và tên công ty",
+      "logoStackOption": {
+        "above": "Logo phía trên tên",
+        "inline": "Logo bên cạnh tên"
+      },
+      "bodySize": "Cỡ chữ nội dung",
+      "lineHeight": "Giãn dòng",
+      "lineHeightStandard": "chuẩn",
+      "warningsTitle": "Độ dễ đọc",
+      "warnings": {
+        "CONTRAST_LOW": "{{color}}: độ tương phản {{value}}:1 so với nền trắng thấp hơn mức {{limit}}:1.",
+        "BODY_SIZE_SMALL": "Chữ nội dung cỡ {{value}} pt khó đọc; nên dùng từ {{limit}} pt trở lên.",
+        "LINE_HEIGHT_TIGHT": "Giãn dòng {{value}} là khá hẹp; từ {{limit}} trở lên sẽ dễ đọc hơn.",
+        "LINE_TOO_LONG": "Mỗi dòng dài khoảng {{value}} ký tự; vượt quá {{limit}} ký tự sẽ khó theo dõi. Lề rộng hơn hoặc chữ lớn hơn sẽ giúp ích."
+      },
+      "uploadedFonts": "Phông chữ của bạn",
+      "uploadedFont": "Phông chữ đã tải lên",
+      "fontUnavailable": "{{name}} (không còn khả dụng)"
+    },
+    "pdfFonts": {
+      "title": "Phông chữ của bạn cho PDF",
+      "description": "Thêm phông chữ thương hiệu dưới dạng tệp TTF hoặc OTF (tối đa 5 MB mỗi tệp). Sau khi thêm, hãy chọn phông chữ đó trong giao diện PDF.",
+      "add": "Thêm phông chữ",
+      "face": {
+        "regular": "Thường",
+        "bold": "Đậm",
+        "italic": "Nghiêng"
+      },
+      "name": "Tên",
+      "licenceNote": "Giấy phép",
+      "licencePlaceholder": "ví dụ: SIL Open Font License 1.1, hoặc: giấy phép desktop mua kèm bộ nhận diện thương hiệu, cho phép nhúng",
+      "confirm": "Tôi có quyền nhúng phông chữ này vào các tài liệu tôi gửi đi.",
+      "upload": "Thêm phông chữ",
+      "uploaded": "Đã thêm phông chữ",
+      "uploadFailed": "Không thể thêm phông chữ.",
+      "archive": "Lưu trữ",
+      "archived": "Đã lưu trữ",
+      "archiveConfirm": "Lưu trữ phông chữ này? Các tài liệu có giao diện dùng phông chữ này sẽ chuyển về Helvetica.",
+      "archiveFailed": "Không thể lưu trữ phông chữ.",
+      "errors": {
+        "FONT_FORMAT_UNSUPPORTED": "Hãy tải phông chữ lên dưới dạng tệp TTF hoặc OTF; không hỗ trợ WOFF, WOFF2 và tệp gộp nhiều phông chữ.",
+        "FONT_NOT_A_FONT": "Tệp này không phải phông chữ TTF hoặc OTF.",
+        "FONT_MALFORMED": "Tệp phông chữ bị hỏng hoặc không đầy đủ.",
+        "FONT_TOO_LARGE": "Tệp phông chữ chỉ được tối đa 5 MB.",
+        "FONT_TOO_COMPLEX": "Phông chữ này quá phức tạp để sử dụng.",
+        "FONT_LICENCE_RESTRICTED": "Giấy phép của phông chữ này không cho phép nhúng vào tài liệu.",
+        "FONT_NAME_TAKEN": "Đã có phông chữ mang tên này.",
+        "FONT_LICENCE_NOTE_REQUIRED": "Hãy mô tả giấy phép của phông chữ.",
+        "FONT_LICENCE_NOT_CONFIRMED": "Hãy xác nhận rằng bạn được phép nhúng phông chữ này.",
+        "FONT_FILE_NOT_FOUND": "không tìm thấy tệp.",
+        "FONT_NO_SUBSETTING": "Giấy phép của phông chữ này không cho phép nhúng một phần phông chữ, trong khi PDF cần điều đó.",
+        "FONT_BITMAP_ONLY": "Giấy phép của phông chữ này chỉ cho phép nhúng dạng bitmap, không cho phép nhúng đường nét mà PDF cần."
+      },
+      "legacyFailed": "Không thể chuyển phông chữ đã đặt trước bản cập nhật này: {{reason}}"
+    },
+    "heroLogoPosition": "Vị trí logo trong phần hero",
+    "heroLogoPositionHelp": "Áp dụng cho mọi gallery có phần đầu dạng hero.",
+    "galleryPasswordLogo": "Hiện logo trên trang nhập mật khẩu của gallery",
+    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng.",
+    "storyGridMode": "Khung ảnh",
+    "storyGridModeOptions": {
+      "fixed": "Ô cố định (cắt cho vừa)",
+      "natural": "Tự nhiên (giữ nguyên tỷ lệ khung hình)"
+    },
+    "storyGridModeHint": "Chế độ Tự nhiên sắp xếp các cảnh theo hàng dựa trên kích thước của từng ảnh, nên ảnh dọc được hiển thị trọn vẹn thay vì bị cắt."
   },
   "admin": {
     "title": "Bảng quản trị",
@@ -3296,7 +4054,30 @@
       "bulkDeleteCompleted_other": "Đã hoàn tất xóa hàng loạt: {{count}} sự kiện đã bị xóa",
       "bulkArchiveCompleted_one": "Đã hoàn tất lưu trữ hàng loạt: {{count}} sự kiện đã được lưu trữ",
       "bulkArchiveCompleted_other": "Đã hoàn tất lưu trữ hàng loạt: {{count}} sự kiện đã được lưu trữ",
-      "cssTemplateRemoteUrlsRemoved": "Đã xóa URL từ xa khỏi {{count}} mẫu CSS. Xem ghi chú phát hành."
+      "cssTemplateRemoteUrlsRemoved": "Đã xóa URL từ xa khỏi {{count}} mẫu CSS. Xem ghi chú phát hành.",
+      "customerDocumentUploaded": "Tài liệu khách hàng đã được tải lên",
+      "customerDocumentShared": "Đã chia sẻ tài liệu với khách hàng",
+      "customerDocumentUnshared": "Tài liệu không còn được chia sẻ với khách hàng",
+      "customerDocumentReviewed": "Tài liệu khách hàng đã được xem xét",
+      "customerDocumentLinked": "Liên kết của tài liệu khách hàng đã thay đổi",
+      "customerDocumentDeleted": "Tài liệu khách hàng đã bị xóa",
+      "customerDocumentDownloaded": "Tài liệu khách hàng đã được tải xuống",
+      "customerDocumentScanRejected": "Một tài liệu khách hàng không vượt qua kiểm tra bảo mật",
+      "customerDocumentForbiddenAccess": "Một khách hàng đã yêu cầu tài liệu của khách hàng khác",
+      "customerDocumentQuotaExceeded": "Một lượt tải lên của khách hàng bị từ chối: hết dung lượng lưu trữ",
+      "customerDocumentRateLimited": "Một khách hàng đã chạm giới hạn tải lên tài liệu",
+      "customerDocumentForbiddenAccessAlert": "Nhiều lần cố truy cập tài liệu của khách hàng khác ({{count}} lần trong một giờ)",
+      "customerDocumentScanCleared": "Một tài liệu khách hàng đã vượt qua kiểm tra bảo mật",
+      "customerDocumentRequestCreated": "Đã yêu cầu tài liệu từ khách hàng",
+      "customerDocumentRequestCancelled": "Yêu cầu tài liệu đã bị hủy",
+      "customerDocumentRequestFulfilled": "Khách hàng đã phản hồi yêu cầu tài liệu",
+      "customerDocumentRequestReminded": "Đã gửi nhắc nhở cho yêu cầu tài liệu",
+      "apiPhotoDownloaded": "Đã tải xuống ảnh gốc từ {{eventName}} bằng token API #{{token_id}}",
+      "apiPhotosDownloaded_one": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
+      "apiPhotosDownloaded_other": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
+      "apiPhotosZipDownloaded": "Token API “{{token_name}}” đã tải xuống tệp ZIP gồm {{photo_count}} ảnh gốc từ {{eventName}}",
+      "backupRunDeleted": "Đã xoá lượt sao lưu {{backup_run_id}} ({{destination}}, tệp: {{artifact}})",
+      "backupRunDeleteFailed": "Xoá lượt sao lưu {{backup_run_id}} thất bại ({{code}})"
     },
     "notificationToasts": {
       "markedAllRead": "Tất cả thông báo đã được đánh dấu là đã đọc",
@@ -3340,7 +4121,8 @@
         "actions": "Thao tác",
         "views": "Lượt xem",
         "downloads": "Lượt tải xuống",
-        "likes": "Lượt thích"
+        "likes": "Lượt thích",
+        "credit": "Tác giả"
       },
       "myMarks": "Đánh dấu của bạn",
       "myMarksHelp": "Chỉ bạn mới thấy các đánh dấu này. Chúng không bao giờ xuất hiện trong bộ sưu tập ảnh dành cho khách hàng, và được xuất sang Lightroom dưới dạng XMP.",
@@ -3353,7 +4135,23 @@
       "rateStars_one": "Đánh giá {{count}} sao",
       "rateStars_other": "Đánh giá {{count}} sao",
       "yourMarkRating_one": "Đánh giá của bạn: {{count}}",
-      "yourMarkRating_other": "Đánh giá của bạn: {{count}}"
+      "yourMarkRating_other": "Đánh giá của bạn: {{count}}",
+      "credit": {
+        "label": "Tác giả",
+        "edit": "Sửa",
+        "save": "Lưu tên",
+        "clear": "Xóa tên",
+        "saved": "Đã lưu tên",
+        "cleared": "Đã xóa tên",
+        "none": "Không có tên",
+        "unnamedGuest": "Khách xem ảnh, không có tên",
+        "manualHint": "Tên đặt tại đây là cố định: sẽ không bị thay thế bằng dữ liệu EXIF.",
+        "bulkAction": "Đặt tên",
+        "bulkTitle": "Đặt tên cho {{count}} ảnh",
+        "filterLabel": "Lọc theo tác giả",
+        "filterAll": "Tất cả tên",
+        "filterNone": "Không có tên"
+      }
     },
     "events": {
       "tabs": {
@@ -3609,7 +4407,28 @@
       "newsletter_completed": "Bản tin đã hoàn tất: {{sent}} đã gửi, {{failed}} thất bại",
       "newsletter_deleted": "Chiến dịch bản tin đã bị xóa",
       "customer_marketing_opt_out": "Sự đồng ý nhận bản tin của khách hàng đã thay đổi",
-      "css_template_remote_urls_removed": "Đã xóa URL từ xa khỏi {{count}} mẫu CSS. Xem ghi chú phát hành."
+      "css_template_remote_urls_removed": "Đã xóa URL từ xa khỏi {{count}} mẫu CSS. Xem ghi chú phát hành.",
+      "customer_document_uploaded": "Tài liệu khách hàng đã được tải lên",
+      "customer_document_shared": "Đã chia sẻ tài liệu với khách hàng",
+      "customer_document_unshared": "Tài liệu không còn được chia sẻ với khách hàng",
+      "customer_document_reviewed": "Tài liệu khách hàng đã được xem xét",
+      "customer_document_linked": "Liên kết của tài liệu khách hàng đã thay đổi",
+      "customer_document_deleted": "Tài liệu khách hàng đã bị xóa",
+      "customer_document_downloaded": "Tài liệu khách hàng đã được tải xuống",
+      "customer_document_scan_rejected": "Một tài liệu khách hàng không vượt qua kiểm tra bảo mật",
+      "customer_document_forbidden_access": "Một khách hàng đã yêu cầu tài liệu của khách hàng khác",
+      "customer_document_quota_exceeded": "Một lượt tải lên của khách hàng bị từ chối: hết dung lượng lưu trữ",
+      "customer_document_rate_limited": "Một khách hàng đã chạm giới hạn tải lên tài liệu",
+      "customer_document_forbidden_access_alert": "Nhiều lần cố truy cập tài liệu của khách hàng khác ({{count}} lần trong một giờ)",
+      "customer_document_scan_cleared": "Một tài liệu khách hàng đã vượt qua kiểm tra bảo mật",
+      "customer_document_request_created": "Đã yêu cầu tài liệu từ khách hàng",
+      "customer_document_request_cancelled": "Yêu cầu tài liệu đã bị hủy",
+      "customer_document_request_fulfilled": "Khách hàng đã phản hồi yêu cầu tài liệu",
+      "customer_document_request_reminded": "Đã gửi nhắc nhở cho yêu cầu tài liệu",
+      "api_photo_downloaded": "Đã tải xuống ảnh gốc từ {{eventName}} bằng token API #{{token_id}}",
+      "api_photos_downloaded_one": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
+      "api_photos_downloaded_other": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
+      "api_photos_zip_downloaded": "Token API “{{token_name}}” đã tải xuống tệp ZIP gồm {{photo_count}} ảnh gốc từ {{eventName}}"
     },
     "people": {
       "title": "Người trong bộ sưu tập ảnh này",
@@ -3706,7 +4525,9 @@
     "viewReleaseNotes": "Xem ghi chú phát hành trên GitHub",
     "expandSidebar": "Mở rộng thanh bên",
     "collapseSidebar": "Thu gọn thanh bên",
-    "viewOnGithub": "Xem PicPeak trên GitHub"
+    "viewOnGithub": "Xem PicPeak trên GitHub",
+    "backToMenu": "Quay lại menu",
+    "totalMedia": "Tổng số media"
   },
   "acceptInvitation": {
     "title": "Chấp nhận lời mời",
@@ -3790,7 +4611,9 @@
     "required": "Trường này là bắt buộc",
     "expirationRequired": "Ngày hết hạn là bắt buộc.",
     "eventDateRequired": "Ngày sự kiện là bắt buộc.",
-    "passwordTooSimple": "Mật khẩu không được chỉ gồm các chữ số. Hãy thử dùng định dạng ngày tháng như \"04.07.2025\""
+    "passwordTooSimple": "Mật khẩu không được chỉ gồm các chữ số. Hãy thử dùng định dạng ngày tháng như \"04.07.2025\"",
+    "expiryRequired": "Hãy chọn ngày hết hạn của thư viện ảnh.",
+    "externalFolderRequired": "Hãy chọn thư mục bên ngoài."
   },
   "legal": {
     "impressum": "Thông báo pháp lý",
@@ -4292,7 +5115,11 @@
       "nextBackup": "Lần sao lưu tiếp theo",
       "notScheduled": "Chưa lên lịch",
       "enabled": "Đã bật",
-      "disabled": "Đã tắt"
+      "disabled": "Đã tắt",
+      "latestAttempt": "Lần thử gần nhất",
+      "latestAttemptRunning": "Lần thử gần nhất đang chạy từ",
+      "latestAttemptFailed": "Lần thử gần nhất thất bại",
+      "lastSuccessfulBackup": "Lần sao lưu thành công gần nhất"
     },
     "actions": {
       "runBackupNow": "Sao lưu ngay",
@@ -4388,15 +5215,16 @@
         "rsyncUserPlaceholder": "backup-user",
         "rsyncPath": "Đường dẫn từ xa",
         "rsyncPathPlaceholder": "/home/backup/photo-sharing",
-        "rsyncSshKey": "Khóa riêng SSH",
-        "rsyncSshKeyHelp": "Khóa riêng SSH dùng để xác thực (tùy chọn)",
-        "rsyncSshKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----",
+        "rsyncSshKey": "Tệp khóa SSH",
+        "rsyncSshKeyHelp": "Đường dẫn tuyệt đối đến một tệp khóa riêng mà backend đọc được, ví dụ trong thư mục /app/data đã được mount. Không nhập nội dung khóa vào đây. Tệp chỉ được phép đọc bởi người dùng chạy backend (chmod 600). Tùy chọn; nếu để trống, ssh dùng cấu hình mặc định của nó.",
+        "rsyncSshKeyPlaceholder": "/app/data/ssh/backup_ed25519",
         "s3Endpoint": "Endpoint S3",
         "s3EndpointHelp": "Endpoint API S3 (ví dụ: s3.amazonaws.com)",
         "s3Bucket": "Tên Bucket",
         "s3AccessKey": "Access Key ID",
         "s3SecretKey": "Secret Access Key",
-        "s3Region": "Khu vực"
+        "s3Region": "Khu vực",
+        "rsyncSshKeyStoredNotPath": "Trường này đang chứa nội dung khóa riêng thay vì đường dẫn tới tệp khóa, nên sao lưu rsync không dùng được. Hãy nhập đường dẫn tới một tệp khóa, hoặc xóa trống trường này."
       },
       "schedule": {
         "title": "Lịch sao lưu",
@@ -4405,7 +5233,8 @@
           "hourly": "Mỗi giờ",
           "daily": "Hàng ngày",
           "weekly": "Hàng tuần",
-          "custom": "Biểu thức cron tùy chỉnh"
+          "custom": "Biểu thức cron tùy chỉnh",
+          "monthly": "Hàng tháng"
         },
         "customCron": "Biểu thức Cron",
         "customCronHelp": "Nhập một biểu thức cron hợp lệ (ví dụ: 0 3 * * *)",
@@ -4437,11 +5266,20 @@
         "requiredFields": "Vui lòng điền đầy đủ các trường bắt buộc",
         "connectionSuccess": "Kiểm tra kết nối thành công!",
         "connectionFailed": "Kiểm tra kết nối thất bại",
-        "invalidCron": "Vui lòng nhập một biểu thức cron hợp lệ (5 trường)"
+        "invalidCron": "Vui lòng nhập một biểu thức cron hợp lệ (5 trường)",
+        "rsyncSshKeyNotPath": "Khóa SSH phải là đường dẫn tuyệt đối tới tệp khóa riêng trên máy chủ (ví dụ /app/data/ssh/backup_ed25519), không phải nội dung khóa."
       },
       "testingConnection": "Đang kiểm tra kết nối...",
       "saveSettings": "Lưu cấu hình",
-      "savingSettings": "Đang lưu..."
+      "savingSettings": "Đang lưu...",
+      "destinationSuperAdminOnly": "Chỉ Quản trị viên cấp cao mới có thể thay đổi nơi lưu bản sao lưu hoặc việc bản sao lưu có bao gồm cơ sở dữ liệu hay không.",
+      "privateEndpoint": {
+        "title": "Endpoint S3 này nằm trong mạng nội bộ",
+        "body": "Theo mặc định, các địa chỉ riêng và nội bộ bị chặn, vì nếu không, một đích sao lưu mà máy chủ kết nối tới có thể bị lợi dụng để truy cập các dịch vụ nội bộ. Chỉ phê duyệt đúng endpoint này nếu đó là kho lưu trữ tương thích S3 của chính bạn (ví dụ MinIO hoặc RustFS). Phê duyệt chỉ áp dụng cho đúng scheme, host và cổng này; các địa chỉ link-local và địa chỉ metadata của đám mây không bao giờ được phê duyệt.",
+        "approve": "Tôi phê duyệt sao lưu tới endpoint nội bộ này",
+        "hint": "Kiểm tra kết nối hoặc lưu cấu hình để áp dụng phê duyệt.",
+        "approved": "Endpoint nội bộ đã được phê duyệt: {{origin}}"
+      }
     },
     "history": {
       "searchPlaceholder": "Tìm kiếm bản sao lưu...",
@@ -4468,6 +5306,17 @@
         "showing": "Hiển thị {{from}}-{{to}} trên {{total}} bản sao lưu",
         "previous": "Trước",
         "next": "Tiếp"
+      },
+      "deleteConfirm": "Xoá bản sao lưu ngày {{date}}? Bản ghi và manifest của nó sẽ bị xoá; các tệp đã sao lưu mà những lần sao lưu sau còn dùng vẫn được giữ lại. Không thể hoàn tác.",
+      "deleteSuccess": "Đã xoá bản sao lưu",
+      "deleteSuccessArtifactMissing": "Đã xoá bản ghi sao lưu; manifest của nó đã không còn từ trước",
+      "deleteError": "Xoá bản sao lưu thất bại",
+      "deleteErrors": {
+        "BACKUP_NOT_FOUND": "Bản sao lưu này không còn tồn tại",
+        "BACKUP_RUNNING": "Không thể xoá bản sao lưu đang chạy",
+        "ARTIFACT_OUT_OF_SCOPE": "Các tệp của bản sao lưu này nằm ngoài nơi lưu trữ sao lưu đã cấu hình, nên không có gì bị xoá",
+        "ARTIFACT_DELETE_FAILED": "Không xoá được manifest của bản sao lưu, nên bản ghi được giữ lại",
+        "FORBIDDEN": "Bạn không có quyền xoá bản sao lưu"
       }
     },
     "restore": {
@@ -4615,13 +5464,23 @@
         "starting": "Đang bắt đầu...",
         "validating": "Đang xác thực...",
         "startNewRestore": "Bắt đầu khôi phục mới"
-      }
+      },
+      "superAdminOnly": "Khôi phục bản sao lưu sẽ thay thế toàn bộ dữ liệu trên hệ thống này, kể cả tài khoản người dùng và vai trò, nên chỉ Quản trị viên cấp cao mới được thực hiện."
     },
     "messages": {
       "backupStarted": "Đã bắt đầu sao lưu thành công",
       "backupFailed": "Không thể bắt đầu sao lưu",
       "configUpdated": "Đã cập nhật cấu hình sao lưu",
       "configUpdateFailed": "Không thể cập nhật cấu hình"
+    },
+    "errors": {
+      "S3_PRIVATE_ENDPOINT": "Endpoint S3 nằm trong mạng riêng hoặc mạng nội bộ. Quản trị viên cấp cao phải phê duyệt đúng endpoint này trước khi có thể sử dụng.",
+      "S3_ENDPOINT_FORBIDDEN": "Endpoint S3 trỏ tới một địa chỉ link-local, metadata đám mây hoặc địa chỉ dành riêng. Những đích như vậy không bao giờ được phê duyệt.",
+      "S3_ENDPOINT_UNRESOLVED": "Không thể phân giải tên máy chủ của endpoint S3.",
+      "S3_ENDPOINT_INVALID": "Endpoint S3 không phải là URL hợp lệ.",
+      "S3_APPROVAL_MISMATCH": "Phê duyệt không khớp với endpoint S3 đã cấu hình. Hãy phê duyệt lại endpoint.",
+      "S3_CONFIG_INCOMPLETE": "Cần có endpoint, bucket và thông tin xác thực. Sau khi đổi endpoint, hãy nhập lại secret key.",
+      "S3_CONNECTION_FAILED": "Không thể kết nối tới bucket S3 với các cài đặt này. Hãy kiểm tra endpoint, bucket và thông tin xác thực."
     }
   },
   "cssTemplates": {
@@ -4648,11 +5507,6 @@
     "title": "Bảo trì hệ thống",
     "message": "Chúng tôi hiện đang thực hiện bảo trì theo lịch để cải thiện dịch vụ. Chúng tôi sẽ hoạt động trở lại trong thời gian ngắn.",
     "urgentMatters": "Đối với các vấn đề khẩn cấp, vui lòng liên hệ"
-  },
-  "migrationBanner": {
-    "title": "Kho lưu trữ hình ảnh của PicPeak đã chuyển địa chỉ",
-    "body": "Cập nhật docker-compose.yml của bạn để lấy từ {{newPath}}; địa chỉ cũ sẽ không còn được cập nhật nữa.",
-    "link": "Xem ghi chú di chuyển"
   },
   "passwordChange": {
     "title": "Đổi mật khẩu",
@@ -4882,7 +5736,8 @@
     "removeColorLabel": "Xóa nhãn {{color}}",
     "setColorLabel": "Đánh dấu là {{color}}",
     "markedAs": "Đã đánh dấu là {{color}}",
-    "alsoMarkedBy": "Cũng được đánh dấu bởi người khác: {{colors}}"
+    "alsoMarkedBy": "Cũng được đánh dấu bởi người khác: {{colors}}",
+    "editSettingsLink": "Cài đặt phản hồi"
   },
   "filter": {
     "feedbackFilters": "Bộ lọc phản hồi",
@@ -5078,7 +5933,9 @@
       "inactive": "Tài khoản quản trị viên của bạn đã bị vô hiệu hóa.",
       "not_provisioned": "Không có tài khoản quản trị viên nào khớp với danh tính SSO của bạn. Hãy nhờ quản trị viên mời bạn.",
       "no_email": "Nhà cung cấp danh tính của bạn không cung cấp địa chỉ email nên không thể tạo tài khoản.",
-      "no_role": "Nhà cung cấp danh tính của bạn không cấp vai trò nào được ánh xạ đến hệ thống này; hãy nhờ quản trị viên thêm bạn vào một nhóm đã được ánh xạ."
+      "no_role": "Nhà cung cấp danh tính của bạn không cấp vai trò nào được ánh xạ đến hệ thống này; hãy nhờ quản trị viên thêm bạn vào một nhóm đã được ánh xạ.",
+      "email_unverified": "Đã có tài khoản quản trị viên dùng email của bạn, nhưng địa chỉ email đó chưa được Quản trị viên cấp cao xác nhận, nên SSO không thể liên kết với tài khoản này. Hãy nhờ Quản trị viên cấp cao mở trang Người dùng, tìm tài khoản của bạn và dùng \"Xác nhận email cho SSO\", rồi thử lại.",
+      "email_ambiguous": "Có nhiều hơn một tài khoản quản trị viên mang địa chỉ email của bạn, chỉ khác nhau ở chữ hoa chữ thường, nên SSO không thể xác định tài khoản nào là của bạn. Hãy nhờ Quản trị viên cấp cao đổi hoặc xóa một trong số đó ở trang Người dùng, rồi thử lại."
     }
   },
   "slideshow": {
@@ -5195,7 +6052,18 @@
     "linkLabel": "Liên kết truy cập dành cho khách hàng",
     "regenerateToken": "Tạo lại liên kết",
     "tokenRegenerated": "Liên kết truy cập dành cho khách hàng đã được tạo lại",
-    "linkAfterCreate": "Link truy cập của khách hàng sẽ xuất hiện ở trang chi tiết event ngay sau khi tạo."
+    "linkAfterCreate": "Link truy cập của khách hàng sẽ xuất hiện ở trang chi tiết event ngay sau khi tạo.",
+    "noPasswordSet": "Chưa đặt mật khẩu khách hàng. Khách chưa mở được trang duyệt ảnh cho tới khi có mật khẩu.",
+    "generate": "Tạo",
+    "newPasswordKeep": "Mật khẩu khách hàng mới (để trống để giữ mật khẩu hiện tại)",
+    "passwordRequiredOn": "Đặt mật khẩu khách hàng trước khi bật quyền truy cập cho khách hàng.",
+    "pinLabel": "PIN khách hàng",
+    "pinPlaceholder": "Nhập PIN khách hàng của bạn",
+    "enterPin": "Vui lòng nhập PIN khách hàng của bạn",
+    "invalidPin": "PIN không hợp lệ. Vui lòng thử lại.",
+    "pinHelperText": "Khách hàng sẽ dùng PIN này để truy cập trang duyệt ảnh. Tối thiểu 6 ký tự.",
+    "pinUpdated": "Đã cập nhật PIN khách hàng",
+    "setPin": "Đặt PIN"
   },
   "export": {
     "button": "Xuất",
@@ -5314,7 +6182,40 @@
       "sortNewest": "Mới nhất trước",
       "sortOldest": "Cũ nhất trước",
       "sortName": "Theo tên",
-      "open": "Mở"
+      "open": "Mở",
+      "needsAction": "Cần bạn xử lý",
+      "quoteAwaiting": "Báo giá {{number}} đang chờ bạn phản hồi",
+      "validUntil": "Có hiệu lực đến {{date}}",
+      "viewQuote": "Xem báo giá",
+      "contractAwaiting": "Hợp đồng {{number}} đang chờ bạn ký",
+      "viewContract": "Xem hợp đồng",
+      "contractDetailsNeeded": "Hoàn thiện thông tin của bạn cho hợp đồng {{number}}",
+      "completeDetails": "Hoàn thiện thông tin của tôi",
+      "invoiceOverdue": "Hóa đơn {{number}} đã quá hạn",
+      "invoiceDue": "Hóa đơn {{number}} đến hạn vào {{date}}",
+      "openAmount": "Chưa thanh toán: {{amount}}",
+      "viewInvoice": "Xem hóa đơn",
+      "details": "Chi tiết",
+      "detailsAria": "Chi tiết của {{name}}",
+      "notAvailable": "Chưa có sẵn",
+      "expiredTitle": "Bộ sưu tập ảnh đã hết hạn",
+      "expiredHint": "Các bộ sưu tập ảnh này đã hết hạn và không thể mở được nữa. Hãy liên hệ nhiếp ảnh gia nếu bạn vẫn cần ảnh.",
+      "documentRejected": "{{name}} không được chấp nhận: hãy tải lên bản đã sửa",
+      "viewDocument": "Xem tài liệu",
+      "recentTitle": "Gần đây",
+      "recent": {
+        "documentShared": "Tài liệu mới: {{title}}",
+        "documentUploaded": "Bạn đã tải lên {{title}}",
+        "documentAccepted": "{{title}} đã được chấp nhận",
+        "documentRejected": "{{title}} không được chấp nhận",
+        "contractSent": "Hợp đồng {{title}} đã được gửi cho bạn",
+        "contractSigned": "Bạn đã ký hợp đồng {{title}}",
+        "quoteSent": "Báo giá {{title}} đã được gửi cho bạn",
+        "invoiceSent": "Hóa đơn {{title}} đã được gửi cho bạn",
+        "galleryAssigned": "Bộ sưu tập ảnh {{title}} hiện đã sẵn sàng cho bạn"
+      },
+      "documentRequested": "Vui lòng tải lên: {{title}}",
+      "uploadDocument": "Tải lên"
     },
     "layout": {
       "greeting": "Xin chào, {{name}}"
@@ -5327,7 +6228,8 @@
       "profile": "Hồ sơ",
       "soon": "Sắp ra mắt",
       "new": "Mới",
-      "contracts": "Hợp đồng"
+      "contracts": "Hợp đồng",
+      "documents": "Tài liệu"
     },
     "comingSoon": {
       "tag": "Sắp ra mắt"
@@ -5345,7 +6247,8 @@
       "noEventName": "-",
       "openToRespond": "Mở để phản hồi",
       "viewPdf": "Xem PDF",
-      "popupBlocked": "Cho phép cửa sổ bật lên trên trang này để xem PDF báo giá."
+      "popupBlocked": "Cho phép cửa sổ bật lên trên trang này để xem PDF báo giá.",
+      "backToList": "Quay lại danh sách báo giá"
     },
     "bills": {
       "title": "Hóa đơn",
@@ -5464,7 +6367,125 @@
       "counterSigned": "Đã được ký đối ứng",
       "openSign": "Mở & ký",
       "downloadSigned": "Tải xuống PDF đã ký",
-      "download": "Tải xuống PDF"
+      "download": "Tải xuống PDF",
+      "backToList": "Quay lại danh sách hợp đồng",
+      "notSigner": "Bạn không có tên trong danh sách người ký hợp đồng này. Hãy dùng liên kết trong email mời ký.",
+      "notSignable": "Hợp đồng này không còn chờ bạn ký nữa. Tải lại trang để xem trạng thái hiện tại.",
+      "signError": "Không thể mở hợp đồng để ký. Vui lòng thử lại sau giây lát.",
+      "declinedHint": "Hợp đồng này đã bị từ chối và không thể ký được nữa.",
+      "opening": "Đang mở…",
+      "sign": "Ký",
+      "downloadCertificate": "Giấy chứng nhận ký",
+      "expired": "Đã hết thời hạn ký hợp đồng này. Hãy đề nghị người gửi gửi cho bạn một hợp đồng mới.",
+      "expiredHint": "Thời hạn ký đã hết trước khi có đủ chữ ký, nên hợp đồng không thể ký được nữa.",
+      "completeDetails": "Hoàn thiện thông tin của tôi",
+      "signedWaiting": "Bạn đã ký, đang chờ những người còn lại.",
+      "turnAfter": "Đến lượt bạn sau {{name}}."
+    },
+    "documents": {
+      "title": "Tài liệu",
+      "subtitle": "Các tệp nhiếp ảnh gia đã chia sẻ với bạn và các tài liệu bạn đã gửi cho họ.",
+      "disabled": "Tài liệu không khả dụng cho tài khoản của bạn.",
+      "loadError": "Không thể tải tài liệu của bạn.",
+      "uploadTitle": "Gửi tài liệu",
+      "uploadHint": "Chấp nhận: {{formats}}, tối đa {{size}} mỗi tệp. Đã dùng {{used}} trên {{quota}}.",
+      "uploadHintShort": "Chấp nhận: {{formats}}.",
+      "fileLabel": "Tệp",
+      "eventLabel": "Sự kiện (không bắt buộc)",
+      "noEvent": "Không có sự kiện",
+      "cancel": "Hủy",
+      "retry": "Thử lại",
+      "upload": "Tải lên",
+      "progress": "Tiến trình tải lên",
+      "uploaded": "Đã nhận {{name}}. Tệp sẽ khả dụng sau khi nhiếp ảnh gia của bạn xem xét.",
+      "cancelled": "Đã hủy tải lên {{name}}.",
+      "empty": "Chưa có tài liệu nào.",
+      "fromYou": "Do bạn tải lên",
+      "fromStudio": "Do nhiếp ảnh gia của bạn chia sẻ",
+      "pendingHint": "Nhiếp ảnh gia của bạn kiểm tra mọi tệp tải lên trước khi tệp khả dụng.",
+      "rejectedWithReason": "Không được chấp nhận: {{reason}}",
+      "rejectedHint": "Nhiếp ảnh gia của bạn không chấp nhận tệp này. Hãy liên hệ họ nếu bạn chưa rõ lý do.",
+      "download": "Tải xuống",
+      "downloadAria": "Tải xuống {{name}}",
+      "status": {
+        "available": "Khả dụng",
+        "pending": "Đang chờ xem xét",
+        "rejected": "Bị từ chối"
+      },
+      "errors": {
+        "notPdf": "{{name}} không phải tệp PDF. Chỉ có thể tải lên tài liệu PDF.",
+        "encrypted": "{{name}} được bảo vệ bằng mật khẩu. Hãy gỡ mật khẩu rồi tải lên lại.",
+        "tooLarge": "{{name}} lớn hơn {{size}}. Hãy tải lên một tệp nhỏ hơn.",
+        "quota": "Không đủ dung lượng cho {{name}}. Hãy nhờ nhiếp ảnh gia của bạn xóa bớt các tài liệu cũ.",
+        "rateLimited": "Quá nhiều lượt tải lên trong thời gian ngắn. Hãy đợi vài phút rồi thử lại {{name}}.",
+        "generic": "Không thể tải lên {{name}}. Vui lòng thử lại.",
+        "stillPending": "{{name}} vẫn đang được xem xét.",
+        "gone": "{{name}} không còn được chia sẻ với bạn.",
+        "purged": "{{name}} đã bị xóa.",
+        "download": "Không thể tải xuống {{name}}. Vui lòng thử lại.",
+        "activeContent": "{{name}} chứa nội dung chủ động (script, tệp nhúng hoặc hành động biểu mẫu) nên không thể tải lên. Hãy mở tệp, in ra PDF rồi tải lên tệp đó.",
+        "tooComplex": "Không thể kiểm tra {{name}}. Hãy mở tệp, in ra PDF rồi tải lên tệp đó.",
+        "tooManyPages": "{{name}} có quá nhiều trang để tải lên.",
+        "notFound": "Không tìm thấy {{name}}.",
+        "contractLinked": "{{name}} thuộc một hợp đồng nên không thể xóa. Hãy liên hệ nhiếp ảnh gia của bạn nếu cần gỡ tệp này.",
+        "delete": "Không thể xóa {{name}}. Vui lòng thử lại.",
+        "requestGone": "Yêu cầu cho {{name}} không còn mở. Hãy tải tệp lên mà không chọn yêu cầu, hoặc hỏi nhiếp ảnh gia của bạn.",
+        "formatNotAllowed": "{{name}} không thuộc loại tệp có thể tải lên ở đây. Chấp nhận: {{formats}}.",
+        "notValid": "{{name}} không phải là tệp hợp lệ thuộc loại của nó. Hãy lưu lại tệp từ chương trình đã tạo ra nó rồi tải lên tệp đó.",
+        "officeActiveContent": "{{name}} chứa macro, mã nhúng hoặc liên kết tới nội dung bên ngoài nên không thể tải lên. Hãy lưu dưới dạng PDF rồi tải lên tệp đó.",
+        "documentEncrypted": "{{name}} được bảo vệ bằng mật khẩu. Hãy gỡ mật khẩu rồi tải lên lại.",
+        "documentTooComplex": "Không thể kiểm tra {{name}}. Hãy lưu dưới dạng PDF rồi tải lên tệp đó.",
+        "notText": "{{name}} không phải tệp văn bản thuần UTF-8. Hãy lưu dưới dạng văn bản UTF-8 rồi tải lên lại.",
+        "checkUnavailable": "Hiện không thể kiểm tra {{name}}. Vui lòng thử lại sau."
+      },
+      "deleteTitle": "Xóa tài liệu này?",
+      "deleteBody": "{{name}} sẽ bị xóa khỏi tài liệu của bạn. Nhiếp ảnh gia của bạn có thể đã tải xuống tệp này.",
+      "delete": "Xóa",
+      "deleteAria": "Xóa {{name}}",
+      "deleted": "Đã xóa {{name}}.",
+      "requests": {
+        "title": "Nhiếp ảnh gia của bạn yêu cầu",
+        "due": "Cần trước {{date}}",
+        "upload": "Tải lên cho yêu cầu này",
+        "uploadAria": "Tải lên một tệp cho {{title}}",
+        "selected": "Tệp tải lên này đáp ứng yêu cầu: {{title}}",
+        "clear": "Không dành cho yêu cầu này"
+      }
+    },
+    "event": {
+      "notFound": "Không tìm thấy sự kiện này, hoặc bạn không còn quyền truy cập.",
+      "back": "Quay lại bộ sưu tập ảnh của bạn",
+      "gallery": "Bộ sưu tập ảnh",
+      "openGallery": "Mở bộ sưu tập",
+      "galleryExpired": "Bộ sưu tập này đã hết hạn vào {{date}} và không thể mở được nữa. Hãy liên hệ nhiếp ảnh gia của bạn nếu bạn vẫn cần ảnh.",
+      "galleryUnavailable": "Bộ sưu tập này chưa sẵn sàng.",
+      "popupBlocked": "Cho phép cửa sổ bật lên trên trang này để mở PDF.",
+      "pdfError": "Không thể mở PDF. Vui lòng thử lại.",
+      "pdf": "PDF",
+      "dueOn": "Hạn {{date}}",
+      "nothingElse": "Chưa có tài liệu nào cho sự kiện này."
+    },
+    "document": {
+      "back": "Tất cả tài liệu",
+      "yourPhotographer": "nhiếp ảnh gia của bạn",
+      "unsharedTitle": "Không còn được chia sẻ",
+      "unsharedBody": "Tài liệu này không còn được chia sẻ với bạn. Hãy hỏi {{studio}} nếu bạn vẫn cần.",
+      "removedTitle": "Đã bị xóa",
+      "removedBody": "Tài liệu này đã bị xóa và không thể mở được nữa. Hãy hỏi {{studio}} nếu bạn vẫn cần.",
+      "notFoundTitle": "Không tìm thấy tài liệu",
+      "notFoundBody": "Không có tài liệu nào ở địa chỉ này cho tài khoản của bạn. Hãy kiểm tra xem bạn đã đăng nhập đúng tài khoản chưa.",
+      "disabledTitle": "Tài liệu không khả dụng",
+      "errorTitle": "Không thể tải tài liệu",
+      "errorBody": "Vui lòng thử lại sau giây lát.",
+      "pendingBody": "Tài liệu này đang chờ xem xét. Mọi tệp tải lên đều được {{studio}} kiểm tra trước khi khả dụng.",
+      "rejectedBody": "Tài liệu này không được chấp nhận: {{reason}}",
+      "rejectedNoReason": "Tài liệu này không được chấp nhận. Hãy liên hệ {{studio}} nếu bạn chưa rõ lý do.",
+      "uploadedBy": "Từ",
+      "size": "Kích thước",
+      "uploadedAt": "Ngày tải lên",
+      "sharedAt": "Ngày chia sẻ",
+      "reviewedAt": "Ngày xem xét",
+      "event": "Sự kiện"
     }
   },
   "customers": {
@@ -5474,7 +6495,9 @@
       "hourlyRateHint": "Đơn vị tiền tệ chính (ví dụ: 150.00 cho {{currency}} 150). Để trống để yêu cầu ghi đè riêng cho từng mục.",
       "marketingOptOut": "Đã hủy đăng ký nhận bản tin",
       "marketingOptOutHelp": "Khi bật, khách hàng này sẽ bị bỏ qua trong mọi chiến dịch bản tin. Email về bộ sưu tập ảnh, báo giá và hóa đơn của họ không bị ảnh hưởng.",
-      "marketingOptOutSince": "Từ {{date}}"
+      "marketingOptOutSince": "Từ {{date}}",
+      "dayRate": "Đơn giá ngày mặc định",
+      "dayRateHint": "Dùng cho các dòng báo giá tính theo ngày. Đơn vị tiền tệ chính ({{currency}}). Để trống để dùng đơn giá ngày mặc định trong Cài đặt → Kế toán."
     },
     "hours": {
       "section": "Giờ công",
@@ -5574,7 +6597,8 @@
     "loadInvitationsError": "Không thể tải danh sách lời mời",
     "tabs": {
       "customers": "Khách hàng",
-      "invitations": "Lời mời"
+      "invitations": "Lời mời",
+      "groups": "Nhóm"
     },
     "search": {
       "placeholder": "Tìm theo email, tên hoặc công ty"
@@ -5585,7 +6609,8 @@
       "company": "Công ty",
       "eventCount": "Sự kiện",
       "lastLogin": "Lần đăng nhập gần nhất",
-      "status": "Trạng thái"
+      "status": "Trạng thái",
+      "groups": "Nhóm"
     },
     "status": {
       "active": "Đang hoạt động",
@@ -5618,7 +6643,8 @@
       "title": "Ngừng hoạt động khách hàng?",
       "body": "Họ sẽ không thể đăng nhập nữa. Bạn có thể mời lại họ sau.",
       "success": "Đã ngừng hoạt động khách hàng",
-      "error": "Không thể ngừng hoạt động khách hàng"
+      "error": "Không thể ngừng hoạt động khách hàng",
+      "buttonLabel": "Ngừng hoạt động {{email}}"
     },
     "cancelInvitation": {
       "title": "Hủy lời mời?",
@@ -5680,7 +6706,8 @@
       "rebillsSection": "Tái lập hóa đơn & chuyển tiếp chi phí",
       "noRebills": "Chưa có hóa đơn nhà cung cấp được tái lập hoặc chuyển tiếp cho khách hàng này.",
       "companyName": "Tên công ty",
-      "marketingSection": "Đồng ý nhận bản tin"
+      "marketingSection": "Đồng ý nhận bản tin",
+      "groupsSection": "Nhóm"
     },
     "billing": {
       "section": "Chu kỳ lập hóa đơn",
@@ -5751,6 +6778,189 @@
     "invitePending": {
       "badge": "Lời mời đang chờ",
       "hint": "Có một liên kết lời mời đang mở cho địa chỉ này và chưa được chấp nhận. Điều đó không chứng minh email đã đến, hãy kiểm tra Tình trạng hệ thống nếu họ báo chưa nhận được."
+    },
+    "documents": {
+      "title": "Tài liệu",
+      "hint": "Tài liệu đã chia sẻ với khách hàng này trên cổng thông tin của họ, và các tệp họ đã gửi cho bạn ({{formats}}). Tệp khách hàng tải lên sẽ không khả dụng với họ cho tới khi bạn đánh dấu là sạch.",
+      "usage": "Tệp khách hàng tải lên: đã dùng {{used}} trên {{quota}}.",
+      "fileLabel": "Tài liệu để chia sẻ",
+      "eventLabel": "Sự kiện",
+      "contractLabel": "Hợp đồng",
+      "noLink": "Không có",
+      "shareNow": "Chia sẻ với khách hàng",
+      "upload": "Tải lên",
+      "uploaded": "Đã tải lên {{name}}.",
+      "actionError": "Thao tác không thành công. Vui lòng thử lại.",
+      "deleteTitle": "Xóa tài liệu?",
+      "deleteBody": "{{name}} sẽ biến mất khỏi cổng thông tin của khách hàng ngay lập tức. Bản thân tệp sẽ bị xóa sau thời gian lưu giữ.",
+      "delete": "Xóa",
+      "deleted": "Đã xóa tài liệu.",
+      "status": {
+        "pending": "Đang chờ xem xét",
+        "clean": "Sạch",
+        "rejected": "Bị từ chối"
+      },
+      "shared": "Đã chia sẻ",
+      "notShared": "Chưa chia sẻ",
+      "fromCustomer": "Do khách hàng tải lên",
+      "fromAdmin": "Do {{name}} tải lên",
+      "anAdmin": "một quản trị viên",
+      "viewed": "Khách hàng đã tải xuống {{times}} lần, lần gần nhất {{date}}",
+      "notViewed": "Khách hàng chưa tải xuống",
+      "rejectedNote": "Lý do: {{note}}",
+      "download": "Tải xuống",
+      "downloadStarted": "Đã bắt đầu tải xuống.",
+      "markClean": "Đánh dấu an toàn",
+      "markedClean": "Đã đánh dấu an toàn.",
+      "malwareFlaggedTooltip": "Trình quét mã độc đã từ chối tệp này. Không thể đánh dấu tệp là an toàn.",
+      "reject": "Từ chối",
+      "rejectPlaceholder": "Lý do, hiển thị cho khách hàng (tùy chọn)",
+      "confirmReject": "Từ chối tệp",
+      "rejectedToast": "Đã từ chối.",
+      "unshare": "Ngừng chia sẻ",
+      "unsharedToast": "Đã ngừng chia sẻ.",
+      "share": "Chia sẻ",
+      "sharedToast": "Đã chia sẻ với khách hàng.",
+      "link": "Liên kết",
+      "saveLinks": "Lưu liên kết",
+      "linkSaved": "Đã lưu liên kết.",
+      "empty": "Chưa có tài liệu nào.",
+      "loadError": "Không thể tải danh sách tài liệu.",
+      "unlinked": "Đã hủy liên kết với hợp đồng. Bây giờ bạn có thể xóa tài liệu này.",
+      "linkedTitle": "Đã liên kết với hợp đồng",
+      "linkedBody": "{{name}} đang liên kết với một hợp đồng, nên được giữ lại như một phần hồ sơ hợp đồng và không thể xóa. Hãy hủy liên kết với hợp đồng trước, rồi mới xóa.",
+      "unlinkContract": "Hủy liên kết với hợp đồng",
+      "projectLabel": "Dự án",
+      "notified": "Khách hàng sẽ nhận được email.",
+      "notifyFailed": "Không thể đưa email gửi khách hàng vào hàng đợi.",
+      "notifyCustomer": "Thông báo cho khách hàng qua email",
+      "requests": {
+        "title": "Đã yêu cầu từ khách hàng",
+        "hint": "Yêu cầu khách hàng gửi một tài liệu. Yêu cầu sẽ hiển thị trong mục \"Cần bạn xử lý\" trên cổng thông tin của họ cho đến khi họ tải lên, kèm nhắc nhở sau số ngày đã đặt trong Cài đặt → CRM.",
+        "titleLabel": "Bạn cần tài liệu gì?",
+        "noteLabel": "Ghi chú cho khách hàng (tùy chọn)",
+        "dueLabel": "Hạn cần có (tùy chọn)",
+        "create": "Yêu cầu tài liệu",
+        "created": "Đã gửi yêu cầu.",
+        "cancel": "Hủy yêu cầu",
+        "cancelled": "Đã hủy yêu cầu.",
+        "empty": "Chưa có yêu cầu nào.",
+        "status": {
+          "open": "Đang chờ",
+          "fulfilled": "Đã nhận",
+          "cancelled": "Đã hủy"
+        },
+        "meta": "Yêu cầu ngày {{date}} · đã gửi {{reminders}} lần nhắc",
+        "due": "Cần có trước {{date}}"
+      }
+    },
+    "groups": {
+      "title": "Nhóm",
+      "intro": "Sắp xếp khách hàng vào các nhóm. Một khách hàng có thể thuộc nhiều nhóm, và có thể lọc trang tổng quan theo nhóm.",
+      "new": "Nhóm mới",
+      "name": "Tên",
+      "description": "Mô tả",
+      "color": "Màu",
+      "customColor": "Màu tùy chỉnh",
+      "empty": "Chưa có nhóm nào. Hãy tạo một nhóm để sắp xếp khách hàng.",
+      "emptyCatalogue": "Chưa có nhóm nào. Hãy tạo nhóm tại Khách hàng → Nhóm.",
+      "deletedGroup": "Nhóm đã xóa",
+      "palette": {
+        "blue": "Xanh dương",
+        "green": "Xanh lá",
+        "amber": "Hổ phách",
+        "red": "Đỏ",
+        "violet": "Tím",
+        "teal": "Xanh mòng két",
+        "pink": "Hồng",
+        "grey": "Xám"
+      },
+      "memberCount_one": "{{count}} khách hàng",
+      "memberCount_other": "{{count}} khách hàng",
+      "moveUp": "Di chuyển lên",
+      "moveDown": "Di chuyển xuống",
+      "archive": "Lưu trữ",
+      "archived": "Đã lưu trữ",
+      "restore": "Khôi phục",
+      "delete": "Xóa",
+      "deleteBlocked": "Vẫn còn khách hàng trong nhóm này. Hãy lưu trữ nhóm, hoặc gỡ nhóm khỏi các khách hàng đó trước.",
+      "confirmDelete": "Xóa \"{{name}}\"? Thao tác này không xóa khách hàng nào.",
+      "created": "Đã tạo nhóm",
+      "saved": "Đã lưu nhóm",
+      "deleted": "Đã xóa nhóm",
+      "reordered": "Đã lưu thứ tự",
+      "nameRequired": "Nhóm cần có tên",
+      "loadError": "Không thể tải danh sách nhóm. Tải lại trang để thử lại.",
+      "filterLabel": "Lọc theo nhóm",
+      "filterLimit": "Chỉ lọc tối đa {{max}} nhóm cùng lúc.",
+      "clearFilter": "Xóa lọc",
+      "none": "-",
+      "more": "+{{count}}",
+      "change": "Đổi nhóm",
+      "noneAssigned": "Khách hàng này không thuộc nhóm nào.",
+      "assignSaved": "Đã lưu nhóm",
+      "ungrouped": "Chưa có nhóm",
+      "matchLabel": "Khách hàng thuộc",
+      "matchAny": "Bất kỳ nhóm nào",
+      "matchAll": "Tất cả các nhóm",
+      "moreLabel_one": "Hiện thêm {{count}} nhóm",
+      "moreLabel_other": "Hiện thêm {{count}} nhóm",
+      "less": "Thu gọn",
+      "lessLabel": "Hiện ít nhóm hơn",
+      "lowContrastLight": "Màu này khó nhìn ở chế độ sáng.",
+      "lowContrastDark": "Màu này khó nhìn ở chế độ tối.",
+      "bulk": {
+        "barLabel": "Khách hàng đã chọn",
+        "selected_one": "Đã chọn {{count}}",
+        "selected_other": "Đã chọn {{count}}",
+        "add": "Thêm vào nhóm…",
+        "remove": "Gỡ khỏi nhóm…",
+        "clearSelection": "Bỏ chọn",
+        "selectAll": "Chọn tất cả khách hàng đang hiển thị",
+        "selectOne": "Chọn {{email}}",
+        "addTitle_one": "Thêm {{count}} khách hàng vào nhóm",
+        "addTitle_other": "Thêm {{count}} khách hàng vào nhóm",
+        "removeTitle_one": "Gỡ {{count}} khách hàng khỏi nhóm",
+        "removeTitle_other": "Gỡ {{count}} khách hàng khỏi nhóm",
+        "noneCarried": "Không khách hàng nào đã chọn thuộc một nhóm.",
+        "previewing": "Đang tính toán thay đổi…",
+        "previewError": "Không thể xem trước thay đổi. Hãy đóng hộp thoại này và thử lại.",
+        "addsSummary_one": "Thêm {{count}} lượt gán nhóm.",
+        "addsSummary_other": "Thêm {{count}} lượt gán nhóm.",
+        "removesSummary_one": "Gỡ {{count}} lượt gán nhóm.",
+        "removesSummary_other": "Gỡ {{count}} lượt gán nhóm.",
+        "alreadyIn_one": "{{count}} khách hàng đã thuộc {{name}}.",
+        "alreadyIn_other": "{{count}} khách hàng đã thuộc {{name}}.",
+        "notIn_one": "{{count}} khách hàng không thuộc {{name}}.",
+        "notIn_other": "{{count}} khách hàng không thuộc {{name}}.",
+        "confirmAdd_one": "Thêm {{count}} lượt gán nhóm",
+        "confirmAdd_other": "Thêm {{count}} lượt gán nhóm",
+        "confirmRemove_one": "Gỡ {{count}} lượt gán nhóm",
+        "confirmRemove_other": "Gỡ {{count}} lượt gán nhóm",
+        "addedToast_one": "Đã thêm {{count}} lượt gán nhóm",
+        "addedToast_other": "Đã thêm {{count}} lượt gán nhóm",
+        "removedToast_one": "Đã gỡ {{count}} lượt gán nhóm",
+        "removedToast_other": "Đã gỡ {{count}} lượt gán nhóm",
+        "overCap": "Chỉ có thể thay đổi tối đa {{max}} khách hàng cùng lúc. Hãy thu hẹp bộ lọc hoặc bỏ bớt một số lựa chọn.",
+        "overGroupLimit_one": "{{count}} khách hàng đã chọn sẽ thuộc hơn {{max}} nhóm. Hãy bỏ họ khỏi lựa chọn, hoặc gỡ họ khỏi các nhóm khác trước.",
+        "overGroupLimit_other": "{{count}} khách hàng đã chọn sẽ thuộc hơn {{max}} nhóm. Hãy bỏ họ khỏi lựa chọn, hoặc gỡ họ khỏi các nhóm khác trước."
+      }
+    },
+    "activity": {
+      "title": "Hoạt động",
+      "hint": "Những gì đã diễn ra với tài khoản và tài liệu của khách hàng này, mới nhất trước.",
+      "loadError": "Không thể tải hoạt động.",
+      "empty": "Chưa có hoạt động nào.",
+      "byCustomer": "Bởi khách hàng",
+      "byAdmin": "Bởi {{name}}",
+      "bySystem": "Tự động",
+      "more": "Hiện cũ hơn"
+    },
+    "emptyFiltered": "Không có khách hàng nào khớp với bộ lọc này.",
+    "clearFilters": "Xóa bộ lọc",
+    "statusFilter": {
+      "label": "Trạng thái",
+      "all": "Tất cả trạng thái"
     }
   },
   "clients": {
@@ -5864,7 +7074,8 @@
         "supplierCountry": "Quốc gia nhà cung cấp",
         "supplierCountryNone": "(không xác định)",
         "supplierCountryHint": "Tự động thiết lập cách xử lý thuế: ngoài các quốc gia bạn có thể hoàn VAT → VAT nước ngoài (không được hoàn)."
-      }
+      },
+      "subtitle": "Hóa đơn nhà cung cấp được ghi nhận bằng camera, tải lên hoặc hộp thư đến, sẵn sàng để phân loại và tái lập hóa đơn."
     },
     "expenseStatus": {
       "open": "Đang mở",
@@ -5971,7 +7182,8 @@
       "lockedHint": "Đã khóa: chi phí này đang nằm trên hóa đơn khách hàng.",
       "description": "Mô tả",
       "descriptionHint": "ví dụ: số km di chuyển, phụ cấp hằng ngày, biên lai tiền mặt",
-      "createdToast": "Đã thêm chi phí."
+      "createdToast": "Đã thêm chi phí.",
+      "subtitle": "Chi phí nội bộ như đi lại, phụ cấp ngày và biên lai tiền mặt, ghi nhận vào một sự kiện hoặc công ty."
     }
   },
   "projects": {
@@ -6377,7 +7589,8 @@
     "errors": {
       "popupBlocked": "Cho phép cửa sổ pop-up cho trang này để xem trước PDF.",
       "customerRequired": "Hãy chọn một khách hàng trước.",
-      "customerFeatureDisabled": "Khách hàng này đã tắt tính năng Báo giá. Hãy bật Báo giá ở trang chi tiết khách hàng trước."
+      "customerFeatureDisabled": "Khách hàng này đã tắt tính năng Báo giá. Hãy bật Báo giá ở trang chi tiết khách hàng trước.",
+      "rateRequired": "Không có đơn giá cho khách hàng này và không có đơn giá mặc định. Hãy đặt đơn giá mặc định theo giờ hoặc theo ngày tại Cài đặt → Kế toán, hoặc đặt đơn giá cho khách hàng."
     },
     "confirmSend": "Gửi báo giá này cho khách hàng ngay bây giờ?",
     "sentToast": "Đã gửi báo giá cho khách hàng.",
@@ -6423,7 +7636,11 @@
       "bookingWorkflow": "Quy trình đặt lịch (khi được chấp nhận)",
       "bookingWorkflowNone": "(Không có)",
       "bookingWorkflowDisabled": "(đã tắt)",
-      "bookingWorkflowHint": "Quy trình sẽ chạy khi khách hàng chấp nhận. Để Không có để không chạy quy trình đặt lịch nào. Quy trình phải được bật thì mới kích hoạt được."
+      "bookingWorkflowHint": "Quy trình sẽ chạy khi khách hàng chấp nhận. Để Không có để không chạy quy trình đặt lịch nào. Quy trình phải được bật thì mới kích hoạt được.",
+      "days": "Số ngày",
+      "daysHint": "Các dòng được đặt theo số ngày của báo giá sẽ dùng số lượng này.",
+      "hours": "Số giờ",
+      "hoursHint": "Các dòng được đặt theo số giờ của báo giá sẽ dùng số lượng này."
     },
     "responseWindowOpen": "Mở đến {{at}}",
     "section": {
@@ -6432,7 +7649,8 @@
       "customer": "Khách hàng",
       "event": "Chi tiết sự kiện",
       "payment": "Điều kiện thanh toán",
-      "extras": "Mở đầu / kết thúc / bổ sung"
+      "extras": "Mở đầu / kết thúc / bổ sung",
+      "customerMessage": "Tin nhắn từ khách hàng"
     },
     "savedToast": "Đã lưu báo giá dưới dạng bản nháp.",
     "edit": "Chỉnh sửa báo giá",
@@ -6487,7 +7705,186 @@
     "pagination_one": "Trang {{page}} / {{total}} · {{count}} báo giá",
     "pagination_other": "Trang {{page}} / {{total}} · {{count}} báo giá",
     "convertedToInvoiceToast_one": "Đã tạo {{count}} hóa đơn từ báo giá này",
-    "convertedToInvoiceToast_other": "Đã tạo {{count}} hóa đơn từ báo giá này"
+    "convertedToInvoiceToast_other": "Đã tạo {{count}} hóa đơn từ báo giá này",
+    "reissue": "Phát hành lại",
+    "reissuePrompt": "Phát hành lại báo giá này? Báo giá sẽ bị từ chối (liên kết của khách hàng ngừng hoạt động) và được sao chép thành bản nháp mới, tham chiếu đến nó là \"Thay thế …\". Có thể ghi chú lý do (để trống để bỏ qua).",
+    "reissuedToast": "Đã phát hành lại báo giá. Đang mở bản nháp mới.",
+    "replacesQuote": "Thay thế cho",
+    "replacedByQuote": "Được thay thế bởi",
+    "lockedNotice": {
+      "accepted": "Báo giá này đã được chấp nhận nên không thể chỉnh sửa. Để thay đổi, hãy phát hành lại: báo giá sẽ bị từ chối và được sao chép thành một bản nháp mới. Nếu báo giá không còn phù hợp, hãy từ chối nó.",
+      "acceptedConverted": "Báo giá này đã được chấp nhận và đã có hợp đồng, sự kiện hoặc hóa đơn đi kèm. Không thể thay đổi nữa.",
+      "declined": "Báo giá này đã bị từ chối nên không thể chỉnh sửa. Hãy nhân bản để bắt đầu một báo giá mới.",
+      "converted": "Báo giá này đã được chuyển đổi thành sự kiện hoặc hóa đơn nên không thể thay đổi nữa."
+    },
+    "catalog": {
+      "addItem": "Thêm mục",
+      "archive": "Lưu trữ",
+      "archived": "Đã lưu trữ",
+      "boundTo": "Số lượng",
+      "boundToNone": "Số lượng cố định",
+      "emptyPackages": "Chưa có gói nào.",
+      "emptyPromotions": "Chưa có khuyến mãi nào.",
+      "emptyServices": "Chưa có dịch vụ nào.",
+      "emptyTemplates": "Chưa có mẫu nào.",
+      "emptyTextBlocks": "Chưa có khối văn bản nào.",
+      "field": {
+        "amount": "Số tiền",
+        "body": "Nội dung",
+        "category": "Danh mục",
+        "description": "Mô tả",
+        "detailsText": "Ghi chú dưới dòng",
+        "kind": "Loại",
+        "language": "Ngôn ngữ",
+        "name": "Tên",
+        "percent": "Phần trăm",
+        "pinnedRate": "Đơn giá riêng (tùy chọn)",
+        "pinnedRateHint": "Để trống để dùng đơn giá của khách hàng, hoặc đơn giá mặc định trong Cài đặt → Kế toán.",
+        "priceMode": "Giá",
+        "promotionType": "Loại",
+        "quantityDefault": "Số lượng mặc định",
+        "unitPrice": "Đơn giá",
+        "validFrom": "Có hiệu lực từ",
+        "validUntil": "Có hiệu lực đến"
+      },
+      "newPackage": "Gói mới",
+      "newPromotion": "Khuyến mãi mới",
+      "newService": "Dịch vụ mới",
+      "newTextBlock": "Khối văn bản mới",
+      "packageItem": "Mục",
+      "packageItems": "Các mục",
+      "packagesIntro": "Gói chỉ có một mục sẽ hiển thị giá ngay trên dòng gói; gói có nhiều mục thì mỗi mục giữ giá riêng và dòng gói hiển thị tổng cộng.",
+      "perDay": "mỗi ngày",
+      "perHour": "mỗi giờ",
+      "placeholdersHint": "Biến giữ chỗ:",
+      "priceMode": {
+        "day": "Theo ngày (đơn giá)",
+        "fixed": "Giá cố định",
+        "hour": "Theo giờ (đơn giá)"
+      },
+      "promotionType": {
+        "fixed": "Số tiền cố định",
+        "percent": "Phần trăm"
+      },
+      "promotionsIntro": "Được đánh dấu chọn trong trình soạn báo giá. Mức phần trăm được áp dụng trước, sau đó đến số tiền cố định, trước VAT, và không bao giờ vượt quá tạm tính.",
+      "rateFromChain": "Đơn giá khách hàng / mặc định",
+      "restore": "Khôi phục",
+      "savedToast": "Đã lưu.",
+      "servicesIntro": "Các dịch vụ của bạn với giá cố định hoặc tính theo giờ / ngày. Chúng xuất hiện trong danh sách \"Thêm từ mẫu dựng sẵn\" của trình soạn báo giá và trong các gói.",
+      "tab": {
+        "packages": "Gói",
+        "promotions": "Khuyến mãi",
+        "services": "Dịch vụ",
+        "templates": "Mẫu",
+        "textBlocks": "Khối văn bản"
+      },
+      "templatesIntro": "Mẫu dùng để điền sẵn một báo giá mới. Khi xuất bản, một phiên bản sẽ được cố định, nên các thay đổi danh mục về sau không bao giờ làm thay đổi những báo giá bạn đã tạo.",
+      "textBlockKind": {
+        "closing": "Kết thúc",
+        "intro": "Mở đầu",
+        "note": "Ghi chú",
+        "scope": "Phạm vi công việc",
+        "terms": "Điều khoản"
+      },
+      "textBlocksIntro": "Các đoạn văn bản dùng lại được cho phần mở đầu và kết thúc của báo giá. Biến giữ chỗ được điền khi lưu báo giá.",
+      "title": "Danh mục & mẫu",
+      "promotionAmountHint": "Số tiền cần trừ, ví dụ 300 cho −300.",
+      "promotionPercentHint": "Phần trăm cần trừ, ví dụ 10 cho −10 %.",
+      "promotionDescriptionHint": "Hiển thị trên báo giá, bên dưới dòng chiết khấu.",
+      "noEndDateHint": "Để trống nếu không có ngày kết thúc.",
+      "noEndDate": "Không có ngày kết thúc",
+      "validFromNoEnd": "Từ {{date}}, không có ngày kết thúc",
+      "validUntilOnly": "Đến",
+      "examplesHint": "Các mục đã lưu trữ có tên \"Example: …\" minh họa cách từng phần hoạt động. Chỉnh sửa một mục rồi khôi phục để sử dụng.",
+      "backToTemplates": "Quay lại danh sách mẫu"
+    },
+    "promotions": {
+      "panelHint": "Mức phần trăm được áp dụng trước, sau đó đến số tiền cố định, và không bao giờ vượt quá tạm tính.",
+      "panelTitle": "Chiết khấu"
+    },
+    "ratesRecalculatedToast": "Đã cập nhật đơn giá theo giá trị hôm nay.",
+    "recalculateRates": "Tính lại theo đơn giá hiện tại",
+    "recalculateRatesConfirm": "Áp dụng đơn giá hôm nay cho bản nháp này? Các thay đổi chưa lưu trên trang này sẽ bị hủy.",
+    "templates": {
+      "addItem": "Mục danh mục",
+      "addLine": "Dòng riêng",
+      "addPackage": "Gói",
+      "archiveConfirm": "Lưu trữ mẫu này? Các báo giá hiện có không bị ảnh hưởng.",
+      "blankQuote": "Báo giá trống",
+      "createFromTemplate": "Tạo báo giá",
+      "defaults": "Mặc định cho báo giá mới",
+      "details": "Chi tiết",
+      "hoursHint": "Để trống để dùng số giờ của mẫu.",
+      "newPrompt": "Tên cho mẫu mới",
+      "newTemplate": "Mẫu mới",
+      "noneYet": "Chưa có mẫu nào được xuất bản. Hãy tạo một mẫu trong Danh mục & mẫu.",
+      "pickLabel": "Bắt đầu từ",
+      "promotions": "Chiết khấu được chọn sẵn",
+      "publish": "Xuất bản",
+      "publishedToast": "Đã xuất bản thành phiên bản {{version}}.",
+      "saveAsPrompt": "Tên cho mẫu mới",
+      "saveAsTemplate": "Lưu làm mẫu",
+      "saveDraft": "Lưu bản nháp",
+      "savedFromQuoteToast": "Đã tạo mẫu dưới dạng bản nháp.",
+      "savedToast": "Đã lưu mẫu.",
+      "section": {
+        "item": "Mục danh mục",
+        "line": "Dòng riêng",
+        "package": "Gói"
+      },
+      "sections": "Các dòng",
+      "skippedPromotions": "Không áp dụng (hôm nay không còn hiệu lực): {{names}}",
+      "startBlank": "Bắt đầu từ trống",
+      "status": {
+        "archived": "Đã lưu trữ",
+        "draft": "Bản nháp",
+        "published": "Đã xuất bản"
+      },
+      "textFromBlock": "Khối văn bản",
+      "textNone": "Không có",
+      "textOwn": "Văn bản riêng",
+      "texts": "Mở đầu và kết thúc",
+      "validityDays": "Hiệu lực trong (ngày)",
+      "versions": "Các phiên bản đã xuất bản",
+      "contractTemplate": "Mẫu hợp đồng",
+      "contractTemplateDefault": "(Mẫu hợp đồng mặc định)",
+      "contractTemplateUnavailable": "{{name}} (không còn khả dụng)"
+    },
+    "textBlocks": {
+      "insert": "Chèn khối văn bản…"
+    },
+    "selection": {
+      "title": "Dịch vụ bổ sung khi chấp nhận",
+      "byCustomer": "Khách hàng đã chọn vào {{date}}",
+      "byAdmin": "Được ghi nhận khi bạn chấp nhận vào {{date}}",
+      "none": "Không chọn dịch vụ bổ sung nào",
+      "chosen": "Đã đặt",
+      "notChosen": "Chưa đặt"
+    },
+    "addOns": {
+      "editHint": "Đặt thêm hoặc bỏ dịch vụ bổ sung, rồi lưu. Khách hàng sẽ nhận báo giá đã cập nhật qua email.",
+      "save": "Lưu thay đổi dịch vụ bổ sung",
+      "confirmSave": "Khách hàng sẽ nhận báo giá đã cập nhật qua email.",
+      "savedToast": "Đã cập nhật dịch vụ bổ sung. Báo giá đã cập nhật đã được gửi email cho khách hàng.",
+      "unchangedToast": "Các dịch vụ bổ sung đã được đặt đúng như vậy từ trước.",
+      "convertedHint": "Hãy thay đổi dịch vụ bổ sung trên hợp đồng hoặc hóa đơn.",
+      "historyTitle": "Thay đổi",
+      "byCustomer": "bởi khách hàng",
+      "byYou": "bởi bạn",
+      "booked": "Đã đặt: {{items}}",
+      "removed": "Đã bỏ: {{items}}",
+      "totalChange": "Tổng cộng {{before}} → {{after}}",
+      "errors": {
+        "converted": "Báo giá này đã có hợp đồng, sự kiện hoặc hóa đơn. Hãy thay đổi dịch vụ bổ sung ở đó.",
+        "notAccepted": "Có thể thay đổi dịch vụ bổ sung tại đây sau khi báo giá được chấp nhận.",
+        "noAddOns": "Báo giá này không có dịch vụ bổ sung nào.",
+        "failed": "Không thể lưu các thay đổi dịch vụ bổ sung."
+      }
+    },
+    "contractTemplate": "Mẫu hợp đồng",
+    "convertToContractConfirm": "Soạn thảo hợp đồng",
+    "contractTemplateFromQuote": "Được chọn sẵn theo mẫu của báo giá: {{name}}",
+    "contractTemplateAuto": "Theo mẫu của báo giá (nếu không thì dùng mặc định)"
   },
   "crm": {
     "lineItems": {
@@ -6511,7 +7908,45 @@
       "detailsFilled": "Chi tiết",
       "detailsPlaceholder": "Ghi chú tùy chọn: điều khoản nhỏ, nội dung gói bao gồm, điều kiện…",
       "autoTotaledHint": "Tổng được tính tự động từ các mục con bên dưới",
-      "autoTotaledNote": "= tổng các mục con"
+      "autoTotaledNote": "= tổng các mục con",
+      "discountLine": "Chiết khấu",
+      "discountPercentHint": "{{percent}} % của tạm tính",
+      "followsDays": "Theo số ngày của báo giá",
+      "followsHours": "Theo số giờ của báo giá",
+      "insertPackage": "Chèn gói…",
+      "optional": "Đề xuất làm dịch vụ bổ sung",
+      "optionalIncluded": "(dịch vụ bổ sung, đã đặt)",
+      "optionalNotIncluded": "(dịch vụ bổ sung, chưa đặt)",
+      "rateSource": {
+        "auto": "Đơn giá được áp dụng khi lưu",
+        "customer": "Đơn giá theo khách hàng",
+        "default": "Đơn giá mặc định",
+        "item": "Đơn giá theo mục"
+      },
+      "remove": "Xóa",
+      "unitLabel": "Đơn vị",
+      "unitNone": "-",
+      "unitOption": {
+        "day": "Ngày",
+        "flat": "Trọn gói",
+        "hour": "Giờ",
+        "km": "km",
+        "piece": "Cái"
+      },
+      "unitShort": {
+        "day": "ngày",
+        "flat": "trọn gói",
+        "hour": "giờ",
+        "km": "km",
+        "piece": "cái"
+      },
+      "useDayRate": "Dùng đơn giá theo ngày",
+      "useHourlyRate": "Dùng đơn giá theo giờ",
+      "offered": "Đã đề xuất",
+      "offeredNotInTotal": "Chưa đặt",
+      "book": "Đặt",
+      "removeBooking": "Bỏ đặt",
+      "bookedInTotal": "Đã đặt"
     },
     "customerPicker": {
       "search": "Tìm khách hàng theo email hoặc công ty…"
@@ -6813,7 +8248,9 @@
       "contracts": "Hợp đồng",
       "quotesTos": "Bước Điều khoản dịch vụ / AGB",
       "dashboardOverview": "Tổng quan CRM trên bảng điều khiển",
-      "dashboardOverviewHint": "Ẩn các ô tổng quan CRM trên bảng điều khiển quản trị. Mặc định tất cả các ô đều hiển thị; bỏ chọn để ẩn."
+      "dashboardOverviewHint": "Ẩn các ô tổng quan CRM trên bảng điều khiển quản trị. Mặc định tất cả các ô đều hiển thị; bỏ chọn để ẩn.",
+      "documents": "Tài liệu khách hàng",
+      "documentsHint": "Tài liệu trao đổi với khách hàng trong cổng thông tin của họ. Tệp khách hàng tải lên sẽ chưa hiển thị với họ cho đến khi được duyệt."
     },
     "paymentDefaults": {
       "help": "Được điền sẵn trên mọi báo giá và hóa đơn mới. Trình soạn thảo vẫn cho phép bạn chọn tổ hợp khác cho từng tài liệu.",
@@ -6878,7 +8315,7 @@
     "crm_invoices_vat_note_text": {
       "label": "Ghi chú VAT / văn bản tự do trên hóa đơn",
       "placeholder": "ví dụ: Gemäß § 6 Abs. 1 Z 27 UStG 1994 wird keine Umsatzsteuer berechnet (Kleinunternehmer).",
-      "help": "Được in trực tiếp bên dưới dòng MwSt. trên mọi PDF hóa đơn. Để trống để ẩn. Vui lòng xác nhận nội dung chính xác với chuyên viên tư vấn thuế của bạn."
+      "help": "Được in ngay dưới dòng MwSt. trên mọi PDF hóa đơn. Nếu doanh nghiệp chưa đăng ký VAT (Cài đặt → Kế toán), nội dung này thay thế dòng đó trên hóa đơn và báo giá không có VAT. Để trống để ẩn. Hãy xác nhận cách diễn đạt chính xác với cố vấn thuế của bạn."
     },
     "crm_invoices_skonto_percent_default": {
       "label": "Tỷ lệ Skonto (mặc định %)"
@@ -6957,6 +8394,65 @@
     },
     "crm_overview_show_invoices": {
       "label": "Kênh hóa đơn (theo trạng thái)"
+    },
+    "subtitleFor": "Cài đặt cho {{areas}}.",
+    "areas": {
+      "quotes": "báo giá",
+      "invoices": "hóa đơn",
+      "contracts": "hợp đồng",
+      "documents": "tài liệu khách hàng",
+      "and": "và"
+    },
+    "crm_contracts_notify_each_signature": {
+      "label": "Gửi email cho tôi mỗi khi một người ký hoàn tất (không chỉ khi tất cả đã ký)"
+    },
+    "crm_contracts_reminder_days": {
+      "label": "Nhắc nhở ký (số ngày sau liên kết gần nhất)",
+      "help": "Phân tách bằng dấu phẩy, ví dụ 3,7: gửi nhắc nhở kèm liên kết mới 3 ngày sau liên kết gần nhất, rồi 7 ngày sau đó. Để trống nếu không muốn nhắc nhở."
+    },
+    "crm_contracts_alert_unknown_tokens_per_ip": {
+      "label": "Cảnh báo sau số liên kết ký không xác định trên mỗi máy khách mỗi giờ"
+    },
+    "crm_contracts_alert_otp_failures_per_contract": {
+      "label": "Cảnh báo sau số lần nhập sai mã trên mỗi hợp đồng mỗi giờ"
+    },
+    "crm_contracts_legal_notice": {
+      "labelDe": "Thông báo pháp lý trên hợp đồng đã ký (tiếng Đức)",
+      "labelEn": "Thông báo pháp lý trên hợp đồng đã ký (tiếng Anh)",
+      "placeholder": "Để trống: dùng thông báo tiêu chuẩn (chữ ký điện tử đơn giản, không dùng cho hợp đồng bắt buộc lập bằng văn bản).",
+      "help": "Được cố định vào từng hợp đồng khi gửi, hiển thị trên trang ký và in trên chứng nhận ký. Thay đổi nội dung này chỉ ảnh hưởng đến các hợp đồng gửi sau đó."
+    },
+    "crm_contracts_alert_unknown_tokens_per_hour": {
+      "label": "Cảnh báo sau số liên kết ký không xác định mỗi giờ, tính chung cho mọi khách truy cập"
+    },
+    "customer_documents_notify_on_share": {
+      "label": "Gửi email cho khách hàng khi có tài liệu được chia sẻ với họ (mặc định cho ô tích chọn trong hồ sơ khách hàng)"
+    },
+    "customer_documents_max_upload_size_mb": {
+      "label": "Dung lượng tệp tối đa (MB)"
+    },
+    "customer_documents_quota_mb": {
+      "label": "Dung lượng lưu trữ cho mỗi khách hàng (MB)"
+    },
+    "customer_documents_retention_days": {
+      "label": "Giữ lại tệp bị từ chối và đã xóa (ngày)"
+    },
+    "customer_documents_forbidden_alert_threshold": {
+      "label": "Cảnh báo sau số lần truy cập tài liệu của khách hàng khác (mỗi giờ)"
+    },
+    "customer_documents_request_reminder_days": {
+      "label": "Nhắc về tài liệu đã yêu cầu sau (số ngày, phân tách bằng dấu phẩy; để trống = tắt)"
+    },
+    "customer_documents_allowed_formats": {
+      "label": "Loại tệp khách hàng được tải lên",
+      "help": "Mọi tệp đều được kiểm tra theo nội dung. Mặc định chỉ bật PDF. Việc kiểm tra tệp Word, Excel và OpenDocument chỉ ở mức cố gắng tốt nhất: hệ thống từ chối macro, đối tượng nhúng và các cách đã biết để liên kết tới nội dung bên ngoài (kể cả liên kết web), nhưng không phát hiện được mọi cơ chế nội dung chủ động của các định dạng này. Chỉ bật chúng cho những khách hàng bạn tin tưởng, và mở các tệp đó một cách thận trọng. Tệp CSV được chuyển tiếp nguyên trạng: công thức trong tệp sẽ chạy khi ai đó mở nó bằng bảng tính."
+    },
+    "crm_invoices_service_date_mode": {
+      "label": "Ngày cung cấp dịch vụ trùng với ngày hóa đơn",
+      "note": "Ghi bằng chữ (\"trùng với ngày hóa đơn\")",
+      "repeat": "In lại ngày",
+      "omit": "Bỏ dòng này",
+      "help": "Chỉ áp dụng khi ngày cung cấp dịch vụ trùng với ngày hóa đơn; khoảng thời gian cung cấp dịch vụ luôn được in. Luật thuế tại CH/LI và DE/AT yêu cầu ghi thời điểm cung cấp trên hóa đơn, vì vậy việc bỏ dòng này là quyết định cần xác nhận với chuyên viên tư vấn thuế của bạn."
     }
   },
   "quoteResponse": {
@@ -6985,7 +8481,22 @@
     "tosCheckbox": "Tôi đã đọc và chấp nhận Điều khoản Dịch vụ.",
     "tosLink": "Đọc toàn bộ Điều khoản",
     "preselectAcceptHint": "Bạn đã theo liên kết \"Chấp nhận\" từ email, nhấp vào nút bên dưới để xác nhận.",
-    "preselectDeclineHint": "Bạn đã theo liên kết \"Từ chối\" từ email, nhấp vào nút bên dưới để xác nhận."
+    "preselectDeclineHint": "Bạn đã theo liên kết \"Từ chối\" từ email, nhấp vào nút bên dưới để xác nhận.",
+    "addons": {
+      "hint": "Đặt các dịch vụ bổ sung bạn muốn. Tổng cộng sẽ cập nhật theo lựa chọn của bạn.",
+      "optional": "Tùy chọn",
+      "included": "Đã đặt",
+      "notChosen": "Chưa đặt",
+      "updating": "Đang cập nhật tổng cộng…",
+      "totalChanged": "Tổng cộng hiện là {{total}}. Vui lòng kiểm tra lại và chấp nhận lần nữa.",
+      "locked": "Các dịch vụ bổ sung đã được cố định khi bạn chấp nhận. Vui lòng liên hệ với chúng tôi để nhận báo giá điều chỉnh.",
+      "changeUntil": "Bạn có thể thay đổi dịch vụ bổ sung cho đến {{time}}. Chấp nhận lại để xác nhận thay đổi."
+    },
+    "message": {
+      "label": "Lời nhắn của bạn gửi chúng tôi (tùy chọn)",
+      "placeholder": "Có điều gì chúng tôi cần biết không? Lời nhắn sẽ được gửi kèm xác nhận chấp nhận của bạn.",
+      "yours": "Lời nhắn của bạn"
+    }
   },
   "reminderTemplates": {
     "title": "Email nhắc nhở trước sự kiện",
@@ -7222,11 +8733,15 @@
     },
     "status": {
       "draft": "Bản nháp",
-      "sent": "Đã gửi",
-      "signed_by_customer": "Khách hàng đã ký",
+      "sent": "Chờ ký",
+      "signed_by_customer": "Khách hàng đã ký · chờ ký xác nhận",
       "signed_by_admin": "Đã ký xác nhận",
-      "fully_signed": "Đã ký đầy đủ",
-      "cancelled": "Đã hủy"
+      "fully_signed": "Đã hoàn tất",
+      "cancelled": "Đã rút lại",
+      "declined": "Đã từ chối",
+      "expired": "Đã hết hạn",
+      "partlySigned": "Đã ký một phần ({{signed}}/{{total}})",
+      "awaiting_data": "Cần bổ sung thông tin"
     },
     "list": {
       "new": "Hợp đồng mới",
@@ -7242,24 +8757,38 @@
       },
       "pagination": "Trang {{page}}/{{total}} · {{count}} hợp đồng",
       "pagination_one": "Trang {{page}}/{{total}} · {{count}} hợp đồng",
-      "pagination_other": "Trang {{page}}/{{total}} · {{count}} hợp đồng"
+      "pagination_other": "Trang {{page}}/{{total}} · {{count}} hợp đồng",
+      "templates": "Mẫu",
+      "attachments": "Tệp đính kèm"
     },
     "detail": {
       "previewPdf": "Xem trước PDF",
       "integrity": {
         "title": "Kiểm tra tính toàn vẹn PDF",
-        "help": "Tính lại hash của các file PDF chưa ký và đã ký trên ổ đĩa, rồi so sánh với giá trị SHA-256 đã lưu khi tài liệu được phát hành. Phát hiện lỗi hỏng bản sao lưu hoặc chỉnh sửa thủ công kể từ khi khách hàng nhận được bản của họ.",
         "verify": "Xác minh",
         "reverify": "Xác minh lại",
-        "unsignedTitle": "PDF chưa ký",
-        "signedTitle": "PDF đã ký",
         "match": "Hash khớp",
         "mismatch": "Hash không khớp: file đã bị thay đổi",
-        "missing": "Không tìm thấy file trên ổ đĩa",
-        "notIssued": "Chưa phát hành",
         "expected": "dự kiến",
         "actual": "thực tế",
-        "error": "Kiểm tra tính toàn vẹn thất bại."
+        "error": "Kiểm tra tính toàn vẹn thất bại.",
+        "notCheckable": "Không thể kiểm tra",
+        "downloadPdf": "Báo cáo dạng PDF",
+        "helpReport": "Đọc lại mọi tệp của hợp đồng này (cả hai PDF, chứng nhận ký, từng hình ảnh chữ ký và tệp đính kèm) rồi đối chiếu lại nội dung đã cố định, danh sách tệp đính kèm và nhật ký ký với dữ liệu được ghi lại lúc mỗi thứ được tạo. Nếu không khớp, hệ thống sẽ nêu rõ mục đã thay đổi.",
+        "allOk": "Mọi bước kiểm tra đều đạt.",
+        "someFailed": "Có ít nhất một bước kiểm tra không đạt.",
+        "check": {
+          "unsigned_pdf": "PDF đã gửi",
+          "signed_pdf": "PDF đã ký",
+          "certificate": "Chứng nhận ký",
+          "signature_image": "Hình ảnh chữ ký",
+          "content": "Nội dung đã cố định",
+          "attachment": "Tệp đính kèm",
+          "manifest": "Danh sách tệp đính kèm",
+          "event_chain": "Nhật ký ký",
+          "completed_artifact": "Tài liệu hoàn tất"
+        },
+        "missingArtefact": "Bị thiếu: tệp (hoặc bản ghi) không còn nữa"
       },
       "alreadyEventToast": "Đã được liên kết với một sự kiện.",
       "auditEmpty": "Chưa có mục nhật ký kiểm toán nào.",
@@ -7326,7 +8855,76 @@
       "uploadSigned": "Tải lên PDF đã ký",
       "uploadedToast": "Đã tải lên PDF đã ký.",
       "convertedToInvoiceToast_one": "Đã tạo {{count}} hóa đơn từ hợp đồng này",
-      "convertedToInvoiceToast_other": "Đã tạo {{count}} hóa đơn từ hợp đồng này"
+      "convertedToInvoiceToast_other": "Đã tạo {{count}} hóa đơn từ hợp đồng này",
+      "sentInvitationFailedToast": "Đã gửi, nhưng email tới người ký chưa gửi đi được. Hệ thống sẽ tự động thử lại trong vòng một giờ, vì vậy đừng gửi lại.",
+      "fromTemplate": "Mẫu: {{name}} · v{{version}}",
+      "documents": "Tài liệu đã tạo",
+      "documentsHelp": "Mọi PDF được tạo cho hợp đồng này, kèm checksum. Tính lại hash của một bản sao để xác nhận khớp.",
+      "documentsEmpty": "Chưa có PDF nào được tạo.",
+      "documentPages": "Số trang: {{count}}",
+      "documentKind": {
+        "unsigned": "Đã gửi để ký",
+        "signed": "Đã ký",
+        "audit": "Chứng nhận kiểm toán",
+        "wet_upload": "Bản đã ký được tải lên"
+      },
+      "countersignDrawRequired": "Vẽ chữ ký của bạn, hoặc chuyển sang nhập tên.",
+      "countersignCustomersPending": "Tất cả khách hàng phải ký trước khi bạn ký xác nhận.",
+      "countersignHelpV2": "Tất cả khách hàng đã ký. Chữ ký của bạn sẽ được đặt vào ô của bên phát hành trên PDF, và chứng nhận ký sẽ được cấp ngay khi bạn ký.",
+      "countersignModeLabel": "Bạn muốn ký bằng cách nào?",
+      "countersignModeDrawn": "Vẽ chữ ký của tôi",
+      "countersignModeTyped": "Dùng tên tôi đã nhập",
+      "countersignTypedHint": "Tên của bạn, như đã nhập ở trên, sẽ được đặt vào ô chữ ký.",
+      "downloadCertificate": "Tải xuống chứng nhận ký",
+      "certificateUnavailable": "Chứng nhận ký không khả dụng",
+      "countersignUncertain": "Không thể kết nối tới máy chủ, nên chưa rõ chữ ký xác nhận đã được ghi nhận hay chưa. Hợp đồng đã được tải lại: hãy kiểm tra trạng thái trước khi ký lại.",
+      "attachmentMerged": "gộp vào từ trang {{page}}",
+      "attachmentSeparate": "gửi dưới dạng tệp riêng",
+      "collectData": "Yêu cầu khách hàng bổ sung thông tin trước",
+      "finishSending": "Hoàn tất gửi với thông tin của khách hàng",
+      "waitingForDetails": "Đang chờ khách hàng bổ sung thông tin. Hợp đồng sẽ được chuẩn bị và gửi tới những người ký khác ngay khi khách hàng hoàn tất.",
+      "review": {
+        "title": "Xem lại trước khi gửi",
+        "loadFailed": "Không thể tải phần xem lại.",
+        "blocked": "Chưa thể gửi hợp đồng này",
+        "warnings": "Vui lòng kiểm tra",
+        "ready": "Mọi thứ đã sẵn sàng để gửi.",
+        "customer": "Khách hàng",
+        "signers": "Người ký",
+        "sequential": "Lần lượt từng người, theo thứ tự này",
+        "parallel": "Tất cả cùng lúc",
+        "issuer": "chữ ký xác nhận của bạn",
+        "noAttachments": "Không có",
+        "merged": "trong PDF",
+        "separate": "tệp riêng",
+        "pages_one": "{{count}} trang",
+        "pages_other": "{{count}} trang",
+        "fileProblem": "tệp có vấn đề",
+        "price": "Giá",
+        "noPrice": "Không có báo giá đính kèm: hợp đồng không nêu giá.",
+        "template": "Mẫu",
+        "templateVersion": "{{name}}, phiên bản {{version}}",
+        "noTemplate": "Không có mẫu",
+        "showLayout": "Hiện trang ký",
+        "hideLayout": "Ẩn trang ký",
+        "sending": "Đang gửi…",
+        "sendTo_one": "Gửi tới {{count}} người ký",
+        "sendTo_other": "Gửi tới {{count}} người ký",
+        "stale": "Hợp đồng đã thay đổi kể từ lần xem lại này. Hãy kiểm tra phần xem lại đã cập nhật rồi gửi.",
+        "problems": {
+          "CONTRACT_NOT_DRAFT": "Chỉ có thể gửi bản nháp.",
+          "CUSTOMER_MISSING": "Khách hàng không còn tồn tại.",
+          "CUSTOMER_INACTIVE": "Khách hàng đã bị vô hiệu hóa.",
+          "SIGNER_EMAIL_MISSING": "Khách hàng chưa có địa chỉ email để ký.",
+          "ATTACHMENT_CHANGED": "Một tệp đính kèm không còn khớp với tệp đã thêm. Hãy xóa và thêm lại.",
+          "ATTACHMENT_MISSING": "Thiếu tệp của một mục đính kèm.",
+          "NO_CLAUSES": "Hợp đồng chưa có điều khoản nào.",
+          "PLACEHOLDER_UNRESOLVED": "Các placeholder này sẽ được in đúng như đã nhập: {{keys}}"
+        },
+        "collectHint": "Hiện chỉ người ký đầu tiên nhận được liên kết để điền thông tin của họ. Sau khi họ điền xong, hợp đồng, bản PDF và giá sẽ được chuẩn bị rồi gửi cho những người ký còn lại.",
+        "requestDetails": "Yêu cầu điền thông tin",
+        "afterDetails": "Được thiết lập sau khi khách hàng điền xong thông tin."
+      }
     },
     "editor": {
       "back": "Quay lại danh sách",
@@ -7334,8 +8932,8 @@
       "create": "Tạo bản nháp",
       "createdToast": "Đã tạo hợp đồng.",
       "customer": "Khách hàng",
-      "disclaimerBody": "Nội dung các khối mặc định CHỈ LÀ VÍ DỤ, do người phát triển viết, không phải luật sư. Hãy nhờ luật sư của bạn xem xét từng khối nội dung trước khi gửi hợp đồng. Xem https://docs.picpeak.app/features/crm/disclaimers.",
-      "disclaimerTitle": "Cần luật sư xem xét",
+      "disclaimerBody": "Nội dung các khối mặc định là ví dụ do người duy trì dự án viết, không phải luật sư. Trước khi gửi hợp đồng, hãy nhờ xem xét các khối bạn dùng cho phù hợp với khu vực pháp lý và mục đích sử dụng của bạn, vì bạn vẫn chịu trách nhiệm về nội dung hợp đồng. Điều này không ngăn bạn lưu bản nháp.",
+      "disclaimerTitle": "Nên nhờ xem xét pháp lý",
       "eventDate": "Ngày diễn ra sự kiện",
       "eventHelp": "Được chụp nhanh vào hợp đồng và truyền sang bất kỳ sự kiện / hóa đơn nào được tạo từ đó. Thiết lập giá trị này để cổng thông tin khách hàng và email nhắc nợ hiển thị đúng nhãn kiểu \"Wedding Doe / Müller\".",
       "eventName": "Tên sự kiện",
@@ -7370,7 +8968,41 @@
       "titleField": "Tiêu đề hợp đồng",
       "titleNew": "Hợp đồng mới",
       "titlePlaceholder": "ví dụ: Hợp đồng đám cưới Doe / Müller",
-      "validUntil": "Hạn ký (tùy chọn)"
+      "validUntil": "Hạn ký (tùy chọn)",
+      "saving": "Đang lưu…",
+      "disclaimerLink": "Đọc tuyên bố miễn trừ trách nhiệm của CRM",
+      "errors": {
+        "createNotSaved": "Bản nháp chưa được lưu.",
+        "updateNotSaved": "Các thay đổi của bạn chưa được lưu.",
+        "createUnconfirmed": "Không thể xác nhận bản nháp đã được lưu hay chưa. Bạn có thể lưu lại một cách an toàn: thao tác này sẽ không tạo bản nháp thứ hai.",
+        "createdChangesNotSaved": "Bản nháp đã được lưu, nhưng các thay đổi mới nhất của bạn thì chưa. Lưu lại để áp dụng chúng.",
+        "createdChangesUnconfirmed": "Bản nháp đã được lưu, nhưng không thể xác nhận các thay đổi mới nhất của bạn đã được lưu hay chưa. Bạn có thể lưu lại một cách an toàn.",
+        "updateUnconfirmed": "Không thể xác nhận các thay đổi của bạn đã được lưu hay chưa. Bạn có thể lưu lại một cách an toàn.",
+        "fieldsHeading": "Vui lòng kiểm tra các mục sau:",
+        "unexpected": "Đã xảy ra lỗi không mong muốn trên máy chủ.",
+        "referenceId": "Mã tham chiếu",
+        "customerRequired": "Chọn một khách hàng",
+        "tooLong": "Tối đa 255 ký tự",
+        "invalidDate": "Nhập ngày hợp lệ",
+        "invalidTime": "Nhập giờ theo dạng HH:MM",
+        "invalidLanguage": "Chọn một ngôn ngữ",
+        "invalidText": "Kiểm tra lại nội dung này",
+        "blocksLabel": "Khối nội dung",
+        "checkBlocks": "Kiểm tra lại các khối nội dung đã chọn",
+        "requestLabel": "Yêu cầu",
+        "reloadAndRetry": "Tải lại trang và thử lại",
+        "checkValue": "Kiểm tra lại giá trị này"
+      },
+      "template": "Bắt đầu từ mẫu",
+      "templateNone": "Không dùng mẫu: chọn các điều khoản bên dưới",
+      "templateHint": "Hợp đồng sẽ bắt đầu với các điều khoản và nội dung của mẫu này. Bạn có thể điều chỉnh chúng sau khi tạo.",
+      "templateNoneHint": "Tự chọn các điều khoản bên dưới.",
+      "textSections": "Các mục văn bản tự do",
+      "textSectionsHint": "Các mục này lấy từ mẫu và được giữ nguyên khi bạn lưu.",
+      "conflictTitle": "Đã bị người khác thay đổi.",
+      "conflictBody": "Hợp đồng này đã được lưu ở nơi khác trong lúc bạn đang chỉnh sửa. Các thay đổi của bạn vẫn còn ở đây và chưa được lưu.",
+      "keepMine": "Giữ bản của tôi",
+      "takeTheirs": "Dùng bản của họ"
     },
     "blocks": {
       "back": "Quay lại hợp đồng",
@@ -7408,7 +9040,400 @@
         "calloutTitle": "Bảng tự động được thêm sau phần nội dung",
         "calloutBody": "Khi khối này được đưa vào hợp đồng được tạo từ báo giá, PDF sẽ chèn một bảng chi tiết các dòng của báo giá gốc (#, Mô tả, SL, Đơn vị, Thành tiền) ngay sau phần nội dung ở trên. Các dòng con được thụt lề với ký hiệu ↳. Hợp đồng không có báo giá gốc sẽ bỏ qua bảng này và chỉ hiển thị phần nội dung.",
         "previewExample": "Ví dụ kết quả hiển thị:"
+      },
+      "disclaimerLink": "Đọc tuyên bố miễn trừ trách nhiệm của CRM"
+    },
+    "templates": {
+      "title": "Mẫu hợp đồng",
+      "intro": "Mẫu quy định các điều khoản mà hợp đồng mới bắt đầu, thứ tự và nội dung của chúng. Xuất bản sẽ cố định một phiên bản; mỗi hợp đồng giữ nguyên phiên bản mà nó được tạo từ đó.",
+      "back": "Quay lại hợp đồng",
+      "backToTemplates": "Quay lại danh sách mẫu",
+      "newName": "Tên mẫu mới",
+      "create": "Tạo mẫu",
+      "empty": "Chưa có mẫu nào.",
+      "standard": "Tiêu chuẩn",
+      "default": "Mặc định",
+      "status": {
+        "draft": "Bản nháp",
+        "published": "Đã xuất bản · v{{version}}",
+        "archived": "Đã lưu trữ"
+      },
+      "unpublished": "Có thay đổi chưa xuất bản",
+      "open": "Mở",
+      "duplicate": "Nhân bản",
+      "copyName": "{{name}} (bản sao)",
+      "duplicated": "Đã nhân bản mẫu",
+      "makeDefault": "Đặt làm mặc định",
+      "defaultSet": "Hợp đồng mới giờ sẽ bắt đầu từ mẫu này",
+      "archive": "Lưu trữ",
+      "archivedToast": "Đã lưu trữ mẫu",
+      "restore": "Khôi phục",
+      "restored": "Đã khôi phục mẫu",
+      "actionFailed": "Thao tác không thành công. Vui lòng thử lại.",
+      "languages": "Ngôn ngữ",
+      "systemNotice": "Không thể chỉnh sửa mẫu tiêu chuẩn. Hãy nhân bản để tạo phiên bản của riêng bạn.",
+      "details": "Chi tiết",
+      "name": "Tên",
+      "useCase": "Trường hợp sử dụng",
+      "description": "Mô tả",
+      "docTitle": "Tiêu đề hợp đồng",
+      "introText": "Đoạn mở đầu",
+      "outroText": "Đoạn kết",
+      "clauses": "Điều khoản",
+      "noClauses": "Chưa có điều khoản nào. Hãy thêm điều khoản từ thư viện hoặc văn bản tự do.",
+      "clause": "Điều khoản",
+      "freeText": "Văn bản tự do",
+      "untitled": "Chưa đặt tên",
+      "customised": "đã tùy chỉnh",
+      "archivedBlock": "Đã lưu trữ trong thư viện",
+      "moveUp": "Di chuyển lên",
+      "moveDown": "Di chuyển xuống",
+      "showText": "Nội dung",
+      "hideText": "Ẩn nội dung",
+      "remove": "Xóa",
+      "section": "Mục",
+      "heading": "Tiêu đề",
+      "overrideLabel": "Nội dung trong mẫu này (để trống để dùng nội dung từ thư viện khối nội dung)",
+      "body": "Nội dung",
+      "pickClause": "Điều khoản từ thư viện",
+      "addClause": "Thêm điều khoản",
+      "addFreeText": "Thêm văn bản tự do",
+      "preview": "Xem trước PDF",
+      "saveDraft": "Lưu bản nháp",
+      "publish": "Xuất bản",
+      "saved": "Đã lưu bản nháp",
+      "published": "Đã xuất bản phiên bản {{version}}",
+      "saveFailed": "Không thể lưu bản nháp.",
+      "publishFailed": "Không thể xuất bản mẫu.",
+      "previewFailed": "Không thể tạo bản xem trước.",
+      "versions": "Phiên bản",
+      "noVersions": "Chưa xuất bản.",
+      "versionCurrent": "Hiện tại",
+      "versionEarlier": "Trước đây",
+      "draftFromVersion": "Bản nháp mới từ phiên bản này",
+      "draftFromVersionConfirm": "Thay bản nháp hiện tại bằng bản sao của phiên bản {{version}}?",
+      "draftCreated": "Đã tạo bản nháp từ phiên bản {{version}}",
+      "consents": {
+        "title": "Các tuyên bố người ký xác nhận",
+        "help": "Mỗi tuyên bố là một ô đánh dấu riêng trên trang ký, không bao giờ được đánh dấu sẵn. Các tuyên bố bắt buộc phải được đánh dấu mới ký được. Nội dung là một phần của những gì được ký: thay đổi nội dung sẽ tạo phiên bản mới cho tuyên bố khi lưu bản nháp, còn các hợp đồng đã gửi vẫn giữ nguyên nội dung lúc được gửi đi.",
+        "none": "Thêm ít nhất một tuyên bố bắt buộc trước khi xuất bản.",
+        "key": "Khóa",
+        "required": "Bắt buộc để ký",
+        "version": "Phiên bản {{version}}",
+        "remove": "Xóa tuyên bố {{number}}",
+        "textDe": "Nội dung (tiếng Đức)",
+        "textEn": "Nội dung (tiếng Anh)",
+        "add": "Thêm tuyên bố"
+      },
+      "check": {
+        "run": "Kiểm tra",
+        "failed": "Không thể chạy kiểm tra.",
+        "clause": "Điều khoản {{position}}",
+        "error": "Lỗi",
+        "warning": "Cảnh báo",
+        "goTo": "Đi đến",
+        "blocked": "Hãy sửa các mục này trước khi xuất bản",
+        "passed": "Sẵn sàng xuất bản",
+        "pageCount": "{{count}} trang trong lần chạy thử",
+        "stale": "Đã thay đổi sau lần kiểm tra: hãy kiểm tra lại",
+        "codes": {
+          "NO_CLAUSES": "Thêm ít nhất một điều khoản trước khi xuất bản.",
+          "BLOCK_ARCHIVED": "{{where}}: đã lưu trữ trong thư viện khối nội dung.",
+          "SECTION_EMPTY": "{{where}}: mục văn bản tự do chưa có nội dung.",
+          "PLACEHOLDER_UNKNOWN": "{{where}} ({{locale}}): placeholder không xác định {{key}}.",
+          "CONDITIONAL_NESTED": "{{where}} ({{locale}}): một khối \"Chỉ hiển thị nếu\" nằm bên trong một khối khác.",
+          "CONDITIONAL_UNCLOSED": "{{where}} ({{locale}}): một khối \"Chỉ hiển thị nếu\" chưa được đóng.",
+          "LOCALE_INCOMPLETE": "{{where}}: chưa có nội dung {{locale}}.",
+          "ATTACHMENT_ARCHIVED": "Tệp đính kèm \"{{name}}\" đã được lưu trữ trong thư viện tệp đính kèm.",
+          "ATTACHMENT_MISSING": "Không tìm thấy tệp của tệp đính kèm \"{{name}}\".",
+          "ATTACHMENT_CHANGED": "Tệp của tệp đính kèm \"{{name}}\" không còn khớp với tệp đã được tải lên.",
+          "FONT_MISSING": "Không thể tải phông chữ \"{{key}}\"; PDF sẽ dùng Helvetica thay thế.",
+          "LOGO_MISSING": "Không tìm thấy logo; PDF sẽ không có logo.",
+          "PAGE_COUNT_HIGH": "Hợp đồng dài {{pages}} trang.",
+          "RENDER_FAILED": "Không thể tạo hợp đồng dưới dạng PDF.",
+          "CONSENT_REQUIRED_MISSING": "Thêm ít nhất một tuyên bố bắt buộc trước khi xuất bản."
+        }
+      },
+      "placeholdersHint": "Placeholder được điền khi tạo hợp đồng. Dùng “Chèn placeholder” bên cạnh mỗi đoạn văn bản; bản xem trước hiển thị chúng với dữ liệu mẫu.",
+      "picker": {
+        "open": "Chèn placeholder",
+        "title": "Placeholder",
+        "search": "Tìm placeholder",
+        "none": "Không có placeholder nào phù hợp.",
+        "sample": "ví dụ: {{value}}",
+        "categories": {
+          "customer": "Khách hàng",
+          "event": "Sự kiện",
+          "contract": "Hợp đồng",
+          "pricing": "Giá và điều khoản",
+          "issuer": "Doanh nghiệp của bạn"
+        }
+      },
+      "condition": {
+        "label": "Chỉ hiển thị nếu…",
+        "always": "Luôn hiển thị",
+        "kind": "Điều kiện",
+        "filled": "đã được điền",
+        "empty": "để trống",
+        "mixed": "Đoạn văn bản này có điều kiện riêng. Chọn một quy tắc ở đây sẽ thay thế quy tắc áp dụng cho toàn bộ điều khoản."
+      },
+      "publishedBy": "do {{name}} xuất bản",
+      "publishedBySystem": "tích hợp sẵn",
+      "compare": {
+        "withPrevious": "So sánh với phiên bản trước",
+        "title": "Thay đổi trong v{{version}}",
+        "subtitle": "v{{from}} → v{{to}}",
+        "none": "Không có khác biệt.",
+        "position": "vị trí {{from}} → {{to}}",
+        "at": "vị trí {{position}}",
+        "types": {
+          "added": "Đã thêm",
+          "removed": "Đã xóa",
+          "moved": "Đã di chuyển",
+          "changed": "Đã thay đổi"
+        },
+        "tooLarge": "Quá lớn để so sánh tại đây",
+        "nowRequired": "nay bắt buộc phải ký",
+        "noLongerRequired": "không còn bắt buộc"
+      },
+      "undo": "Hoàn tác",
+      "redo": "Làm lại",
+      "undoHint": "Hoàn tác (Ctrl+Z)",
+      "redoHint": "Làm lại (Shift+Ctrl+Z)",
+      "autosave": {
+        "saving": "Đang lưu…",
+        "conflict": "Chưa lưu: người khác đã thay đổi",
+        "offline": "Ngoại tuyến: các thay đổi của bạn vẫn được giữ tại đây",
+        "error": "Chưa lưu",
+        "unsaved": "Có thay đổi chưa lưu",
+        "saved": "Đã lưu {{time}}",
+        "upToDate": "Không có thay đổi chưa lưu"
+      },
+      "conflictTitle": "Người khác đã thay đổi mẫu này.",
+      "conflictBody": "Một quản trị viên khác đã lưu mẫu này trong lúc bạn đang chỉnh sửa. Tự động lưu đã tạm dừng và các thay đổi của bạn vẫn còn ở đây.",
+      "conflictCompare": "So sánh",
+      "keepMine": "Giữ bản của tôi",
+      "takeTheirs": "Lấy bản của họ",
+      "keptMine": "Đã lưu phiên bản của bạn",
+      "conflictCompareTitle": "Phiên bản của họ và của bạn",
+      "conflictCompareSubtitle": "Những gì bạn sẽ thay đổi trong phiên bản do người khác lưu",
+      "reorderHint": "Sắp xếp lại bằng tay cầm, các nút mũi tên hoặc Alt+↑/↓ trên một điều khoản.",
+      "dragHandle": "Di chuyển “{{name}}” (kéo, hoặc nhấn Space rồi dùng phím mũi tên)",
+      "pageBreaks": {
+        "hint": "Chạy “Kiểm tra” để xem trang được ngắt ở đâu.",
+        "page": "trang {{page}}",
+        "stale": "trước các thay đổi gần nhất của bạn",
+        "spans": "trang {{first}} đến {{last}}"
+      },
+      "dnd": {
+        "start": "Đã chọn {{name}}, vị trí {{position}} trên {{count}}.",
+        "over": "{{name}} hiện ở vị trí {{position}} trên {{count}}.",
+        "end": "Đã thả {{name}} tại vị trí {{position}} trên {{count}}.",
+        "cancel": "Đã hủy di chuyển {{name}}.",
+        "instructions": "Để di chuyển một điều khoản, nhấn Space hoặc Enter, di chuyển bằng các phím mũi tên, rồi nhấn Space hoặc Enter lần nữa để thả. Nhấn Escape để hủy."
+      },
+      "layoutPreview": "Xem trước trang ký",
+      "layoutPreviewTitle": "Trang ký với dữ liệu mẫu",
+      "lineage": {
+        "systemUpdated": "Mẫu hệ thống đã được cập nhật (v{{from}} → v{{to}}). Bản sao của bạn không thay đổi.",
+        "sourceUpdated": "“{{name}}”, mẫu gốc mà mẫu này được sao chép, đã có phiên bản mới hơn (v{{from}} → v{{to}}). Bản sao của bạn không thay đổi.",
+        "adopt": "Thêm các điều khoản mới vào bản nháp của tôi",
+        "dismiss": "Đánh dấu đã xem xét",
+        "compareTitle": "Những gì đã thay đổi trong “{{name}}”",
+        "adopted_one": "Đã thêm {{count}} điều khoản mới vào cuối",
+        "adopted_other": "Đã thêm {{count}} điều khoản mới vào cuối",
+        "nothingNew": "Không có gì mới để thêm: đã đánh dấu là đã xem xét"
       }
+    },
+    "attachments": {
+      "heading": "Tệp đính kèm",
+      "title": "Tệp đính kèm hợp đồng",
+      "intro": "Các tệp PDF gửi kèm hợp đồng: điều khoản và điều kiện, thông báo quyền riêng tư, phụ lục. Thêm chúng vào một mẫu hoặc một hợp đồng riêng lẻ, nằm trong PDF hợp đồng hoặc dưới dạng tệp riêng.",
+      "none": "Không có tệp đính kèm.",
+      "empty": "Chưa có tệp đính kèm nào.",
+      "pages": "{{count}} trang",
+      "archived": "Đã lưu trữ",
+      "archivedInLibrary": "Đã lưu trữ trong thư viện",
+      "delivery": "Cách gửi",
+      "merged": "Trong PDF hợp đồng",
+      "separate": "Tệp riêng",
+      "mergedHint": "Tệp đính kèm trong PDF hợp đồng nằm sau các điều khoản, trước trang chữ ký.",
+      "pick": "Tệp đính kèm từ thư viện",
+      "add": "Thêm tệp đính kèm",
+      "manageLibrary": "Quản lý thư viện",
+      "file": "PDF (tối đa 20 MB)",
+      "name": "Tên",
+      "description": "Mô tả (tùy chọn)",
+      "upload": "Tải lên",
+      "uploaded": "Đã thêm tệp đính kèm",
+      "alreadyThere": "Tệp này đã có trong thư viện với tên \"{{name}}\".",
+      "uploadFailed": "Không thể tải tệp lên.",
+      "open": "Mở",
+      "errors": {
+        "tooLarge": "Tệp lớn hơn 20 MB.",
+        "notPdf": "Tệp đó không phải là PDF.",
+        "encrypted": "PDF được bảo vệ bằng mật khẩu. Hãy lưu lại mà không đặt mật khẩu rồi tải lên lần nữa.",
+        "malformed": "Không đọc được PDF. Hãy xuất lại từ tệp gốc rồi tải tệp đó lên.",
+        "activeContent": "PDF chứa script, trường biểu mẫu hoặc tệp nhúng. Hãy in ra một PDF mới (\"Save as PDF\") rồi tải tệp đó lên.",
+        "empty": "PDF không có trang nào.",
+        "tooManyPages": "PDF có hơn 100 trang."
+      }
+    },
+    "signers": {
+      "errors": {
+        "none": "Thêm ít nhất một người ký.",
+        "nameRequired": "Người ký {{number}}: nhập tên.",
+        "emailInvalid": "Người ký {{number}}: nhập địa chỉ email hợp lệ.",
+        "emailDuplicate": "Người ký {{number}}: mỗi người ký cần một địa chỉ email riêng.",
+        "notDraft": "Hợp đồng đã được gửi nên không thể thay đổi người ký nữa.",
+        "invalid": "Kiểm tra tên và địa chỉ email: mỗi người ký cần có tên và một địa chỉ email hợp lệ của riêng mình.",
+        "generic": "Không thể lưu người ký. Hãy thử lại."
+      },
+      "saved": "Đã lưu người ký.",
+      "issuerYou": "Bạn (bên phát hành)",
+      "empty": "Chưa thêm người ký nào: mặc định khách hàng của hợp đồng ({{name}}) sẽ ký.",
+      "emptyNoName": "Chưa thêm người ký nào: mặc định khách hàng của hợp đồng sẽ ký.",
+      "issuerRow": "Ký sau cùng, từ trang này",
+      "title": "Người ký",
+      "unsaved": "Có thay đổi chưa lưu",
+      "hint": "Được lưu riêng với hợp đồng. Có thể thay đổi người ký cho đến khi hợp đồng được gửi.",
+      "loadError": "Không thể tải danh sách người ký. Tải lại trang để thử lại.",
+      "nameOf": "Tên người ký {{number}}",
+      "nameLabel": "Tên",
+      "emailOf": "Email người ký {{number}}",
+      "emailLabel": "Email",
+      "remove": "Xóa người ký {{number}}",
+      "onlyListedHint": "Chỉ những người được liệt kê ở đây mới ký. Hãy thêm cả khách hàng nếu họ cũng cần ký.",
+      "add": "Thêm người ký",
+      "max": "Bạn có thể thêm tối đa {{max}} người ký.",
+      "orderLabel": "Thứ tự ký",
+      "orderParallel": "Tất cả cùng lúc",
+      "orderSequential": "Lần lượt từng người",
+      "orderParallelHint": "Mọi người nhận được liên kết khi bạn gửi hợp đồng.",
+      "orderSequentialHint": "Người ký nhận liên kết theo thứ tự đã liệt kê, mỗi người nhận sau khi người trước đã ký.",
+      "saving": "Đang lưu…",
+      "save": "Lưu người ký",
+      "resent": "Đã gửi liên kết mới đến {{email}}.",
+      "resendNotDue": "Hiện chưa thể gửi liên kết mới cho người ký này: chưa đến lượt họ, hoặc họ đã ký rồi.",
+      "resendNotSignable": "Chỉ có thể gửi lại liên kết khi hợp đồng đang chờ ký.",
+      "resendError": "Không thể gửi lại liên kết. Hãy thử lại.",
+      "status": {
+        "signed": "Đã ký",
+        "declined": "Đã từ chối",
+        "invited": "Đã gửi liên kết",
+        "issuerPending": "Ký xác nhận sau cùng",
+        "pending": "Chưa được mời"
+      },
+      "via": {
+        "otp": "Email được xác nhận bằng mã",
+        "portal": "Đã đăng nhập cổng thông tin khách hàng",
+        "admin": "Đã ký xác nhận tại đây"
+      },
+      "countersignLater": "Bạn ký xác nhận tại đây sau khi tất cả người ký phía khách hàng đã ký.",
+      "role": {
+        "issuer": "Bên phát hành",
+        "customer": "Khách hàng"
+      },
+      "invitedAt": "Đã gửi liên kết {{date}}",
+      "signedAt": "Đã ký {{date}}",
+      "mode": {
+        "drawn": "Chữ ký vẽ tay",
+        "typed": "Tên đã nhập"
+      },
+      "declinedAt": "Đã từ chối {{date}}",
+      "resendConfirm": "Gửi cho {{name}} liên kết ký mới? Liên kết trước đó sẽ không còn hoạt động.",
+      "resend": "Gửi lại liên kết",
+      "log": {
+        "title": "Nhật ký ký",
+        "chainOk": "Chuỗi nguyên vẹn",
+        "chainCount": "Số mục đã kiểm tra: {{count}}",
+        "chainBroken": "Chuỗi bị đứt tại #{{seq}}",
+        "help": "Mọi bước của quá trình ký, theo thứ tự. Mỗi mục được liên kết theo chuỗi với mục trước đó, nên bất kỳ thay đổi nào ở một mục đều sẽ lộ ra khi kiểm tra.",
+        "empty": "Chưa có mục nào.",
+        "type": {
+          "sent": "Đã gửi để ký",
+          "invited": "Đã gửi liên kết",
+          "invitation_resent": "Đã gửi lại liên kết",
+          "code_sent": "Đã gửi mã qua email",
+          "verified": "Đã xác nhận email",
+          "signed": "Đã ký",
+          "declined": "Đã từ chối",
+          "countersigned": "Đã ký xác nhận",
+          "completed": "Hoàn tất",
+          "wet_upload": "Đã tải lên PDF đã ký",
+          "revoked": "Đã thu hồi liên kết",
+          "viewed": "Đã mở hợp đồng",
+          "expired": "Đã hết thời hạn ký",
+          "reminded": "Đã gửi lời nhắc",
+          "data_requested": "Đã yêu cầu thông tin khách hàng",
+          "data_collected": "Đã nhận thông tin khách hàng"
+        },
+        "actor": {
+          "admin": "Quản trị viên",
+          "signer": "Người ký",
+          "system": "Hệ thống"
+        },
+        "reason": {
+          "missing_event": "Thiếu một mục nhật ký.",
+          "broken_link": "Một mục nhật ký không liên kết với mục trước đó.",
+          "altered_event": "Một mục nhật ký đã bị thay đổi sau khi được ghi.",
+          "head_mismatch": "Mục nhật ký mới nhất không khớp với điểm cuối đã lưu của chuỗi."
+        }
+      },
+      "evidence": {
+        "hide": "Ẩn bằng chứng",
+        "show": "Hiện bằng chứng",
+        "note": "Hiển thị địa chỉ IP, trình duyệt và lý do từ chối được ghi lại cho từng người ký. Mỗi lần bạn mở phần này, thao tác đó sẽ được ghi vào nhật ký hoạt động.",
+        "error": "Không thể tải bằng chứng. Hãy thử lại.",
+        "empty": "Chưa có gì được ghi lại.",
+        "ip": "Địa chỉ IP",
+        "userAgent": "Trình duyệt",
+        "declineReason": "Lý do từ chối",
+        "signatureSha": "SHA-256 của hình ảnh chữ ký",
+        "documentSha": "SHA-256 của tài liệu đã ký"
+      },
+      "followUpFailed": "Một bước sau khi ký chưa thực hiện được",
+      "followUpFailedBody": "Chữ ký đã được ghi nhận. Từ {{date}}, vẫn còn một bước chưa hoàn tất: {{step}}. Dùng \"Gửi lại hợp đồng đã ký\" để chạy lại bước này.",
+      "followUp": {
+        "invitationTitle": "Không thể đưa email mời vào hàng đợi",
+        "invitationBody": "Từ {{date}}. Hệ thống sẽ tự động thử lại trong vòng một giờ.",
+        "unreadableBody": "Từ {{date}}: không thể đọc địa chỉ email của người ký. Hãy kiểm tra khóa bằng chứng, rồi gửi lại liên kết.",
+        "reminderTitle": "Không thể đưa email nhắc vào hàng đợi",
+        "reminderBody": "Từ {{date}}. Người ký sẽ tự động nhận liên kết mới trong vòng một giờ.",
+        "freezeTitle": "Không thể chuẩn bị hợp đồng với thông tin của khách hàng",
+        "freezeBody": "Từ {{date}}. Thông tin đã được lưu; hãy hoàn tất việc gửi để thử lại.",
+        "stepAdminNotice": "email thông báo cho bạn về chữ ký",
+        "stepReceipt": "email biên nhận gửi người ký",
+        "stepCompletion": "chứng nhận ký hoặc các email hoàn tất",
+        "invoiceTitle": "Không thể chuẩn bị hóa đơn cho hợp đồng này",
+        "genericTitle": "Một bước chưa thực hiện được",
+        "genericBody": "Từ {{date}}. Chi tiết có trong nhật ký máy chủ."
+      },
+      "reminded": "Đã gửi lời nhắc kèm liên kết mới đến {{email}}.",
+      "remindNotDue": "Chưa thể nhắc người ký này: chưa đến lượt họ, hoặc họ đã phản hồi.",
+      "remindError": "Không thể gửi lời nhắc. Hãy thử lại.",
+      "remindedAt": "Đã nhắc {{count}} lần, lần gần nhất {{date}}",
+      "remindConfirm": "Gửi lời nhắc cho {{name}}? Lời nhắc kèm một liên kết mới; liên kết trước đó sẽ ngừng hoạt động.",
+      "remind": "Gửi lời nhắc"
+    },
+    "paperUpload": {
+      "title": "Tải lên hợp đồng đã ký",
+      "intro": "PDF được tải lên sẽ trở thành bản hợp đồng đã ký chính thức. Tệp sẽ được gửi cho cả hai bên và mọi liên kết ký sẽ ngừng hoạt động.",
+      "confirmTitle": "Bản này có chữ ký của những ai?",
+      "confirmBody": "Việc tải lên này sẽ hoàn tất hợp đồng cho tất cả những người bên dưới, vì vậy hãy xác nhận rằng bản giấy đã được từng người ký. Những gì bạn xác nhận sẽ được ghi vào nhật ký ký.",
+      "unnamedSigner": "Người ký {{position}}",
+      "fileLabel": "PDF đã ký",
+      "uploading": "Đang tải lên…",
+      "submit": "Tải lên PDF đã ký",
+      "notCovered": "Hãy xác nhận từng người ký đã ký trên bản giấy: việc tải lên sẽ hoàn tất hợp đồng cho tất cả họ.",
+      "refusedTitle": "Đã ký trên trình duyệt",
+      "refusedBody": "Ít nhất một người ký đã ký hợp đồng này trên trình duyệt. Bản giấy không thể thay thế chữ ký đã thực hiện trên trình duyệt, nên không thể tải lên. Hãy để những người ký còn lại ký trên trình duyệt, rồi ký xác nhận trên trang này."
+    },
+    "layoutPreview": {
+      "device": "Kích thước màn hình",
+      "desktop": "Máy tính",
+      "phone": "Điện thoại",
+      "note": "Bản xem trước bố cục của trang ký. Tài liệu được ký là bản PDF."
     }
   },
   "messages": {
@@ -7494,7 +9519,10 @@
     "syncFailed": "Đồng bộ thất bại.",
     "actionFailed": "Thao tác thất bại.",
     "syncOk_one": "Đã kiểm tra hộp thư: {{count}} tin mới.",
-    "syncOk_other": "Đã kiểm tra hộp thư: {{count}} tin mới."
+    "syncOk_other": "Đã kiểm tra hộp thư: {{count}} tin mới.",
+    "remoteContentBlocked": "Hình ảnh bên ngoài đã bị chặn để bảo vệ quyền riêng tư của bạn.",
+    "loadRemoteContent": "Tải hình ảnh bên ngoài",
+    "emailBody": "Nội dung email"
   },
   "rebills": {
     "createInvoice": "Tạo hóa đơn từ các khoản tính lại phí",
@@ -7646,7 +9674,33 @@
     "submit": "Ký hợp đồng",
     "uploadAlternative": "Hoặc tải lên PDF đã ký tay",
     "uploadHint": "Ký hợp đồng bản in bằng tay, quét lại, rồi tải tệp PDF lên tại đây.",
-    "uploadButton": "Tải lên PDF đã ký"
+    "uploadButton": "Tải lên PDF đã ký",
+    "downloadError": "Tải xuống thất bại",
+    "popupBlocked": "Hãy cho phép cửa sổ bật lên trên trang này để tải xuống PDF.",
+    "notSignable": "Hợp đồng này không còn ký trực tuyến được nữa. Vui lòng liên hệ người gửi.",
+    "attachments": {
+      "title": "Tệp đính kèm",
+      "download": "Tải xuống",
+      "inPdf": "Là một phần của PDF hợp đồng"
+    },
+    "price": {
+      "title": "Dịch vụ và giá",
+      "description": "Mô tả",
+      "quantity": "SL",
+      "amount": "Thành tiền",
+      "net": "Tiền trước thuế",
+      "shipping": "Phí vận chuyển",
+      "vat": "VAT",
+      "total": "Tổng cộng",
+      "fromQuote": "Từ báo giá {{number}}",
+      "unit": {
+        "hour": "giờ",
+        "day": "ngày",
+        "piece": "cái",
+        "km": "km",
+        "flat": "trọn gói"
+      }
+    }
   },
   "crmOverview": {
     "title": "Tổng quan CRM",
@@ -7727,7 +9781,8 @@
     },
     "mode": {
       "allActive": "Tất cả khách hàng đang hoạt động",
-      "manual": "Chọn khách hàng"
+      "manual": "Chọn khách hàng",
+      "groups": "Khách hàng trong nhóm"
     },
     "showCss": "CSS tùy chỉnh (không bắt buộc)",
     "hideCss": "Ẩn CSS tùy chỉnh",
@@ -7769,6 +9824,222 @@
       "body": "Gửi email cho {{count}} người cùng lúc từ một tên miền thường chỉ gửi email giao dịch là điều khiến bộ lọc thư rác chú ý. Nhà cung cấp có thể giới hạn tốc độ, đưa vào thư rác hoặc chặn toàn bộ lô gửi, và một lần gửi tệ cũng ảnh hưởng đến khả năng gửi email bộ sưu tập ảnh của bạn.",
       "advice": "Xác nhận SPF, DKIM và DMARC đã được thiết lập cho tên miền gửi của bạn, tự gửi thử cho chính mình trước, và cân nhắc chia chiến dịch đầu tiên thành nhiều đợt gửi nhỏ hơn.",
       "duration": "Với tốc độ {{rate}}/phút, việc này mất khoảng {{minutes}} phút. Hàng đợi gửi email là dùng chung, nên trong khi chạy, các email khác (lời mời bộ sưu tập ảnh, đặt lại mật khẩu) có thể bị trì hoãn phía sau."
+    },
+    "groupsHint": "Thành viên của các nhóm được xác định khi chiến dịch được gửi, không phải bây giờ. Khách hàng đã bị vô hiệu hóa hoặc đã hủy đăng ký sẽ bị loại ra."
+  },
+  "documentVerification": {
+    "title": "Xác nhận danh tính của bạn",
+    "explanation": "Để bảo vệ dữ liệu cá nhân của bạn, vui lòng xác nhận danh tính. Chúng tôi sẽ gửi mã gồm 6 chữ số đến {{email}}.",
+    "explanationNoHint": "Để bảo vệ dữ liệu cá nhân của bạn, vui lòng xác nhận danh tính. Chúng tôi sẽ gửi mã gồm 6 chữ số đến địa chỉ email đã nhận liên kết này.",
+    "sendCode": "Gửi mã",
+    "sending": "Đang gửi…",
+    "codeSent": "Chúng tôi đã gửi mã đến {{email}}.",
+    "codeSentNoHint": "Chúng tôi đã gửi mã cho bạn qua email.",
+    "codeLabel": "Mã gồm 6 chữ số",
+    "confirm": "Xác nhận",
+    "confirming": "Đang kiểm tra…",
+    "resend": "Gửi mã mới",
+    "resendIn": "Gửi mã mới sau {{seconds}} giây",
+    "sessionExpired": "Vì lý do bảo mật, vui lòng xác nhận lại danh tính của bạn.",
+    "errors": {
+      "invalid": "Mã không đúng. Còn {{count}} lần thử.",
+      "invalidNoCount": "Mã không đúng.",
+      "expired": "Mã này đã hết hạn. Vui lòng gửi mã mới.",
+      "tooManyAttempts": "Nhập sai quá nhiều lần. Vui lòng gửi mã mới.",
+      "rateLimited": "Vui lòng đợi {{seconds}} giây trước khi yêu cầu mã khác.",
+      "noRecipientEmail": "Không có địa chỉ email nào được lưu để gửi mã. Vui lòng liên hệ người gửi.",
+      "emailUnavailable": "Hiện không thể gửi mã. Vui lòng thử lại sau hoặc liên hệ người gửi.",
+      "codeFormat": "Nhập mã gồm 6 chữ số trong email.",
+      "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+    }
+  },
+  "contractSigning": {
+    "gone": {
+      "revokedTitle": "Liên kết này không còn hoạt động",
+      "revokedBody": "Một liên kết mới hơn đã được gửi, hoặc hợp đồng không còn mở để ký. Hãy dùng liên kết trong email gần nhất, hoặc liên hệ người gửi.",
+      "expiredTitle": "Liên kết này đã hết hạn",
+      "expiredBody": "Hãy yêu cầu người gửi gửi cho bạn một liên kết ký mới.",
+      "withdrawnTitle": "Hợp đồng này đã bị thu hồi",
+      "withdrawnBody": "Người gửi đã thu hồi hợp đồng này, nên không thể ký được nữa. Hãy liên hệ họ nếu bạn có thắc mắc.",
+      "contractExpiredTitle": "Đã hết thời hạn ký",
+      "contractExpiredBody": "Hợp đồng này không thể ký được nữa. Hãy yêu cầu người gửi một hợp đồng mới nếu bạn vẫn muốn tiếp tục."
+    },
+    "loadError": {
+      "title": "Không thể tải trang này",
+      "body": "Hãy kiểm tra kết nối và thử lại.",
+      "retry": "Thử lại"
+    },
+    "portal": {
+      "endedTitle": "Phiên ký của bạn đã kết thúc",
+      "endedBody": "Hãy mở lại hợp đồng từ cổng thông tin khách hàng để tiếp tục.",
+      "backToContracts": "Đến hợp đồng của bạn"
+    },
+    "sessionEnded": "Phiên ký của bạn đã kết thúc. Hãy xác nhận lại email để tiếp tục.",
+    "documents": {
+      "downloadError": "Không thể tải xuống tệp. Hãy thử lại sau giây lát.",
+      "title": "Tài liệu",
+      "downloading": "Đang chuẩn bị…",
+      "downloadPdf": "Tải xuống hợp đồng (PDF)"
+    },
+    "upload": {
+      "doneTitle": "Cảm ơn, PDF đã ký của bạn đã được tải lên.",
+      "doneBody": "Bạn có thể đóng trang này.",
+      "errors": {
+        "disabled": "Tính năng tải lên PDF đã ký đã bị tắt cho hợp đồng này. Vui lòng ký trên trình duyệt.",
+        "generic": "Tải lên thất bại. Hãy đảm bảo tệp là PDF dưới 10 MB, rồi thử lại."
+      }
+    },
+    "declined": {
+      "title": "Bạn đã từ chối hợp đồng này",
+      "body": "Người gửi đã được thông báo. Nếu đây là nhầm lẫn, hãy liên hệ họ: họ có thể gửi cho bạn một hợp đồng mới.",
+      "otherTitle": "Hợp đồng này đã bị từ chối",
+      "otherBody": "Một người ký khác đã từ chối, nên hợp đồng không thể ký được nữa."
+    },
+    "waiting": {
+      "title": "Chưa đến lượt bạn",
+      "body": "Những người ký trước bạn sẽ ký trước. Chúng tôi sẽ gửi email cho bạn khi đến lượt."
+    },
+    "notSignable": {
+      "title": "Hợp đồng này không chờ chữ ký của bạn",
+      "body": "Hiện không có gì để bạn ký. Hãy liên hệ người gửi nếu bạn nghĩ mình cần ký."
+    },
+    "signers": {
+      "title": "Người ký",
+      "sequential": "Người ký lần lượt ký theo thứ tự này.",
+      "parallel": "Mọi người có thể ký cùng lúc.",
+      "issuer": "Ký xác nhận sau cùng",
+      "status": {
+        "signed": "Đã ký",
+        "declined": "Đã từ chối",
+        "pending": "Chưa ký"
+      }
+    },
+    "result": {
+      "complete": "Tất cả các bên đã ký, hợp đồng đã hoàn tất.",
+      "issuerNext": "Tất cả các bên đã ký. Hợp đồng hiện đang được ký xác nhận và bạn sẽ nhận bản PDF cuối cùng qua email.",
+      "othersPending": "Hợp đồng sẽ hoàn tất khi tất cả các bên đã ký. Khi đó, chúng tôi sẽ gửi bản PDF cuối cùng cho bạn qua email.",
+      "title": "Cảm ơn bạn, bạn đã ký hợp đồng.",
+      "signedAt": "Đã ký vào {{date}}",
+      "theSender": "Bên gửi",
+      "countersignNext": "{{business}} sẽ ký xác nhận; bạn sẽ nhận bản cuối cùng cùng chứng nhận ký qua email.",
+      "confirmationSent": "Chúng tôi đã gửi email xác nhận cho bạn.",
+      "portalCertificate": "Hợp đồng và chứng nhận của bạn"
+    },
+    "sign": {
+      "errors": {
+        "notYourTurn": "Một người ký khác cần ký trước. Chúng tôi sẽ gửi email cho bạn khi đến lượt bạn.",
+        "notSignable": "Hợp đồng này không còn ký được nữa, có thể đã bị rút lại hoặc bị từ chối. Hãy liên hệ bên gửi nếu bạn có thắc mắc.",
+        "drawOrType": "Vẽ chữ ký của bạn vào ô, hoặc chuyển sang nhập tên.",
+        "tooLarge": "Chữ ký bạn vẽ quá lớn để lưu. Hãy xóa và vẽ lại.",
+        "generic": "Không thể lưu chữ ký của bạn. Hãy thử lại; nếu vẫn lỗi, hãy liên hệ bên gửi.",
+        "changed": "Hợp đồng này đã thay đổi sau khi được gửi nên không thể ký. Hãy liên hệ bên gửi.",
+        "expired": "Đã hết thời hạn ký hợp đồng này. Hãy yêu cầu bên gửi gửi hợp đồng mới."
+      },
+      "modeLabel": "Bạn muốn ký bằng cách nào?",
+      "modeDrawn": "Vẽ",
+      "modeTyped": "Nhập tên của tôi",
+      "typedHint": "Tên bạn nhập ở trên sẽ được đặt vào ô chữ ký của bạn.",
+      "submitting": "Đang ký…",
+      "uncertain": {
+        "title": "Chúng tôi chưa xác nhận được chữ ký của bạn đã đến hay chưa",
+        "body": "Kết nối bị ngắt trong lúc gửi, nên chữ ký có thể đã hoặc chưa được ghi nhận. Hãy kiểm tra lại trước. Gửi lần thứ hai không thể khiến hợp đồng bị ký hai lần, vì chúng tôi nhận ra lần gửi lặp lại.",
+        "check": "Kiểm tra lại",
+        "checking": "Đang kiểm tra…",
+        "resend": "Gửi lại chữ ký của tôi"
+      },
+      "stepTitle": "Ký hợp đồng số {{number}}",
+      "stepIntro": "Bạn đang ký đúng hợp đồng bạn vừa đọc. Hãy kiểm tra phần tóm tắt, xác nhận các cam kết và ký.",
+      "back": "Quay lại hợp đồng",
+      "otherOptions": "Tùy chọn khác",
+      "submitBinding": "Ký hợp đồng số {{number}} có giá trị ràng buộc"
+    },
+    "otp": {
+      "errors": {
+        "network": "Không thể kết nối đến máy chủ. Hãy kiểm tra kết nối và thử lại.",
+        "wrong": "Mã không đúng. Hãy kiểm tra email mới nhất và nhập lại sáu chữ số.",
+        "expired": "Mã này đã hết hạn hoặc đã được sử dụng. Hãy gửi mã mới.",
+        "locked": "Nhập sai mã này quá nhiều lần. Hãy gửi mã mới.",
+        "tooManyRequests": "Có quá nhiều lần thử từ kết nối này. Hãy đợi vài phút rồi thử lại.",
+        "generic": "Đã xảy ra lỗi. Hãy thử lại; nếu vẫn tiếp diễn, hãy liên hệ bên gửi."
+      }
+    },
+    "decline": {
+      "error": "Không thể từ chối hợp đồng. Hãy thử lại; nếu vẫn lỗi, hãy liên hệ bên gửi.",
+      "open": "Từ chối hợp đồng",
+      "confirmTitle": "Từ chối hợp đồng này?",
+      "confirmBody": "Bên gửi sẽ được thông báo rằng bạn đã từ chối, và không ai có thể ký hợp đồng này nữa. Thao tác này không thể hoàn tác.",
+      "reasonLabel": "Lý do (tùy chọn)",
+      "reasonHint": "Sẽ được chia sẻ với bên gửi.",
+      "keep": "Giữ hợp đồng",
+      "declining": "Đang từ chối…",
+      "confirm": "Từ chối hợp đồng",
+      "uncertain": "Không thể kết nối đến máy chủ, nên chúng tôi không biết việc từ chối của bạn đã được ghi nhận hay chưa. Hãy tải lại trang này để xem tình trạng hợp đồng trước khi thử lại."
+    },
+    "consents": {
+      "legend": "Cam kết của bạn",
+      "required": "(bắt buộc)",
+      "optional": "(tùy chọn)",
+      "missing": "Hãy đánh dấu mọi cam kết bắt buộc để ký."
+    },
+    "review": {
+      "step": "Bước 1/2: đọc hợp đồng",
+      "readyTitle": "Đã đọc hết chưa?",
+      "readyBody": "Tiếp theo, bạn xác nhận các cam kết và ký. Chưa có gì được ký cho đến khi bạn nhấn nút cuối cùng.",
+      "continue": "Tiếp tục để ký"
+    },
+    "summary": {
+      "number": "Hợp đồng",
+      "title": "Tiêu đề",
+      "parties": "Các bên",
+      "total": "Tổng cộng",
+      "attachments": "Tệp đính kèm",
+      "hash": "Dấu vân tay nội dung (SHA-256)"
+    },
+    "details": {
+      "fields": {
+        "address_line1": "Tên đường và số nhà",
+        "address_line2": "Địa chỉ dòng 2",
+        "postal_code": "Mã bưu chính",
+        "city": "Thành phố",
+        "country_code": "Quốc gia (mã hai chữ cái, ví dụ: CH)",
+        "company_name": "Công ty",
+        "vat_id": "Mã số VAT",
+        "phone": "Điện thoại"
+      },
+      "invalid": "Hãy kiểm tra các thông tin được đánh dấu.",
+      "uncertain": "Chúng tôi chưa xác nhận được thông tin của bạn đã đến. Hãy kiểm tra lại trang trước khi gửi lần thứ hai.",
+      "error": "Không thể lưu thông tin của bạn. Hãy thử lại sau giây lát.",
+      "savedTitle": "Đã lưu thông tin của bạn",
+      "savedBody": "Bạn sẽ nhận được email mới ngay khi hợp đồng sẵn sàng.",
+      "title": "Thông tin của bạn cho hợp đồng {{number}}",
+      "intro": "Hợp đồng sẽ được soạn với các thông tin này sau khi bạn gửi; sau đó bạn có thể đọc và ký ngay tại đây.",
+      "sending": "Đang soạn hợp đồng…",
+      "submit": "Lưu thông tin của tôi và soạn hợp đồng"
+    },
+    "legalNotice": {
+      "title": "Thông báo pháp lý"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Trang"
+    },
+    "palette": {
+      "label": "Tìm kiếm trong khu vực quản trị",
+      "placeholder": "Tìm trang và cài đặt…",
+      "noResults": "Không có kết quả nào khớp với “{{query}}”.",
+      "open": "Tìm trang và cài đặt"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Chưa bật tính năng tự động hóa nào",
+      "body": "Bật Quy trình làm việc hoặc email nhắc nhở trong Cài đặt → Tính năng để bắt đầu.",
+      "noAccessTitle": "Không có mục nào bạn có thể mở",
+      "noAccessBody": "Các tính năng này đã được bật, nhưng vai trò của bạn không thể mở trang nào của chúng. Hãy liên hệ quản trị viên để được cấp quyền."
+    },
+    "subnav": {
+      "approvals": "Phê duyệt"
     }
   }
 }

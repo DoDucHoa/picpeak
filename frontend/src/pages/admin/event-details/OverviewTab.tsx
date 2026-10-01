@@ -2,46 +2,32 @@ import React from 'react';
 import type { Event } from '../../../types';
 import { FeedbackModerationPanel } from '../../../components/admin';
 import { PermissionGate } from '../../../components/admin/PermissionGate';
-import { EventReminderOverrideCard } from '../../../components/admin/EventReminderOverrideCard';
-import { SlideshowSettingsCard } from '../../../components/admin/SlideshowSettingsCard';
-import { DownloadResolutionCard } from '../../../components/admin/DownloadResolutionCard';
 import { DownloadQuotaCard } from '../../../components/admin/DownloadQuotaCard';
-import { FaceRecognitionCard } from '../../../components/admin/FaceRecognitionCard';
 import { ShortUrlsCard } from '../../../components/admin/ShortUrlsCard';
-import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
-import type { AdminPhoto } from '../../../services/photos.service';
 import type { FeedbackSettings as FeedbackSettingsType } from '../../../services/feedback.service';
-import type { EnabledTemplate } from '../../../services/cssTemplates.service';
-import { ThemeConfig } from '../../../types/theme.types';
-import type { EditFormState, EventDetailsTab } from './types';
+import type { EventDetailsTab } from './types';
 import { EventInformationCard } from './EventInformationCard';
 import { ShareLinkCard } from './ShareLinkCard';
 import { ClientAccessCard } from './ClientAccessCard';
 import { EventActionsCard } from './EventActionsCard';
 import { PhotoStatisticsCard } from './PhotoStatisticsCard';
-import { EventThemeSection } from './EventThemeSection';
 import { ArchiveStatusCard } from './ArchiveStatusCard';
+import { NextStepsChecklist } from './NextStepsChecklist';
 import { toBoolean } from '../../../utils/parsers';
 
 interface OverviewTabProps {
   event: Event;
   id: string | undefined;
   passwordVersion?: number;
-  isEditing: boolean;
-  editForm: EditFormState;
-  setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
-  showNewPassword: boolean;
-  setShowNewPassword: (show: boolean) => void;
-  feedbackSettings: FeedbackSettingsType;
-  setFeedbackSettings: React.Dispatch<React.SetStateAction<FeedbackSettingsType>>;
+  /** The SAVED feedback settings: the Overview reads saved data only (spec 5.1). */
+  feedbackSettings: FeedbackSettingsType | undefined;
   categories: Array<{ id: number; name: string; slug: string; is_folder?: boolean }>;
-  photos: AdminPhoto[];
   phoneFieldEnabled: boolean;
   daysUntilExpiration: number | null;
-  onRevealNow?: () => void;
   refetchEvent: () => void;
   setActiveTab: (tab: EventDetailsTab) => void;
-  setShowPasswordReset: (show: boolean) => void;
+  /** Opens the Settings tab at a section (the Overview holds no settings). */
+  openSettings: (section: string) => void;
   setShowPublishDialog: (show: boolean) => void;
   onSendGalleryEmail: () => void;
   isSendingGalleryEmail: boolean;
@@ -50,33 +36,19 @@ interface OverviewTabProps {
   isArchiving: boolean;
   isPublishing: boolean;
   isDuplicating: boolean;
-  currentTheme: ThemeConfig | null;
-  setCurrentTheme: (theme: ThemeConfig | null) => void;
-  currentPresetName: string;
-  setCurrentPresetName: (name: string) => void;
-  setThemeChanged: (changed: boolean) => void;
-  cssTemplates: EnabledTemplate[];
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   event,
   id,
   passwordVersion,
-  isEditing,
-  editForm,
-  setEditForm,
-  showNewPassword,
-  setShowNewPassword,
   feedbackSettings,
-  setFeedbackSettings,
   categories,
-  photos,
   phoneFieldEnabled,
   daysUntilExpiration,
-  onRevealNow,
   refetchEvent,
   setActiveTab,
-  setShowPasswordReset,
+  openSettings,
   setShowPublishDialog,
   onSendGalleryEmail,
   isSendingGalleryEmail,
@@ -85,173 +57,98 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   isArchiving,
   isPublishing,
   isDuplicating,
-  currentTheme,
-  setCurrentTheme,
-  currentPresetName,
-  setCurrentPresetName,
-  setThemeChanged,
-  cssTemplates
 }) => {
-  const { flags } = useFeatureFlags();
-
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {/* Left Column - Main Details */}
-      <div className="space-y-6">
-        {/* Event Information */}
-        <EventInformationCard
-          event={event}
-          id={id}
-          isEditing={isEditing}
-          editForm={editForm}
-          setEditForm={setEditForm}
-          showNewPassword={showNewPassword}
-          setShowNewPassword={setShowNewPassword}
-          feedbackSettings={feedbackSettings}
-          setFeedbackSettings={setFeedbackSettings}
-          categories={categories}
-          photos={photos}
-          phoneFieldEnabled={phoneFieldEnabled}
-          daysUntilExpiration={daysUntilExpiration}
-          onRevealNow={onRevealNow}
-        />
-
-        {/* Share Link */}
-        <ShareLinkCard event={event} setShowPasswordReset={setShowPasswordReset} passwordVersion={passwordVersion} />
-
-        {/* Branded short URLs (#699). Sits between the canonical share-link
-            card and the Client Access card — same "things you share with
-            the customer" cluster. */}
-        <ShortUrlsCard eventId={event.id} />
-
-        {/* Client Access (#172) */}
-        <ClientAccessCard event={event} refetchEvent={refetchEvent} />
-
-        {/* Per-gallery download resolution override (#858). Sits with the
-            other "what the customer receives" controls. */}
-        <DownloadResolutionCard
-          eventId={event.id}
-          onChanged={() => refetchEvent()}
-          downloadsDisabled={!event.allow_downloads}
-        />
-
-        {/* People in this gallery (#1074). Gated behind the `faces` feature
-            flag — which is itself gated on the operator running the optional
-            picpeak-ml sidecar, so this card is invisible on the vast majority
-            of installs. */}
-        {flags.faces && (
-          <FaceRecognitionCard eventId={event.id} isArchived={event.is_archived} />
-        )}
-
-        {/* Live Slideshow ("Diashow") link + live display settings (migrations 138/139).
-            Gated behind the `slideshow` feature flag. */}
-        {flags.slideshow && (
-        <SlideshowSettingsCard
-          eventId={event.id}
-          slug={event.slug}
-          isArchived={event.is_archived}
-          initial={{
-            show_share_token: event.show_share_token,
-            show_interval_ms: event.show_interval_ms,
-            show_transition: event.show_transition,
-            show_transition_ms: event.show_transition_ms,
-            show_watermark: event.show_watermark,
-            show_qr: event.show_qr,
-            show_colorfilter: event.show_colorfilter,
-          }}
-          onChanged={() => refetchEvent()}
-        />
-        )}
-
-        {/* Pre-event reminder override (migration 143). Hidden when
-            the reminderEmails master flag is off — the override here
-            would never fire since the cron itself no-ops. */}
-        {flags.reminderEmails && (
-          <EventReminderOverrideCard
-            eventId={event.id}
-            initial={{
-              event_reminder_disabled: event.event_reminder_disabled,
-              event_reminder_offset_days: event.event_reminder_offset_days,
-              event_reminder_body_override: event.event_reminder_body_override,
-            }}
-            onSaved={() => refetchEvent()}
+    <div className="space-y-6">
+      {/* Spec 5.6: shown only while the event is a draft. */}
+      <NextStepsChecklist
+        event={event}
+        onUploadPhotos={() => setActiveTab('photos')}
+        onChooseHero={() => openSettings('appearance')}
+        onPublish={() => setShowPublishDialog(true)}
+      />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Left Column - Main Details */}
+        <div className="space-y-6">
+          {/* Event Information */}
+          <EventInformationCard
+            event={event}
+            phoneFieldEnabled={phoneFieldEnabled}
+            daysUntilExpiration={daysUntilExpiration}
           />
-        )}
 
-        {/* Download allowance (migration 214). Always mounted: the card owns
-            its own on-off switch, and the ledger it reports on survives the
-            feature being switched off, so hiding it would hide history. */}
-        <PermissionGate permissions={['events.view', 'events.edit']}>
-          <DownloadQuotaCard eventId={event.id} downloadsDisabled={!event.allow_downloads} />
-        </PermissionGate>
+          {/* Share Link */}
+          <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
 
-        {/* Actions */}
-        {!event.is_archived && (
-          <PermissionGate permissions={['events.edit', 'events.archive', 'events.create']}>
-            <EventActionsCard
-              event={event}
-              onArchive={onArchive}
-              isArchiving={isArchiving}
-              setShowPublishDialog={setShowPublishDialog}
-              isPublishing={isPublishing}
-              setShowDuplicateDialog={setShowDuplicateDialog}
-              isDuplicating={isDuplicating}
-              onSendGalleryEmail={onSendGalleryEmail}
-              isSendingGalleryEmail={isSendingGalleryEmail}
-              assignedCustomerCount={
-                ((event as {
-                  customer_accounts?: Array<{
-                    id: number; email?: string; is_active?: unknown; can_sign_in?: unknown
-                  }>
-                }).customer_accounts || [])
-                  // Only accounts the endpoint would actually mail count, or
-                  // the button appears and then 400s. Mirrors
-                  // canReceiveGalleryNotice in crud.js: active, holding an
-                  // address, and able to sign in — a PASSIVE customer
-                  // (never invited, so no password) would get a portal link
-                  // to a door that will not open. toBoolean rather than
-                  // `!== false` because SQLite returns 0/1.
-                  .filter((c) => toBoolean(c.is_active, true)
-                    && toBoolean(c.can_sign_in, true)
-                    && !!c.email).length
-              }
-            />
+          {/* Branded short URLs (#699). Sits between the canonical share-link
+              card and the Client Access card, same "things you share with
+              the customer" cluster. */}
+          <ShortUrlsCard eventId={event.id} />
+
+          {/* Client Access (#172) */}
+          <ClientAccessCard event={event} refetchEvent={refetchEvent} />
+
+          {/* Download allowance (migration 214). Always mounted: the card owns
+              its own on-off switch, and the ledger it reports on survives the
+              feature being switched off, so hiding it would hide history. */}
+          <PermissionGate permissions={['events.view', 'events.edit']}>
+            <DownloadQuotaCard eventId={event.id} part="status" downloadsDisabled={!event.allow_downloads} />
           </PermissionGate>
-        )}
-      </div>
 
-      {/* Right Column - Statistics, Theme, and Actions */}
-      <div className="space-y-6">
-        {/* Photo Statistics */}
-        <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
+          {/* Actions */}
+          {!event.is_archived && (
+            <PermissionGate permissions={['events.edit', 'events.archive', 'events.create']}>
+              <EventActionsCard
+                event={event}
+                onArchive={onArchive}
+                isArchiving={isArchiving}
+                setShowPublishDialog={setShowPublishDialog}
+                isPublishing={isPublishing}
+                setShowDuplicateDialog={setShowDuplicateDialog}
+                isDuplicating={isDuplicating}
+                onSendGalleryEmail={onSendGalleryEmail}
+                isSendingGalleryEmail={isSendingGalleryEmail}
+                assignedCustomerCount={
+                  ((event as {
+                    customer_accounts?: Array<{
+                      id: number; email?: string; is_active?: unknown; can_sign_in?: unknown
+                    }>
+                  }).customer_accounts || [])
+                    // Only accounts the endpoint would actually mail count, or
+                    // the button appears and then 400s. Mirrors
+                    // canReceiveGalleryNotice in crud.js: active, holding an
+                    // address, and able to sign in, a PASSIVE customer
+                    // (never invited, so no password) would get a portal link
+                    // to a door that will not open. toBoolean rather than
+                    // `!== false` because SQLite returns 0/1.
+                    .filter((c) => toBoolean(c.is_active, true)
+                      && toBoolean(c.can_sign_in, true)
+                      && !!c.email).length
+                }
+              />
+            </PermissionGate>
+          )}
+        </div>
 
-        {/* Theme & Style / Theme Display */}
-        <EventThemeSection
-          event={event}
-          isEditing={isEditing}
-          editForm={editForm}
-          setEditForm={setEditForm}
-          currentTheme={currentTheme}
-          setCurrentTheme={setCurrentTheme}
-          currentPresetName={currentPresetName}
-          setCurrentPresetName={setCurrentPresetName}
-          setThemeChanged={setThemeChanged}
-          cssTemplates={cssTemplates}
-        />
+        {/* Right Column - Statistics, Theme, and Actions */}
+        <div className="space-y-6">
+          {/* Photo Statistics */}
+          <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
 
-        {/* Feedback Moderation Panel */}
-        {!event.is_archived && feedbackSettings?.feedback_enabled && (
-          <FeedbackModerationPanel
-            eventId={parseInt(id!)}
-            compact={true}
-            maxItems={3}
-          />
-        )}
+          {/* Feedback Moderation Panel */}
+          {!event.is_archived && feedbackSettings?.feedback_enabled && (
+            <FeedbackModerationPanel
+              eventId={parseInt(id!)}
+              compact={true}
+              maxItems={3}
+            />
+          )}
 
-        {/* Archive Status */}
-        {event.is_archived ? (
-          <ArchiveStatusCard event={event} id={id} />
-        ) : null}
+          {/* Archive Status */}
+          {event.is_archived ? (
+            <ArchiveStatusCard event={event} id={id} />
+          ) : null}
+        </div>
       </div>
     </div>
   );

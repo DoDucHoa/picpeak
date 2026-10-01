@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { AlertCircle, Upload, X } from 'lucide-react';
 import type { Event } from '../../../types';
@@ -8,7 +8,7 @@ import { Button, Card, Loading } from '../../../components/common';
 import { AdminPhotoGrid, AdminPhotoViewer, PhotoFilters, PhotoUploadModal, PhotoFilterPanel, PhotoExportMenu } from '../../../components/admin';
 import { PermissionGate } from '../../../components/admin/PermissionGate';
 import { externalMediaService } from '../../../services/externalMedia.service';
-import { AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters, type FilterSummary } from '../../../services/photos.service';
+import { AdminPhoto, photosService, CREDIT_FILTER_NONE, type PhotoFilters as PhotoFilterParams, type FeedbackFilters, type FilterSummary } from '../../../services/photos.service';
 import { ExternalFolderPicker } from './ExternalFolderPicker';
 
 interface PhotosTabProps {
@@ -52,23 +52,26 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: AdminPhoto; index: number } | null>(null);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<number[]>([]);
 
+  // Names on this event's photos, for the credit filter (#1561). Credit
+  // edits, uploads, imports and deletions invalidate
+  // ['admin-photo-credits', eventId].
+  const eventId = parseInt(id!);
+  const { data: creditSummary } = useQuery({
+    queryKey: ['admin-photo-credits', eventId],
+    queryFn: () => photosService.getPhotoCredits(eventId),
+    enabled: Number.isFinite(eventId),
+  });
+
   return (
     <div>
       {/* Photo Upload Modal */}
+      {/* Picker only — the upload itself runs in UploadSessionProvider, which
+          refreshes this event's queries as photos land and reports the outcome
+          in the bar under the header. */}
       <PhotoUploadModal
         isOpen={showPhotoUpload}
         onClose={() => setShowPhotoUpload(false)}
         eventId={parseInt(id!)}
-        onUploadComplete={() => {
-          // Refresh-only. PhotoUpload fires this as bytes land AND again when
-          // processing finishes — including runs where every file was rejected
-          // — so a success toast here claimed "Upload completed successfully"
-          // over the top of the rejection warning (QA P4-B.05 / 7.05). The
-          // outcome toast belongs to PhotoUpload, which knows the counts.
-          queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
-          queryClient.invalidateQueries({ queryKey: ['admin-event-photos', id] });
-          refetchPhotos();
-        }}
       />
 
       {/* Photo Filters */}
@@ -87,6 +90,11 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
           media_type: mediaType === 'all' ? undefined : mediaType
         }))}
         showMediaFilter={showMediaFilter}
+        credits={creditSummary?.credits}
+        creditNoneCount={creditSummary?.none}
+        creditNoneValue={CREDIT_FILTER_NONE}
+        selectedCredit={photoFilters.credit}
+        onCreditChange={(credit) => setPhotoFilters(prev => ({ ...prev, credit }))}
       />
 
       {/* Feedback Filter Panel for Export */}
@@ -107,7 +115,7 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
               leftIcon={<Upload className="w-4 h-4" />}
               onClick={() => setShowPhotoUpload(true)}
             >
-              {t('events.uploadPhotos')}
+              {(event.video_count ?? 0) > 0 ? t('upload.uploadMedia', 'Upload Photos & Videos') : t('events.uploadPhotos')}
             </Button>
           </PermissionGate>
           {event.source_mode === 'reference' && (
@@ -159,6 +167,7 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
           onPhotosDeleted={() => {
             refetchPhotos();
             queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+            queryClient.invalidateQueries({ queryKey: ['admin-photo-credits', eventId] });
           }}
           onSelectionChange={setSelectedPhotoIds}
           categories={categories}
@@ -175,6 +184,7 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
           onPhotoDeleted={() => {
             refetchPhotos();
             queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
+            queryClient.invalidateQueries({ queryKey: ['admin-photo-credits', eventId] });
             setSelectedPhoto(null);
           }}
           categories={categories}
@@ -186,16 +196,16 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-2xl w-full">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">{t('events.importExternal', 'Import from External Folder')}</h2>
-              <button onClick={() => setShowExternalImport(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
+              <h2 className="text-xl font-semibold text-heading">{t('events.importExternal', 'Import from External Folder')}</h2>
+              <button onClick={() => setShowExternalImport(false)} className="text-neutral-400 hover:text-body">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="mb-3 text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="mb-3 text-sm text-body">
               {t('events.externalImportInfo', 'All pictures from the selected folder will be imported.')}
             </div>
-            <div className="mb-2 text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="mb-2 text-sm text-body">
               {t('events.selectExternalFolder', 'Select external folder under /external-media')}
             </div>
             <ExternalFolderPicker value={externalPath || event.external_path || ''} onChange={setExternalPath} />
@@ -219,6 +229,7 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
                     toast.success(t('toast.saveSuccess'));
                     queryClient.invalidateQueries({ queryKey: ['admin-event', id] });
                     queryClient.invalidateQueries({ queryKey: ['admin-event-photos', id] });
+                    queryClient.invalidateQueries({ queryKey: ['admin-photo-credits', eventId] });
                     setShowExternalImport(false);
                   } catch (e: any) {
                     toast.error(e?.response?.data?.error || 'Import failed');

@@ -132,6 +132,7 @@
     "noCategory": "Geen categorie",
     "eventSpecific": "(Evenement-specifiek)",
     "clickToUpload": "Klik om te uploaden of sleep bestanden hierheen",
+    "takePhoto": "Foto maken",
     "fileRequirements": "{{formats}} (max. {{sizeLimit}} MB per bestand, {{limit}} bestanden per upload)",
     "selectedFiles": "Geselecteerde bestanden",
     "uploading": "Uploaden...",
@@ -155,7 +156,15 @@
     "transferring": "Overdragen",
     "uploadingChunks_one": "{{count}} deel wordt geüpload",
     "uploadingChunks_other": "{{count}} delen worden geüpload",
-    "retryFailed": "Mislukte opnieuw proberen"
+    "retryFailed": "Mislukte opnieuw proberen",
+    "uploadingAs": "Uploaden als {{name}}",
+    "notYou": "Niet jij?",
+    "yourName": "Je naam",
+    "yourNameOptional": "Je naam (optioneel)",
+    "nameRequired": "Vul je naam in om te uploaden.",
+    "nameSaveFailed": "Je naam kon niet worden opgeslagen. Probeer het opnieuw.",
+    "namePrivacyShown": "Je naam wordt bij je foto’s opgeslagen en aan andere gasten getoond. De gastheer kan hem altijd verwijderen.",
+    "namePrivacyHidden": "Je naam wordt bij je foto’s opgeslagen voor de gastheer. Andere gasten zien hem niet, en de gastheer kan hem altijd verwijderen."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -169,7 +178,9 @@
     "cmsPages": "CMS-pagina's",
     "users": "Gebruikers",
     "calendar": "Agenda",
-    "clients": "Klanten"
+    "clients": "Klanten",
+    "automation": "Automatisering",
+    "sharing": "Delen"
   },
   "archives": {
     "title": "Archieven",
@@ -243,6 +254,8 @@
     "noPhotosFound": "Geen foto's gevonden",
     "failedToLoad": "Kan foto's niet laden",
     "tryAgain": "Opnieuw proberen",
+    "passwordChangeRequired": "Wijzig uw wachtwoord in het beheergedeelte voordat u deze galerij bekijkt.",
+    "goToAdminArea": "Naar het beheergedeelte",
     "loading": "Galerij laden...",
     "expiredOn": "Deze galerij is verlopen op {{date}}.",
     "downloadBefore": "Download uw foto's voordat ze niet meer beschikbaar zijn.",
@@ -323,6 +336,7 @@
     },
     "footer": {
       "forgetMeConfirm": "Uw naam en selecties worden verwijderd uit deze galerij.",
+      "forgetMeConfirmUploads": "Uw naam wordt verwijderd van de foto’s die u naar deze galerij hebt geüpload.",
       "forgetMe": "Vergeet mij ({{name}})",
       "socials": "Sociale media"
     },
@@ -338,7 +352,15 @@
     "downloadFolderCapped": "Eerste {{limit}} van {{total}} downloaden",
     "downloadEverything": "Alle foto's downloaden",
     "videoFormatUnsupported": "Deze video-indeling kan niet in deze browser worden afgespeeld. Download de video om hem te bekijken.",
-    "videoLoadFailed": "Deze video kon niet worden geladen."
+    "videoLoadFailed": "Deze video kon niet worden geladen.",
+    "credits": {
+      "filterLabel": "Door",
+      "everyone": "Iedereen",
+      "unnamedGuests": "Gasten zonder naam",
+      "photographer": "Fotograaf",
+      "uploadedBy": "Geüpload door {{name}}",
+      "photoBy": "Foto door {{name}}"
+    }
   },
   "categories": {
     "title": "Fotocategorieen",
@@ -418,6 +440,7 @@
     "eventExpiresIn": "Dit evenement verloopt over {{days}} dagen",
     "overview": "Overzicht",
     "photos": "Foto's",
+    "media": "Media",
     "categories": "Categorieen",
     "eventInformation": "Evenementinformatie",
     "sourceMode": "Bronmodus",
@@ -439,8 +462,16 @@
     "creationEmailResent": "Aanmaakmail is in de wachtrij geplaatst",
     "failedToResendEmail": "Kan aanmaakmail niet opnieuw verzenden",
     "photoStatistics": "Fotostatistieken",
+    "mediaStatistics": "Mediastatistieken",
     "totalPhotos": "Totaal foto's",
+    "videos": "Video's",
+    "videoRuntime": "Videoduur",
+    "photosCount_one": "{{count}} foto",
+    "photosCount_other": "{{count}} foto's",
+    "videosCount_one": "{{count}} video",
+    "videosCount_other": "{{count}} video's",
     "managePhotos": "Foto's beheren",
+    "manageMedia": "Media beheren",
     "actions": "Acties",
     "archivingInfo": "Archiveren maakt een ZIP-bestand van alle foto's en verwijdert de galerij uit openbare toegang.",
     "archivedOn": "Gearchiveerd op",
@@ -657,7 +688,7 @@
     "devtoolsDetection": "Ontwikkelaarshulpmiddelen detectie",
     "watermarked": "Voorzien van watermerk",
     "importExternal": "Importeren vanuit externe map",
-    "externalImportInfo": "Alle afbeeldingen uit de geselecteerde map worden geïmporteerd.",
+    "externalImportInfo": "Alle afbeeldingen uit de geselecteerde map worden geïmporteerd. Video's worden ook geïmporteerd als hun bestandstype voor uploads is toegestaan.",
     "selectExternalFolder": "Externe map selecteren onder /external-media",
     "importFromSelectedFolder": "Importeren vanuit geselecteerde map",
     "promoBanner": {
@@ -673,7 +704,39 @@
       "title": "Hero-foto gebruiken als social-share-voorbeeld",
       "help": "Wanneer deze galerij-URL wordt gedeeld op WhatsApp, Facebook, Slack enz., toont de link-preview de bovenstaande hero-foto. De thumbnail wordt niet-geauthenticeerd opgehaald door link-preview-crawlers — wie de URL deelt maakt deze afbeelding daarmee in feite openbaar. Standaard uit; kies eerst een hero die je bewust openbaar wilt tonen voordat je dit inschakelt.",
       "heroRequired": "Kies eerst hierboven een hero-foto — deze optie gebruikt die als WhatsApp- / Facebook- / Slack-voorbeeldafbeelding."
-    }
+    },
+    "uploaderNames": {
+      "label": "Namen van uploaders",
+      "help": "Gasten kunnen bij het uploaden hun naam opgeven, zodat je weet wie welke foto heeft geüpload.",
+      "modes": {
+        "off": "Uit",
+        "optional": "Optioneel",
+        "required": "Verplicht"
+      },
+      "showToGuests": "Namen aan gasten tonen",
+      "showToGuestsHelp": "Gasten zien de namen bij uploads die zijn gedaan terwijl dit aan stond; namen die zijn opgegeven terwijl het uit stond, blijven alleen voor jou en de gastheer. Uitzetten verbergt alle namen voor gasten. Geldt ook voor fotografenvermeldingen uit EXIF.",
+      "shownToGuests": "Zichtbaar voor gasten",
+      "hiddenFromGuests": "Alleen zichtbaar voor jou"
+    },
+    "sortNameAsc": "A – Z",
+    "sortNameDesc": "Z – A",
+    "sortDateNewest": "Nieuwste eerst",
+    "sortDateOldest": "Oudste eerst",
+    "sortCreatedNewest": "Recent aangemaakt",
+    "sortCreatedOldest": "Eerst aangemaakt",
+    "sortPhotosMost": "Meeste foto’s",
+    "sortPhotosFewest": "Minste foto’s",
+    "sortStatusActive": "Actieve eerst",
+    "sortStatusArchived": "Gearchiveerde eerst",
+    "sortExpiresSoonest": "Verloopt het eerst",
+    "sortExpiresLatest": "Verloopt het laatst",
+    "filterAllTypes": "Alle typen",
+    "filterByType": "Filteren op type",
+    "sortByName": "Sorteren op naam",
+    "sortByDate": "Sorteren op datum",
+    "sortByPhotos": "Sorteren op aantal foto’s",
+    "sortByStatus": "Sorteren op status",
+    "sortByExpiry": "Sorteren op vervaldatum"
   },
   "settings": {
     "title": "Systeeminstellingen",
@@ -712,7 +775,10 @@
       "accountEmailRequired": "E-mailadres is verplicht",
       "accountEmailInvalid": "Voer een geldig e-mailadres in",
       "accountSaveButton": "Accountgegevens opslaan",
-      "accountSaveSuccess": "Accountgegevens bijgewerkt"
+      "accountSaveSuccess": "Accountgegevens bijgewerkt",
+      "adminLanguage": "Jouw beheertaal",
+      "adminLanguageHelp": "Geldt voor het beheergedeelte, alleen voor jou op dit apparaat. Werkt direct — opslaan is niet nodig.",
+      "customerLanguage": "Taal voor galerie en gasten"
     },
     "publicSite": {
       "badge": "Openbare landingspagina",
@@ -805,7 +871,7 @@
       "aboutText": "Globale categorieen zijn beschikbaar voor alle evenementen. U kunt ook evenement-specifieke categorieen aanmaken bij het bewerken van individuele evenementen. Categorieen helpen foto's te organiseren en stellen gasten in staat om foto's op type te filteren in de galerijweergave."
     },
     "systemStatus": {
-      "title": "Systeemstatus",
+      "title": "Status",
       "storageOverview": "Opslagoverzicht",
       "systemInfo": "Systeeminformatie",
       "databaseInfo": "Database-informatie",
@@ -829,7 +895,8 @@
       "pending": "In afwachting",
       "sent": "Verzonden",
       "failed": "Mislukt",
-      "lastUpdate": "Laatste update"
+      "lastUpdate": "Laatste update",
+      "description": "Diensten, wachtrijen, opslag en versie — wat deze instantie nu draait."
     },
     "photoDimensions": {
       "title": "Fotoafmetingen",
@@ -1045,7 +1112,8 @@
       "integrations": "Integraties",
       "system": "Systeem",
       "appearance": "Inhoud & Weergave",
-      "communication": "Communicatie"
+      "communication": "Communicatie",
+      "people": "Personen en toegang"
     },
     "apiTokens": {
       "title": "API-tokens",
@@ -1174,7 +1242,9 @@
       "clients": {
         "title": "Klanten",
         "description": "Hoofdschakelaar voor het Klanten-onderdeel in de zijbalk. Uitgeschakeld verbergt het onderdeel en alle subfuncties ongeacht hun individuele schakelaars — opnieuw inschakelen herstelt de vorige status."
-      }
+      },
+      "configure": "Configureren",
+      "sidebarInSettings": "Geen item in de zijbalk — staat in Instellingen"
     },
     "customerSurface": {
       "brandingTitle": "Kopregel klantdashboard",
@@ -1183,9 +1253,28 @@
       "showLogoHint": "Gebruikt hetzelfde brandinglogo dat hierboven is geconfigureerd.",
       "showCompanyName": "Bedrijfsnaam in klantheader tonen",
       "showCompanyNameHint": "Verberg dit als je logo de bedrijfsnaam al bevat.",
-      "save": "Wijzigingen opslaan",
+      "save": "Kopregelinstellingen opslaan",
       "saved": "Branding van klantdashboard opgeslagen",
       "error": "Instellingen konden niet worden opgeslagen"
+    },
+    "creditBackfill": {
+      "title": "Fotomakers",
+      "description": "Leest de maker (EXIF Artist, XMP Creator of de naam in Copyright) voor foto’s die zijn toegevoegd voordat makers werden vastgelegd. Uploads van gasten en handmatig ingestelde namen worden nooit gewijzigd.",
+      "withCredit": "Met maker",
+      "undecided": "Nog niet gelezen",
+      "result": "Laatste run: {{success}} met maker, {{noCredit}} zonder naam in het bestand, {{failed}} onbereikbaar",
+      "running": "Makers worden gelezen...",
+      "noneToRead": "Geen foto’s meer te lezen",
+      "button": "Makers uit EXIF lezen"
+    },
+    "health": {
+      "title": "Gezondheid",
+      "description": "Achtergrondfouten die aandacht nodig hebben — vastgelopen e-mails, mislukte controles en opruiming."
+    },
+    "search": {
+      "placeholder": "Instellingen zoeken…",
+      "label": "Instellingen zoeken",
+      "noResults": "Geen instelling komt overeen met “{{query}}”."
     }
   },
   "analytics": {
@@ -1515,6 +1604,7 @@
     "recentActivity": "Recente activiteit",
     "storageUsed": "Gebruikte opslag",
     "totalPhotos": "Totaal foto's",
+    "totalMedia": "Totaal media",
     "storagePercent": "{{percent}}% van limiet {{limit}}",
     "storageSoftLimitConfigured": "Geconfigureerde limiet: {{limit}}",
     "storageSoftLimitRecommended": "Aanbevolen limiet: {{limit}}",
@@ -1667,7 +1757,26 @@
       "rateStars": "{{count}} sterren geven",
       "markError": "Markering opslaan mislukt",
       "yourMarkColor": "Jouw markering: {{color}}",
-      "yourMarkRating": "Jouw beoordeling: {{count}}"
+      "yourMarkRating": "Jouw beoordeling: {{count}}",
+      "columns": {
+        "credit": "Maker"
+      },
+      "credit": {
+        "label": "Maker",
+        "edit": "Bewerken",
+        "save": "Naam opslaan",
+        "clear": "Naam verwijderen",
+        "saved": "Naam opgeslagen",
+        "cleared": "Naam verwijderd",
+        "none": "Geen naam",
+        "unnamedGuest": "Gast, zonder naam",
+        "manualHint": "Een naam die je hier instelt is definitief: EXIF-gegevens vervangen hem niet.",
+        "bulkAction": "Naam instellen",
+        "bulkTitle": "Naam instellen voor {{count}} foto’s",
+        "filterLabel": "Filteren op maker",
+        "filterAll": "Alle namen",
+        "filterNone": "Geen naam"
+      }
     },
     "events": {
       "tabs": {
@@ -2241,9 +2350,6 @@
         "rsyncUserPlaceholder": "backup-gebruiker",
         "rsyncPath": "Extern pad",
         "rsyncPathPlaceholder": "/home/backup/photo-sharing",
-        "rsyncSshKey": "SSH-prive-sleutel",
-        "rsyncSshKeyHelp": "SSH-prive-sleutel voor authenticatie (optioneel)",
-        "rsyncSshKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----",
         "s3Endpoint": "S3-eindpunt",
         "s3EndpointHelp": "S3 API-eindpunt (bijv. s3.amazonaws.com)",
         "s3Bucket": "Bucketnaam",
@@ -2588,10 +2694,6 @@
       "moderateCommentsDesc": "Opmerkingen vereisen goedkeuring voordat ze zichtbaar zijn",
       "showToGuests": "Feedback tonen aan gasten",
       "showToGuestsDesc": "Andere gasten kunnen beoordelingen, likes en goedgekeurde opmerkingen zien",
-      "enableRateLimiting": "Snelheidsbeperking inschakelen",
-      "rateLimitingDesc": "Voorkom spam door de feedbackfrequentie te beperken",
-      "timeWindow": "Tijdvenster (minuten)",
-      "maxRequests": "Max. verzoeken",
       "colorLabels": "Kleurlabels",
       "colorLabelsDesc": "Eén kleur per gast per foto, met de kleurenset van Lightroom zodat de selectie via XMP meegaat",
       "keybindMode": "Sneltoetsen",
@@ -2759,6 +2861,7 @@
     "adminTitle": "Klanttoegang",
     "enableToggle": "Klanttoegang inschakelen",
     "enableDescription": "Sta klanten toe foto's te beoordelen en te verbergen voordat de galerij wordt gedeeld met gasten.",
+    "linkAfterCreate": "De link voor klanttoegang verschijnt op de evenementpagina zodra het evenement is aangemaakt.",
     "linkLabel": "Klanttoegangslink",
     "regenerateToken": "Link opnieuw genereren",
     "tokenRegenerated": "Klanttoegangslink opnieuw gegenereerd"
@@ -3138,6 +3241,28 @@
       "net": "Netto",
       "vat": "Btw",
       "total": "Bruto"
+    }
+  },
+  "search": {
+    "groups": {
+      "pages": "Pagina's"
+    },
+    "palette": {
+      "label": "Zoeken in het beheergedeelte",
+      "placeholder": "Pagina's en instellingen zoeken…",
+      "noResults": "Niets komt overeen met “{{query}}”.",
+      "open": "Pagina's en instellingen zoeken"
+    }
+  },
+  "automation": {
+    "empty": {
+      "title": "Geen automatiseringsfuncties ingeschakeld",
+      "body": "Schakel Workflows of herinneringsmails in via Instellingen → Functies om te beginnen.",
+      "noAccessTitle": "Hier is niets dat je kunt openen",
+      "noAccessBody": "Deze functies staan aan, maar jouw rol kan geen van de bijbehorende pagina’s openen. Vraag een beheerder om toegang."
+    },
+    "subnav": {
+      "approvals": "Goedkeuringen"
     }
   }
 }

@@ -117,6 +117,51 @@ describe('admin events CRUD endpoints (smoke)', () => {
       expect(queued).toHaveLength(0);
     });
 
+    // P5 (spec 5.5): the create page can start an event on an external folder,
+    // with the PUT's photos.upload rule for the watcher.
+    const folderEvent = (over = {}) => ({
+      event_type: 'wedding', event_name: 'Folder Wedding', event_date: '2026-09-03',
+      customer_name: 'Client Person', customer_email: 'client@example.com', require_password: false,
+      source_mode: 'reference', external_path: 'weddings/2026', ...over,
+    });
+
+    it('stores an external folder and its watcher on create', async () => {
+      const res = await auth(request(app).post('/api/admin/events')).send(folderEvent({ external_watch: true }));
+      expect(res.status).toBe(200);
+      const row = await db('events').where({ id: res.body.id }).first();
+      expect(row.source_mode).toBe('reference');
+      expect(row.external_path).toBe('weddings/2026');
+      expect(Boolean(row.external_watch)).toBe(true);
+    });
+
+    it('400s on reference mode without a folder and creates nothing', async () => {
+      const res = await auth(request(app).post('/api/admin/events')).send(folderEvent({ external_path: '' }));
+      expect(res.status).toBe(400);
+      expect(await db('events').select('id')).toHaveLength(0);
+    });
+
+    it('refuses the watcher to an admin without photos.upload, but not the folder', async () => {
+      const { clearPermissionCache } = require('../../src/middleware/permissions');
+      const [roleRow] = await db('roles').insert({ name: 'p5_creator', display_name: 'P5 creator', priority: 1 }).returning('id');
+      const roleId = roleRow?.id ?? roleRow;
+      const perms = await db('permissions').whereIn('name', ['events.view', 'events.create']).select('id');
+      await db('role_permissions').insert(perms.map((p) => ({ role_id: roleId, permission_id: p.id })));
+      const [userRow] = await db('admin_users').insert({
+        username: 'p5creator', email: 'p5creator@example.com', password_hash: 'x',
+        must_change_password: false, role_id: roleId, created_at: new Date(),
+      }).returning('id');
+      clearPermissionCache();
+      const creator = (req) => req.set('Authorization', `Bearer ${mintAdminToken(userRow?.id ?? userRow)}`);
+
+      const watched = await creator(request(app).post('/api/admin/events')).send(folderEvent({ external_watch: true }));
+      expect(watched.status).toBe(403);
+      expect(await db('events').select('id')).toHaveLength(0);
+
+      const plain = await creator(request(app).post('/api/admin/events')).send(folderEvent({ event_name: 'Folder only' }));
+      expect(plain.status).toBe(200);
+      expect((await db('events').where({ id: plain.body.id }).first()).source_mode).toBe('reference');
+    });
+
     it('409s (not 500) when the slug uniqueness race is lost', async () => {
       // The route mints the slug with a read-then-insert, so two concurrent
       // creates for the same name + date both clear the existence check and
@@ -202,6 +247,38 @@ describe('admin events CRUD endpoints (smoke)', () => {
   });
 
   describe('PUT /:id', () => {
+    // Event form redesign P4 (spec 5.9, finding 13): the PUT validates the
+    // type against the active catalog, as POST does, and never moves the slug.
+    it('400s on an unknown event type and writes nothing', async () => {
+      const id = await insertEvent(db, adminId, { event_name: 'Typed' });
+      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ event_type: 'not-a-real-type' });
+      expect(res.status).toBe(400);
+      expect(Array.isArray(res.body.errors)).toBe(true);
+      expect((await db('events').where({ id }).first()).event_type).toBe('wedding');
+    });
+
+    it('changes type and date without touching the slug, and stores the type lowercased', async () => {
+      const id = await insertEvent(db, adminId, { slug: 'wedding-typed-2026-05-29' });
+      const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ event_type: 'Birthday', event_date: '2026-06-01' });
+      expect(res.status).toBe(200);
+      const row = await db('events').where({ id }).first();
+      expect(row.event_type).toBe('birthday');
+      expect(String(row.event_date).slice(0, 10)).toBe('2026-06-01');
+      expect(row.slug).toBe('wedding-typed-2026-05-29');
+    });
+
+    it('saves other fields of an event whose type was deactivated', async () => {
+      const id = await insertEvent(db, adminId, { event_name: 'Old type' });
+      await db('event_types').where({ slug_prefix: 'wedding' }).update({ is_active: 0 });
+      try {
+        const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({ welcome_message: 'Still editable' });
+        expect(res.status).toBe(200);
+        expect((await db('events').where({ id }).first()).event_type).toBe('wedding');
+      } finally {
+        await db('event_types').where({ slug_prefix: 'wedding' }).update({ is_active: 1 });
+      }
+    });
+
     it('updates mutable fields and persists them', async () => {
       const id = await insertEvent(db, adminId, { event_name: 'Before' });
       const res = await auth(request(app).put(`/api/admin/events/${id}`)).send({
@@ -321,6 +398,23 @@ describe('admin events CRUD endpoints (smoke)', () => {
     it('404s when deleting a missing event', async () => {
       const res = await auth(request(app).delete('/api/admin/events/999999'));
       expect(res.status).toBe(404);
+    });
+
+    it('removes feedback_rate_limits rows for the deleted event (#1585)', async () => {
+      // feedback_rate_limits.event_id declares ON DELETE CASCADE, but SQLite
+      // only honours that with PRAGMA foreign_keys = ON, which PicPeak does
+      // not set — so on the SQLite path the cascade is inert and these rows
+      // would otherwise outlive the event. deleteEventCascade() must delete
+      // them explicitly, the same way it already does for photo_faces.
+      const id = await insertEvent(db, adminId);
+      await db('feedback_rate_limits').insert({
+        event_id: id, action_type: 'like', action_count: 1,
+        identifier: 'guest-1', window_start: new Date().toISOString(),
+      });
+      const res = await auth(request(app).delete(`/api/admin/events/${id}`));
+      expect(res.status).toBe(200);
+      const remaining = await db('feedback_rate_limits').where({ event_id: id });
+      expect(remaining).toHaveLength(0);
     });
   });
 });

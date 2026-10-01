@@ -6,9 +6,6 @@ import {
   ExternalLink,
   Calendar,
   Archive,
-  Edit2,
-  Save,
-  X,
   AlertTriangle,
   MessageSquare,
   Receipt,
@@ -28,12 +25,8 @@ import { safeParseDate } from './utils';
 interface EventDetailsHeaderProps {
   event: Event;
   id: string | undefined;
-  isEditing: boolean;
-  setIsEditing: (editing: boolean) => void;
-  handleStartEdit: () => void;
-  handleSaveEdit: () => void;
-  isSaving: boolean;
-  feedbackSettings: FeedbackSettingsType;
+  /** The SAVED feedback settings: Manage feedback follows what is stored (spec 5.1). */
+  feedbackSettings: FeedbackSettingsType | undefined;
   setShowRenameDialog: (show: boolean) => void;
   setShowPublishDialog: (show: boolean) => void;
   isPublishing: boolean;
@@ -46,11 +39,6 @@ interface EventDetailsHeaderProps {
 export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
   event,
   id,
-  isEditing,
-  setIsEditing,
-  handleStartEdit,
-  handleSaveEdit,
-  isSaving,
   feedbackSettings,
   setShowRenameDialog,
   setShowPublishDialog,
@@ -81,8 +69,8 @@ export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{event.event_name}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            <h1 className="text-2xl font-bold text-heading">{event.event_name}</h1>
+            <div className="flex items-center gap-4 mt-2 text-sm text-soft">
               {event.event_date && (
                 <span className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
@@ -94,7 +82,7 @@ export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                   isGalleryPublic(event.require_password)
                     ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                    : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
+                    : 'bg-inset text-body'
                 }`}
               >
                 {isGalleryPublic(event.require_password) ? t('events.publicAccess', 'Public access') : t('events.passwordProtected', 'Password protected')}
@@ -105,7 +93,7 @@ export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
                 </span>
               ) : null}
               {event.is_archived ? (
-                <span className="text-neutral-500 dark:text-neutral-400 flex items-center">
+                <span className="text-muted flex items-center">
                   <Archive className="w-4 h-4 mr-1" />
                   {t('events.archived')}
                 </span>
@@ -116,37 +104,7 @@ export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
           <div className="flex gap-2 items-center">
             {!event.is_archived && (
               <>
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={<X className="w-4 h-4" />}
-                      onClick={() => setIsEditing(false)}
-                    >
-                      {t('common.cancel')}
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      leftIcon={<Save className="w-4 h-4" />}
-                      onClick={handleSaveEdit}
-                      isLoading={isSaving}
-                    >
-                      {t('events.saveChanges')}
-                    </Button>
-                  </>
-                ) : (
-                  <>
                     <PermissionGate permission="events.edit">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        leftIcon={<Edit2 className="w-4 h-4" />}
-                        onClick={handleStartEdit}
-                      >
-                        {t('common.edit')}
-                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -188,11 +146,9 @@ export const EventDetailsHeader: React.FC<EventDetailsHeaderProps> = ({
                         </Button>
                       </PermissionGate>
                     )}
-                  </>
-                )}
               </>
             )}
-            {event.share_link && !isEditing && (
+            {event.share_link && (
               <a
                 // Admin preview (#868): an explicit intent flag, no token in the
                 // URL. The httpOnly admin_token cookie authenticates server-side

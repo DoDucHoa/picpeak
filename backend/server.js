@@ -78,7 +78,7 @@ const { startFileWatcher } = require('./src/services/fileWatcher');
 const { startExpirationChecker } = require('./src/services/expirationChecker');
 const { startTransferCleanup } = require('./src/services/transferCleanupService');
 const { startDownloadJobCleanup } = require('./src/services/downloadJobCleanupService');
-const { startRevealScheduler } = require('./src/services/revealScheduler');
+const { startFeedbackRateLimitCleanup } = require('./src/services/feedbackRateLimitCleanupService');
 const { startInvoiceScheduler } = require('./src/services/invoiceSchedulerService');
 const { startDownloadOrderExpiryChecker } = require('./src/services/downloadOrderExpiryChecker');
 const { initializeTransporter, startEmailQueueProcessor } = require('./src/services/emailProcessor');
@@ -88,6 +88,7 @@ const { startScheduledBackups } = require('./src/services/databaseBackup');
 const backgroundProcessor = require('./src/services/backgroundProcessor');
 const { maintenanceMiddleware } = require('./src/middleware/maintenance');
 const { sessionTimeoutMiddleware } = require('./src/middleware/sessionTimeout');
+const { createLargeJsonBody } = require('./src/middleware/largeJsonBody');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 const rateLimitService = require('./src/services/rateLimitService');
 const { createApiRateLimitGate } = require('./src/middleware/apiRateLimitGate');
@@ -104,7 +105,6 @@ const authRoutes = require('./src/routes/auth');
 const galleryRoutes = require('./src/routes/gallery');
 const adminRoutes = require('./src/routes/admin');
 const adminAuthRoutes = require('./src/routes/adminAuth');
-const secureImagesRoutes = require('./src/routes/secureImages');
 const setupRoutes = require('./src/routes/setup');
 
 const app = express();
@@ -159,13 +159,17 @@ if (enableHsts) {
 
 app.use(cookieParser());
 
+// First, so every later middleware, route and the error handler can put the
+// same id in their logs and responses.
+app.use(require('./src/middleware/requestId'));
+
 app.use((req, res, next) => {
   if (req.headers.authorization) {
     return next();
   }
 
   const path = req.path || '';
-  const slugMatch = path.match(/\/api\/(?:gallery|secure-images)\/([^\/]+)/);
+  const slugMatch = path.match(/\/api\/gallery\/([^\/]+)/);
   const slug = slugMatch ? slugMatch[1] : req.requestedSlug;
   const adminToken = getAdminTokenFromRequest(req);
   const galleryToken = getGalleryTokenFromRequest(req, slug);
@@ -173,8 +177,7 @@ app.use((req, res, next) => {
   const isAdminRequest = path.startsWith('/api/admin') || path.startsWith('/admin');
   const isGalleryRequest = Boolean(slugMatch)
     || path.startsWith('/api/gallery')
-    || path.startsWith('/gallery')
-    || path.startsWith('/api/secure-images');
+    || path.startsWith('/gallery');
 
   // Prefer admin credentials on admin routes so gallery sessions cannot override them.
   if (isAdminRequest) {
@@ -245,7 +248,10 @@ const corsOptions = {
   // off a 429 to wait out the rate-limit window before retrying a thumbnail
   // fetch; without it a split-origin deployment would spend its retry budget
   // inside the window and leave the tile blank after the limit had lifted.
-  exposedHeaders: ['Content-Disposition', 'Retry-After'],
+  //
+  // X-Request-Id carries the correlation id (middleware/requestId.js) that an
+  // admin can quote from an error message.
+  exposedHeaders: ['Content-Disposition', 'Retry-After', 'X-Request-Id'],
 };
 
 // Only attach CORS to API endpoints, not static assets
@@ -521,11 +527,16 @@ app.use(createApiRateLimitGate(rateLimitService.getGeneralLimiter));
 app.use(createAuthRateLimitGate(rateLimitService.getAuthLimiter));
 
 // Body limits. 50mb is only needed by the authenticated admin and API-token
-// surfaces (restore manifests, CMS and email templates, bulk operations);
-// applied globally it let any unauthenticated caller hand JSON.parse a 50mb
-// body and block the event loop. express.json skips a request whose body
-// is already parsed, so the scoped parser must run first.
-app.use(['/api/admin', '/api/v1'], express.json({ limit: '50mb' }));
+// surfaces (restore manifests, CMS and email templates, bulk operations).
+// Scoping the large parser to those path prefixes was not enough: it still
+// ran before any authentication, so an unauthenticated POST to an admin path
+// was parsed at 50mb and only then refused. largeJsonBody parses at the large
+// limit only for a verified admin JWT or a known API token; everything else
+// falls through to the 2mb parser below. express.json skips a request whose
+// body is already parsed, so the scoped parser must run first.
+// fallbackLimitBytes mirrors the 2mb parser right below: a body that fits it
+// never triggers the identity check.
+app.use(['/api/admin', '/api/v1'], createLargeJsonBody({ limit: '50mb', fallbackLimitBytes: 2 * 1024 * 1024 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
@@ -597,8 +608,11 @@ process.env.EXTERNAL_MEDIA_ROOT = process.env.EXTERNAL_MEDIA_ROOT || '/external-
 // signed contract PDFs (uploads/contracts/signed) and client transfer files
 // (uploads/transfers/<id>) -- both reachable by anyone who learned or guessed
 // a filename. Those are served by their own authorised routes.
-app.use('/uploads/logos', setCorsHeaders, secureStatic(path.join(storagePath, 'uploads/logos')));
-app.use('/uploads/favicons', setCorsHeaders, secureStatic(path.join(storagePath, 'uploads/favicons')));
+// Both trees only ever hold uploaded images; anything else (a script or
+// HTML file an older upload kept its extension for) is not served.
+const { isPublicUploadImage } = require('./src/utils/safePath');
+app.use('/uploads/logos', setCorsHeaders, secureStatic(path.join(storagePath, 'uploads/logos'), { onlyServe: isPublicUploadImage }));
+app.use('/uploads/favicons', setCorsHeaders, secureStatic(path.join(storagePath, 'uploads/favicons'), { onlyServe: isPublicUploadImage }));
 
 // Static file serving for self-hosted webfonts (public — gallery visitors
 // load these via @font-face). Replaces the previous Google Fonts CDN
@@ -773,7 +787,7 @@ app.get(
         const uploadsRoot = path.resolve(path.join(storagePath, 'uploads'));
         const resolved = path.resolve(path.join(uploadsRoot, rel));
         const servableRoots = ['favicons', 'logos'].map((d) => path.join(uploadsRoot, d) + path.sep);
-        if (servableRoots.some((root) => resolved.startsWith(root)) && fs.existsSync(resolved)) {
+        if (servableRoots.some((root) => resolved.startsWith(root)) && isPublicUploadImage(resolved) && fs.existsSync(resolved)) {
           // This route streams the file directly, bypassing the secureStatic
           // middleware — so re-apply its SVG hardening here. An admin-uploaded
           // SVG favicon could contain <script>; served at the top-level
@@ -814,12 +828,18 @@ app.use('/api/admin/system', require('./src/routes/adminSystem'));
 app.use('/api/admin', require('./src/routes/adminShortUrls'));
 app.use('/api/admin/feature-flags', require('./src/routes/adminFeatureFlags'));
 app.use('/api/admin/whatsapp', require('./src/routes/adminWhatsapp'));
-app.use('/api/admin/backup', require('./src/routes/adminBackup'));
 app.use('/api/admin/database-backup', require('./src/routes/adminDatabaseBackup'));
 app.use('/api/admin/feedback', require('./src/routes/adminFeedback'));
 app.use('/api/admin', require('./src/routes/adminGuests'));
 app.use('/api/admin/image-security', require('./src/routes/adminImageSecurity'));
 app.use('/api/admin/thumbnails', require('./src/routes/adminThumbnails'));
+// adminPhotos is mounted twice on purpose (audit §2.3, issue 1670): here as
+// /api/admin/photos/:eventId/... for the media and repair endpoints the admin
+// UI reads (thumbnail, photo, preview, repair-* jobs), and in routes/admin.js
+// as /api/admin/events/:eventId/photos/... for the CRUD calls photos.service.ts
+// makes. Both sit behind the same global middleware; neither tree is dead, so
+// neither is removed. adminPhotoDimensions shares the prefix for the same
+// reason.
 app.use('/api/admin/photos', require('./src/routes/adminPhotoDimensions'));
 app.use('/api/admin/photos', require('./src/routes/adminPhotos'));
 app.use('/api/admin/photo-export', require('./src/routes/adminPhotoExport'));
@@ -876,9 +896,19 @@ app.use('/api/customer', noStoreCache, require('./src/routes/customer'));
 // permission rather than a CRM-specific one. The public endpoints
 // host the customer-side accept/decline / sign / payment-check pages.
 app.use('/api/admin/business-profile', require('./src/routes/adminBusinessProfile'));
+// PDF theme for quotes, invoices and contracts (#1445) — same settings
+// permissions as the business profile's PDF settings.
+app.use('/api/admin/pdf-themes', require('./src/routes/adminPdfThemes'));
 app.use('/api/admin/quotes',     require('./src/routes/adminQuotes'));
+// Quote catalogue + templates (#1451). Own prefix so its collection paths
+// never collide with /api/admin/quotes/:id.
+app.use('/api/admin/quote-catalog', require('./src/routes/adminQuoteCatalog'));
 app.use('/api/admin/invoices',   require('./src/routes/adminInvoices'));
 app.use('/api/admin/contracts',  require('./src/routes/adminContracts'));
+// Contract templates (#1445) — own prefix, behind the contracts flag.
+app.use('/api/admin/contract-templates', require('./src/routes/adminContractTemplates'));
+// The attachment library for contract templates and contracts (#1445).
+app.use('/api/admin/document-attachments', require('./src/routes/adminDocumentAttachments'));
 app.use('/api/admin/projects',   require('./src/routes/adminProjects'));
 app.use('/api/admin/calendar',   require('./src/routes/adminCalendar'));
 app.use('/api/admin/deals',      require('./src/routes/adminDeals'));
@@ -896,6 +926,8 @@ app.use('/api/admin/transfers',  require('./src/routes/adminTransfers'));
 app.use('/api/admin/newsletters', require('./src/routes/adminNewsletters'));
 app.use('/api/public/quotes',  require('./src/routes/publicQuotes'));
 app.use('/api/public/contracts', require('./src/routes/publicContracts'));
+// Signing with a link per signer and an emailed code (#1446).
+app.use('/api/public/contract-signing', require('./src/routes/publicContractSigning'));
 // PicTransfer (#997): recipient download + client upload, token-authenticated.
 app.use('/api/public/transfer', require('./src/routes/publicTransfer'));
 app.use('/api/public/transfer-upload', require('./src/routes/publicTransferUpload'));
@@ -930,8 +962,6 @@ app.use('/api/invite', require('./src/routes/acceptInvite'));
 app.use('/api/public/settings', require('./src/routes/publicSettings'));
 app.use('/api/public/fonts', require('./src/routes/publicFonts'));
 app.use('/api/public', require('./src/routes/publicCMS'));
-app.use('/api/images', require('./src/routes/protectedImages'));
-app.use('/api/secure-images', secureImagesRoutes);
 
 // Optional: Serve built frontend (native installs and the all-in-one image, #1042)
 // Set when the SPA is being served, and registered as a catch-all AFTER the
@@ -1058,8 +1088,13 @@ if (spaCatchAll) {
   // error instead of the plain 404 nginx returns — and the 200 hides it from
   // any monitoring watching status codes.
   const BACKEND_OWNED = ['/photos/', '/thumbnails/', '/uploads/', '/fonts/', '/assets/', '/health'];
+  // Scanner probes (/wp-login.php, /cgi-bin/…) are no client route either. A
+  // 200 shell tells the scanner something is there and hides the probe from
+  // every log-based tool that counts 404s; frontend/nginx.conf does the same.
+  const { isScannerProbePath } = require('./src/utils/scannerPaths');
   app.get('*', (req, res, next) => {
     if (BACKEND_OWNED.some((prefix) => req.path.startsWith(prefix))) return next();
+    if (isScannerProbePath(req.path)) return next();
     return spaCatchAll(req, res);
   });
 }
@@ -1096,6 +1131,7 @@ async function startServer() {
   try {
     // Initialize database
     await initializeDatabase();
+    await require('./src/utils/authSecurity').assertAuthSecuritySchema();
 
     // Warm the public-origin cache so the SYNCHRONOUS resolver (CORS headers,
     // secureImageMiddleware) can see the general_site_url setting. Best-effort:
@@ -1134,6 +1170,29 @@ async function startServer() {
     // PicTransfer retention sweep (#997): expire links, notify admins, and
     // hard-delete client uploads once the grace window elapses.
     startTransferCleanup();
+    // Customer documents retention (#1444): delete long-rejected files and
+    // remove the bytes of deleted ones once the retention window elapses.
+    require('./src/services/customerDocumentRetentionService').startCustomerDocumentRetention();
+    // Malware scanner for customer documents (#1444): clamd over TCP, only
+    // when CLAMAV_HOST is set. Without it uploads stay pending until an admin
+    // reviews them. The hourly re-scan picks up rows left pending while the
+    // scanner was down; it does nothing while no scanner is registered.
+    {
+      const clamd = require('./src/services/scanners/clamd');
+      if (clamd.isConfigured()) {
+        require('./src/services/documentScanService').registerScanner(clamd.scan);
+        logger.info('Customer documents: clamd scanner registered');
+      }
+      require('./src/services/customerDocumentRescanService').startCustomerDocumentRescan();
+    }
+    // Reminder ladder for open document requests (#1444).
+    require('./src/services/customerDocumentRequestReminderService').startDocumentRequestReminders();
+    // Contract signing sweep (#1446): expire contracts whose time to sign has
+    // run out, and remove signing codes and sessions a month after they end.
+    require('./src/services/contract/expiry').startContractSigningSweep();
+    // Enumeration and replay signals on the public signing routes (#1446):
+    // flush the counts, check the thresholds, alert once per kind per hour.
+    require('./src/services/contract/signingSignals').startSigningSignals();
     // Custom-resolution download archives (#858) are disposable renditions —
     // sweep them once their TTL passes so .download-cache doesn't grow forever.
     // Best-effort, as before the scheduler refactor: a transient DB error on
@@ -1141,8 +1200,11 @@ async function startServer() {
     await require('./src/services/downloadJobService').recoverOrphanedJobs()
       .catch((err) => logger.error('Download job recovery failed', { error: err.message }));
     startDownloadJobCleanup();
-    // Reveal-mode scheduler (#838): minutely stamp for scheduled reveals.
-    startRevealScheduler();
+    // Stale feedback_rate_limits rows (#1585): the per-request delete in
+    // consumeFeedbackLimit() only ever clears the event/action-type pair it
+    // just handled, so a gallery that goes quiet leaves its rows behind —
+    // sweep them on a schedule as a backstop.
+    startFeedbackRateLimitCleanup();
     // CRM invoice scheduler: hourly tick to flush scheduled-send invoices
     // + run the overdue reminder ladder. No-op when the `bills` feature
     // flag is OFF (the service short-circuits on empty result sets).
@@ -1260,6 +1322,25 @@ async function startServer() {
       }
     } catch (err) {
       logger.warn('Install-from-backup hook threw:', err.message);
+    }
+
+    // The standard contract template (#1445): seeded once, and given a new
+    // published version when the built-in revision moved on. Never changes
+    // an existing version; safe with two replicas booting at once. After
+    // install-from-backup, which replaces the database it would seed.
+    try {
+      await require('./src/services/contract/defaultTemplate').ensureDefaultTemplate();
+    } catch (err) {
+      logger.warn('standard contract template check failed at boot:', err.message);
+    }
+
+    // The retired free-text PDF font path (#1445) becomes an uploaded font
+    // once; the renderer no longer reads the column. After install-from-backup,
+    // so a restored profile's path is the one moved.
+    try {
+      await require('./src/services/pdf/uploadedFonts').migrateLegacyFont(logger);
+    } catch (err) {
+      logger.warn('moving the earlier custom PDF font failed at boot:', err.message);
     }
 
     // First-run: surface a one-time setup token while no admin account exists.

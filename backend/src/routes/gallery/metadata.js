@@ -6,6 +6,7 @@ const { getAppSetting } = require('../../utils/appSettings');
 const { timingSafeEqualStr } = require('../../utils/timingSafe');
 const router = express.Router();
 const { resolveHeroLogoVisible } = require('../../services/galleryModel');
+const { getGalleryProtectionSettings, getHeroLogoGlobals } = require('../../services/eventSettings');
 const { verifyAdminPreview } = require('../../middleware/gallery');
 const { noStoreCache } = require('../../middleware/noStoreCache');
 const logger = require('../../utils/logger');
@@ -48,7 +49,24 @@ async function resolveDraftForAdminPreview(req, identifier) {
   // verifyAdminPreview re-reads the event with SELECT * off the slug, so give
   // it the slug rather than the partial row selected above.
   req.requestedSlug = result.event.slug;
-  return await verifyAdminPreview(req) ? result : null;
+  if (await verifyAdminPreview(req)) return result;
+  throwIfPasswordChangeRequired(req);
+  return null;
+}
+
+// verifyAdminPreview answers a refused preview with `false`, and the routes in
+// this file turn that into "not found". Right for everything else, wrong for
+// an admin whose only problem is a pending password rotation: they landed on
+// the gallery-not-found page with no hint that the admin area was waiting for
+// them. That refusal is about the account, not the gallery, so it is reported
+// as the 403 MUST_CHANGE_PASSWORD adminAuth would answer. An admin session
+// that idled out is the same kind of refusal (401 SESSION_TIMEOUT), and the
+// preview offers to sign in again. Every other refusal (FORBIDDEN, a revoked
+// session) still reads as not found, so a scoped admin learns nothing new
+// about a draft they cannot open.
+const ACCOUNT_REFUSAL_CODES = new Set(['MUST_CHANGE_PASSWORD', 'SESSION_TIMEOUT']);
+function throwIfPasswordChangeRequired(req) {
+  if (ACCOUNT_REFUSAL_CODES.has(req.adminPreviewDenied?.code)) throw req.adminPreviewDenied;
 }
 
 router.get('/resolve/:identifier', handleAsync(async (req, res) => {
@@ -118,6 +136,7 @@ router.get('/:slug/verify-token/:token', noStoreCache, handleAsync(async (req, r
   if (event.is_draft) {
     req.requestedSlug = slug;
     if (!await verifyAdminPreview(req)) {
+      throwIfPasswordChangeRequired(req);
       throw new NotFoundError('Gallery');
     }
   }
@@ -150,17 +169,12 @@ router.get('/:slug/info', async (req, res) => {
         'share_link',
         'share_token',
         'allow_downloads',
-        'allow_user_uploads',
         'reveal_mode',
         'reveal_at',
         'revealed_at',
-        'disable_right_click',
-        'watermark_downloads',
         'watermark_text',
         'require_password',
         'color_theme',
-        'enable_devtools_protection',
-        'use_canvas_rendering',
         'hero_logo_visible',
         'hero_logo_size',
         'hero_logo_position',
@@ -202,6 +216,12 @@ router.get('/:slug/info', async (req, res) => {
     // Admin preview (#868) bypasses both the draft gate and — below — the
     // password gate. Computed once and reused.
     const adminPreview = await verifyAdminPreview(req, event);
+    // See throwIfPasswordChangeRequired. This route answers its refusals inline
+    // rather than through the error handler, so it does the same here.
+    if (ACCOUNT_REFUSAL_CODES.has(req.adminPreviewDenied?.code)) {
+      return res.status(req.adminPreviewDenied.statusCode)
+        .json({ error: req.adminPreviewDenied.message, code: req.adminPreviewDenied.code });
+    }
     // Check if event is a draft (allow admin preview)
     if (event.is_draft && !adminPreview) {
       return res.status(404).json({ error: 'Gallery is not yet published' });
@@ -221,7 +241,8 @@ router.get('/:slug/info', async (req, res) => {
       ? false
       : !(event.require_password === false || event.require_password === 0 || event.require_password === '0');
     const globalHeroLogoVisible = await getAppSetting('branding_logo_display_hero', true);
-    const globalLogoSize = await getAppSetting('branding_logo_size', 'medium');
+    const guardProtection = await getGalleryProtectionSettings();
+    const heroLogo = await getHeroLogoGlobals();
 
     res.json({
       event_name: event.event_name,
@@ -233,23 +254,24 @@ router.get('/:slug/info', async (req, res) => {
       requires_password: requiresPassword,
       color_theme: event.color_theme,
       allow_downloads: !(event.allow_downloads === false || event.allow_downloads === 0 || event.allow_downloads === '0'),
-      allow_user_uploads: event.allow_user_uploads === true || event.allow_user_uploads === 1 || event.allow_user_uploads === '1',
+      // Guest uploads are removed (P3); the field stays for old clients.
+      allow_user_uploads: false,
       // Reveal mode (#838): effective hidden state (computed, time-exact) so
       // the landing page can hint at the reveal before login too.
       hidden_until_reveal: isGalleryHidden(event),
       reveal_at: isGalleryHidden(event) ? (event.reveal_at || null) : null,
-      disable_right_click: event.disable_right_click === true || event.disable_right_click === 1 || event.disable_right_click === '1',
-      watermark_downloads: event.watermark_downloads === true || event.watermark_downloads === 1 || event.watermark_downloads === '1',
+      disable_right_click: guardProtection.disable_right_click,
+      // Branding decides download watermarks; the event's own flag is ignored.
+      watermark_downloads: [true, 'true'].includes(await getAppSetting('branding_watermark_downloads_enabled', false)),
       watermark_text: event.watermark_text,
-      enable_devtools_protection: event.enable_devtools_protection === true || event.enable_devtools_protection === 1 || event.enable_devtools_protection === '1',
-      use_canvas_rendering: event.use_canvas_rendering === true || event.use_canvas_rendering === 1 || event.use_canvas_rendering === '1',
+      enable_devtools_protection: guardProtection.enable_devtools_protection,
+      use_canvas_rendering: guardProtection.use_canvas_rendering,
       hero_logo_visible: resolveHeroLogoVisible(event.hero_logo_visible, globalHeroLogoVisible),
-      // #894: only an explicit false hides the logo on the password page;
-      // NULL keeps the default (show).
-      login_logo_visible: !(event.login_logo_visible === false || event.login_logo_visible === 0 || event.login_logo_visible === '0'),
-      // #756: NULL per-event size inherits the global branding_logo_size.
-      hero_logo_size: event.hero_logo_size || globalLogoSize || 'medium',
-      hero_logo_position: event.hero_logo_position || 'top',
+      // Branding decides the password page logo and the hero logo's size and
+      // position for every gallery (P3); the event's own columns are ignored.
+      login_logo_visible: heroLogo.login_logo_visible,
+      hero_logo_size: heroLogo.hero_logo_size,
+      hero_logo_position: heroLogo.hero_logo_position,
       hero_logo_url: event.hero_logo_url || null,
       header_style: event.header_style || 'standard',
       hero_divider_style: event.hero_divider_style || 'wave',

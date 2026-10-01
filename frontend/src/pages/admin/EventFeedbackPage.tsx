@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, 
@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Filter,
   Download,
-  Shield,
   CheckCircle,
   Eye,
   EyeOff,
@@ -21,12 +20,10 @@ import { format, parseISO } from 'date-fns';
 
 import { Button, Card, Loading } from '../../components/common';
 import { AdminAuthenticatedImage } from '../../components/admin/AdminAuthenticatedImage';
-import { FeedbackSettings } from '../../components/admin';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { feedbackService } from '../../services/feedback.service';
 import type { PhotoFeedback, FeedbackAnalytics, FeedbackResponse } from '../../services/feedback.service';
-import { useMutationWithToast } from '../../hooks';
 import { useLocalizedDate } from '../../hooks/useLocalizedDate';
 
 export const EventFeedbackPage: React.FC = () => {
@@ -36,7 +33,9 @@ export const EventFeedbackPage: React.FC = () => {
   const { t } = useTranslation();
   const { formatDateTime: fmtDateTime } = useLocalizedDate();
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'feedback' | 'analytics' | 'moderation'>('settings');
+  // Feedback settings are edited in the event's Settings > Guest interaction
+  // (spec 5.1); this page keeps the feedback itself.
+  const [activeTab, setActiveTab] = useState<'feedback' | 'analytics' | 'moderation'>('feedback');
   const [feedbackFilter, setFeedbackFilter] = useState({
     type: '',
     status: '',
@@ -57,8 +56,8 @@ export const EventFeedbackPage: React.FC = () => {
   });
 
   // Fetch feedback settings
-  const { data: settings, isLoading: settingsLoading } = useQuery({
-    queryKey: ['feedback-settings', id],
+  const { isLoading: settingsLoading } = useQuery({
+    queryKey: ['admin-event-feedback-settings', id],
     queryFn: () => feedbackService.getEventFeedbackSettings(id!),
     enabled: !!id
   });
@@ -75,14 +74,6 @@ export const EventFeedbackPage: React.FC = () => {
     queryKey: ['feedback-analytics', id],
     queryFn: () => feedbackService.getEventFeedbackAnalytics(id!),
     enabled: !!id && activeTab === 'analytics'
-  });
-
-  // Update settings mutation
-  const updateSettingsMutation = useMutationWithToast({
-    mutationFn: (newSettings: any) => feedbackService.updateEventFeedbackSettings(id!, newSettings),
-    invalidateKeys: [['feedback-settings', id]],
-    successMessage: t('feedback.settingsUpdated', 'Feedback settings updated'),
-    errorMessage: () => t('feedback.settingsUpdateError', 'Failed to update settings'),
   });
 
   // Moderate feedback mutation
@@ -157,6 +148,9 @@ export const EventFeedbackPage: React.FC = () => {
           >
             {t('common.back')}
           </Button>
+          <Link to={`/admin/events/${id}?tab=settings&section=guests`} className="text-sm font-medium text-accent">
+            {t('feedback.editSettingsLink', 'Feedback settings')}
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">
               {t('feedback.title', 'Feedback Management')}
@@ -170,14 +164,14 @@ export const EventFeedbackPage: React.FC = () => {
           {/* Shape selector (#640 #6). Long is the existing per-action shape;
               pivot is per-(photo, guest) for spreadsheet pivot tables. */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500 dark:text-neutral-400" htmlFor="feedback-export-shape">
+            <label className="text-xs text-muted" htmlFor="feedback-export-shape">
               {t('feedback.exportShapeLabel', 'Shape')}
             </label>
             <select
               id="feedback-export-shape"
               value={exportShape}
               onChange={(e) => setExportShape(e.target.value as 'long' | 'pivot')}
-              className="text-sm px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
+              className="text-sm px-2 py-1.5 rounded border border-line-strong bg-panel"
             >
               <option value="long">{t('feedback.exportShapeLong', 'Per-action (long)')}</option>
               <option value="pivot">{t('feedback.exportShapePivot', 'Per-guest (pivot)')}</option>
@@ -206,7 +200,6 @@ export const EventFeedbackPage: React.FC = () => {
       <div className="mb-6 border-b border-neutral-200">
         <nav className="-mb-px flex gap-6">
           {[
-            { id: 'settings', label: t('feedback.tabs.settings', 'Settings'), icon: Shield },
             { id: 'feedback', label: t('feedback.tabs.feedback', 'Feedback'), icon: MessageSquare },
             { id: 'analytics', label: t('feedback.tabs.analytics', 'Analytics'), icon: TrendingUp },
             { id: 'moderation', label: t('feedback.tabs.moderation', 'Moderation'), icon: Filter },
@@ -228,13 +221,6 @@ export const EventFeedbackPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      {activeTab === 'settings' && settings && (
-        <FeedbackSettings
-          settings={settings}
-          onChange={(newSettings) => updateSettingsMutation.mutate(newSettings)}
-        />
-      )}
-
       {activeTab === 'feedback' && (
         <div className="space-y-4">
           {/* Filters */}

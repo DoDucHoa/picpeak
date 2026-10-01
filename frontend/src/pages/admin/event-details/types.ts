@@ -1,15 +1,17 @@
-export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads';
+import type { ThemeConfig } from '../../../types/theme.types';
+
+export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads' | 'settings';
 
 export type EditFormState = {
   welcome_message: string;
   color_theme: string;
   css_template_id: number | null;
   expires_at: string;
-  allow_user_uploads: boolean;
-  // Reveal mode (#838): reveal_at is a datetime-local input string ('' = none)
-  reveal_mode: boolean;
-  reveal_at: string;
-  upload_category_id: number | null;
+  // Event date and type, edited in Settings > Details (spec 5.1, 5.9).
+  event_date: string;
+  event_type: string;
+  // Photo credits (#1561)
+  show_credits_to_guests: boolean;
   hero_photo_id: number | null;
   customer_name: string;
   customer_email: string;
@@ -19,20 +21,11 @@ export type EditFormState = {
   external_watch: boolean;
   require_password: boolean;
   new_password: string;
-  confirm_new_password: string;
   // Download protection settings
   protection_level: 'basic' | 'standard' | 'enhanced' | 'maximum';
-  disable_right_click: boolean;
   allow_downloads: boolean;
-  watermark_downloads: boolean;
-  enable_devtools_protection: boolean;
-  use_canvas_rendering: boolean;
   // Hero logo settings. null = inherit the global branding toggle (#756).
   hero_logo_visible: boolean | null;
-  hero_logo_size: 'small' | 'medium' | 'large' | 'xlarge' | null;
-  hero_logo_position: 'top' | 'center' | 'bottom';
-  // #894: null = default (show); false hides the logo on the password page.
-  login_logo_visible: boolean | null;
   // Hero image anchor position (#162) – keyword or "X% Y%" focal point
   hero_image_anchor: string;
   // Photo cap
@@ -54,17 +47,22 @@ export type EditFormState = {
   customer_accounts: Array<{ id: number; email: string; displayName: string | null }>;
   // Per-event opt-in for hero photo as social-share preview (#474).
   og_image_share_enabled: boolean;
+  // Client access (#1271), edited in Settings > Access and saved by the bar.
+  client_access_enabled: boolean;
+  client_password: string;
 };
+
+/** The theme picker's state in the draft: the look and the preset it came from. */
+export interface ThemeDraft { config: ThemeConfig; preset: string }
 
 export const INITIAL_EDIT_FORM: EditFormState = {
   welcome_message: '',
   color_theme: '',
   css_template_id: null,
   expires_at: '',
-  allow_user_uploads: false,
-  reveal_mode: false,
-  reveal_at: '',
-  upload_category_id: null,
+  event_date: '',
+  event_type: '',
+  show_credits_to_guests: false,
   hero_photo_id: null,
   customer_name: '',
   customer_email: '',
@@ -74,19 +72,11 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   external_watch: false,
   require_password: true,
   new_password: '',
-  confirm_new_password: '',
   // Download protection settings
   protection_level: 'standard',
-  disable_right_click: true,
   allow_downloads: true,
-  watermark_downloads: false,
-  enable_devtools_protection: true,
-  use_canvas_rendering: false,
   // Hero logo settings — null = inherit global branding toggle (#756)
   hero_logo_visible: null,
-  hero_logo_size: null,
-  hero_logo_position: 'top',
-  login_logo_visible: null,
   // Hero image anchor position (#162)
   hero_image_anchor: 'center',
   // Photo cap
@@ -104,4 +94,6 @@ export const INITIAL_EDIT_FORM: EditFormState = {
   // so a freshly opened editor never displays "on" against the saved
   // (off) state.
   og_image_share_enabled: false,
+  client_access_enabled: false,
+  client_password: '',
 };

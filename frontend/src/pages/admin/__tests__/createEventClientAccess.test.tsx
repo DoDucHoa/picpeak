@@ -6,12 +6,14 @@
  * user-upload toggle. Reported from the field as simply absent: "hiện không
  * có, tôi phải xong rồi bấm edit mới thấy mục Client Access". Present but
  * unfindable is the same thing as missing, so what this pins is the heading
- * and the PIN field being reachable here, not just the payload.
+ * and the PIN field being reachable here, not just the payload. Since P5 the
+ * field starts with a generated password, shown in clear (spec 5.4).
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { ConfirmDialogProvider } from '../../../components/common/ConfirmDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -54,7 +56,6 @@ vi.mock('../../../hooks/usePublicSettings', () => ({
     data: {
       event_require_customer_name: false,
       event_require_customer_email: false,
-      event_require_admin_email: false,
       event_require_event_date: false,
       event_require_expiration: false,
       event_default_require_password: false,
@@ -86,11 +87,12 @@ import { CreateEventPage } from '../CreateEventPage';
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter([{ path: '/admin/events/new', element: <CreateEventPage /> }], { initialEntries: ['/admin/events/new'] });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <CreateEventPage />
-      </MemoryRouter>
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>
     </QueryClientProvider>
   );
 }
@@ -104,13 +106,15 @@ beforeEach(() => {
 });
 
 describe('CreateEventPage: Client Access is set up here, not after the fact', () => {
-  it('carries the same heading the event page uses, so the section is findable', () => {
+  it('carries the same heading the event page uses, so the section is findable', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
     expect(screen.getByText('clientAccess.adminTitle')).toBeInTheDocument();
   });
 
-  it('reveals the password field and the note about the link only once it is switched on', () => {
+  it('reveals the password field and the note about the link only once it is switched on', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     expect(screen.queryByText('clientAccess.passwordLabel')).toBeNull();
     expect(screen.queryByText('clientAccess.linkAfterCreate')).toBeNull();
@@ -125,6 +129,7 @@ describe('CreateEventPage: Client Access is set up here, not after the fact', ()
 
   it('sends the toggle and the password with the event it was set up on', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST client access' },
@@ -144,6 +149,7 @@ describe('CreateEventPage: Client Access is set up here, not after the fact', ()
 
   it('drops a password typed before the toggle was switched back off', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST client access off' },
@@ -161,6 +167,7 @@ describe('CreateEventPage: Client Access is set up here, not after the fact', ()
   });
   it('holds the same floor as the gallery password: six characters, not digits only', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST client password rules' },
@@ -180,7 +187,7 @@ describe('CreateEventPage: Client Access is set up here, not after the fact', ()
     // refuses, and exactly the shape a four-digit PIN habit produces.
     fireEvent.change(field(), { target: { value: '482100' } });
     submit();
-    await screen.findByText(/Password cannot be just numbers/);
+    await screen.findByText('validation.passwordTooSimple');
     expect(createEvent).not.toHaveBeenCalled();
 
     fireEvent.change(field(), { target: { value: 'Wedding-2026' } });
@@ -189,8 +196,19 @@ describe('CreateEventPage: Client Access is set up here, not after the fact', ()
     expect(createEvent.mock.calls[0][0]).toMatchObject({ client_password: 'Wedding-2026' });
   });
 
+  it('starts the client password generated and shown in clear (spec 5.4)', async () => {
+    renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
+    fireEvent.click(clientAccessToggle());
+    const field = screen.getByLabelText('clientAccess.passwordLabel') as HTMLInputElement;
+    expect(field).toHaveAttribute('type', 'text');
+    expect(field.value.length).toBeGreaterThanOrEqual(6);
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeInTheDocument();
+  });
+
   it('does not hold an empty client password against a form with the toggle off', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST no client access' },

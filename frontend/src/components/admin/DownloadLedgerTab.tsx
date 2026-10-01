@@ -47,10 +47,10 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
 
   return (
     <Card padding="lg">
-      <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+      <h2 className="text-lg font-semibold text-heading">
         {t('downloadQuotaAdmin.ledger.title', 'Delivered photos')}
       </h2>
-      <p className="mt-1 mb-4 text-xs text-neutral-500 dark:text-neutral-400">
+      <p className="mt-1 mb-4 text-xs text-muted">
         {t(
           'downloadQuotaAdmin.ledger.help',
           'One row per photo that has left this gallery at least once. A photo already listed here costs no further allowance, however often it is downloaded again.',
@@ -60,7 +60,7 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
       {items.length === 0 ? (
         <div className="py-12 text-center">
           <Inbox className="w-8 h-8 mx-auto mb-3 text-neutral-400" aria-hidden />
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-soft">
             {t(
               'downloadQuotaAdmin.ledger.empty',
               'No photo has been downloaded from this gallery yet.',
@@ -72,7 +72,7 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted border-b border-line">
                   <th className="py-2 pr-4 font-semibold">
                     {t('downloadQuotaAdmin.ledger.photo', 'Photo')}
                   </th>
@@ -88,14 +88,14 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
                 {items.map((entry) => (
                   <tr
                     key={entry.id}
-                    className="border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                    className="border-b border-line-faint last:border-0"
                   >
                     <td className="py-2 pr-4">
                       <div className="flex items-center gap-2">
                         {entry.filename ? (
-                          <span className="text-neutral-900 dark:text-neutral-100">{entry.filename}</span>
+                          <span className="text-heading">{entry.filename}</span>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+                          <span className="flex items-center gap-1.5 text-muted">
                             <ImageOff className="w-4 h-4" aria-hidden />
                             {t('downloadQuotaAdmin.ledger.deletedPhoto', 'Photo deleted, slot still spent')}
                           </span>
@@ -103,10 +103,10 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
                         <span className="text-xs text-neutral-400">{`#${entry.photo_id}`}</span>
                       </div>
                     </td>
-                    <td className="py-2 pr-4 text-neutral-700 dark:text-neutral-300">
+                    <td className="py-2 pr-4 text-body">
                       {formatDateTime(entry.first_downloaded_at)}
                     </td>
-                    <td className="py-2 text-neutral-700 dark:text-neutral-300">
+                    <td className="py-2 text-body">
                       {entry.access_level
                         || t('downloadQuotaAdmin.ledger.unknownAccess', 'Unknown')}
                     </td>
@@ -117,7 +117,7 @@ export const DownloadLedgerTab: React.FC<DownloadLedgerTabProps> = ({ eventId })
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs text-muted">
               {t('downloadQuotaAdmin.ledger.pageOf', 'Page {{page}} of {{lastPage}}, {{total}} photos', {
                 page,
                 lastPage,

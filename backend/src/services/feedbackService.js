@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 const { formatBoolean } = require('../utils/dbCompat');
 const { REACTION_EMOJIS } = require('../constants/reactions');
 const { isValidColorLabel, SHARED_COLOR_LABEL_IDENTITY } = require('../constants/colorLabels');
-const { resolveEventFeedbackDefaults, DEFAULT_KEYBIND_MODE, KEYBIND_MODES } = require('./feedbackDefaults');
+const { resolveEventFeedbackDefaults, readKeybindModeSetting } = require('./feedbackDefaults');
 
 // The camera-original name, for the feedback exports (#1224). Both exports
 // used to carry only `photos.filename` — the sanitized stored name
@@ -36,6 +36,7 @@ const CAMERA_NAME_SQL =
 // throw, so the request 500'd and the "Enable feedback" toggle silently
 // never persisted. Identity columns (id/event_id) and the timestamps stay
 // server-managed. New columns MUST be added here.
+// keybind_mode is global since P3 and no longer written per event.
 const FEEDBACK_SETTINGS_COLUMNS = [
   'feedback_enabled',
   'allow_ratings',
@@ -44,7 +45,6 @@ const FEEDBACK_SETTINGS_COLUMNS = [
   'allow_favorites',
   'allow_reactions',
   'allow_color_labels',
-  'keybind_mode',
   'require_name_email',
   'moderate_comments',
   'require_moderation',
@@ -147,12 +147,10 @@ class FeedbackService {
       if (!settings.identity_mode) {
         settings.identity_mode = 'simple';
       }
-      // Rows created before migration 180 have NULL keybind_mode. An
-      // unrecognised value gets the same treatment — the lightbox switches on
-      // this string and must never receive something it has no scheme for.
-      if (!KEYBIND_MODES.includes(settings.keybind_mode)) {
-        settings.keybind_mode = DEFAULT_KEYBIND_MODE;
-      }
+      // One global scheme for every gallery (P3, spec 5.10); the stored
+      // column is left untouched and no longer read. The no-row branch above
+      // gets the same value from resolveEventFeedbackDefaults.
+      settings.keybind_mode = await readKeybindModeSetting();
       // Per-guest caps (#655). NULL on existing rows = unlimited; the route
       // layer treats null/0/missing identically.
       settings.max_favorites_per_guest = settings.max_favorites_per_guest ?? null;
@@ -193,8 +191,14 @@ class FeedbackService {
             updated_at: new Date().toISOString()
           });
       } else {
+        // No row yet: the admin was looking at the defaults this service's
+        // GET answers with, and the event page sends only what changed. Start
+        // the row from those defaults, or every other column falls back to
+        // the database default instead of what the screen showed.
+        const shown = pickSettingsColumns(await this.getEventFeedbackSettings(eventId));
         await db('event_feedback_settings').insert({
           event_id: eventId,
+          ...shown,
           ...writable,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -586,9 +590,15 @@ class FeedbackService {
           // Toggle-off always allowed — the cap below is on adds only, so a
           // guest at the limit can still free a slot by un-favoriting (#655).
           if (feedback_type === 'like' || feedback_type === 'favorite') {
-            await db('photo_feedback')
-              .where('id', existing.id)
-              .delete();
+            // Older guest merges could leave several visible copies. One
+            // click must clear the selection, while preserving hidden rows.
+            const selection = db('photo_feedback').where({
+              photo_id: photoId, event_id: eventId, feedback_type,
+              is_hidden: formatBoolean(false),
+            });
+            if (guest_id) selection.where('guest_id', guest_id);
+            else selection.where('guest_identifier', guestIdentifier);
+            await selection.delete();
 
             await this.updatePhotoFeedbackStats(photoId);
             return { removed: true };
@@ -631,7 +641,7 @@ class FeedbackService {
       }
 
       // Insert new feedback
-      const result = await db('photo_feedback').insert({
+      const insertFeedback = (executor) => executor('photo_feedback').insert({
         photo_id: photoId,
         event_id: eventId,
         feedback_type,
@@ -656,6 +666,24 @@ class FeedbackService {
         created_at: new Date(),
         updated_at: new Date()
       }).returning('id');
+
+      // A guest merge soft-deletes its source guests while holding their rows
+      // locked. resolveGuest ran before that, so re-check the guest in the
+      // insert's transaction: FOR SHARE waits for the merge to commit and then
+      // sees the deleted row, instead of attaching a like to a guest nobody
+      // can sign in as any more. SQLite serialises the transaction outright.
+      let result;
+      if (guest_id) {
+        result = await db.transaction(async (trx) => {
+          const guest = trx('gallery_guests').where({ id: guest_id }).first('is_deleted');
+          if (trx.client.config.client === 'pg') guest.forShare();
+          if ((await guest)?.is_deleted) return null;
+          return insertFeedback(trx);
+        });
+        if (!result) return { guest_missing: true };
+      } else {
+        result = await insertFeedback(db);
+      }
       
       const id = result[0]?.id || result[0];
       
@@ -708,7 +736,9 @@ class FeedbackService {
         query.where('is_hidden', false);
       }
       
-      if (options.guest_identifier) {
+      if (options.guest_id) {
+        query.where('guest_id', options.guest_id);
+      } else if (options.guest_identifier) {
         query.where('guest_identifier', options.guest_identifier);
       }
       
@@ -730,7 +760,7 @@ class FeedbackService {
     try {
       const photos = await db('photos')
         .where('event_id', eventId)
-        .select('id', 'filename', 'feedback_count', 'like_count', 'average_rating', 'favorite_count', 'reaction_count', 'color_label_count')
+        .select('id', 'filename', 'visibility', 'feedback_count', 'like_count', 'average_rating', 'favorite_count', 'reaction_count', 'color_label_count')
         .orderBy('average_rating', 'desc')
         .orderBy('like_count', 'desc');
       
@@ -1104,7 +1134,9 @@ class FeedbackService {
           'photo_feedback.color_label',
           'photo_feedback.guest_name',
           'photo_feedback.guest_email',
-          'photo_feedback.created_at'
+          'photo_feedback.created_at',
+          // Who took / uploaded the photo (#1561), beside who reacted to it.
+          'photos.credit_name as credit'
         )
         .orderBy('photos.filename')
         .orderBy('photo_feedback.created_at');
@@ -1145,7 +1177,8 @@ class FeedbackService {
           'photo_feedback.guest_name',
           'photo_feedback.guest_email',
           'photo_feedback.guest_identifier',
-          'photo_feedback.created_at'
+          'photo_feedback.created_at',
+          'photos.credit_name as credit'
         )
         .orderBy('photos.filename')
         .orderBy('photo_feedback.guest_identifier');
@@ -1162,6 +1195,7 @@ class FeedbackService {
           entry = {
             filename: row.filename,
             original_filename: row.original_filename || '',
+            credit: row.credit || '',
             guest_name: row.guest_name || '',
             guest_email: row.guest_email || '',
             is_favorited: false,
@@ -1324,34 +1358,70 @@ class FeedbackService {
   }
 
   /**
-   * Merge feedback rows from sourceGuestIds into keepGuestId. Used by admin
-   * guest merge and email-based identity recovery when a user re-registers.
-   * Recomputes denormalized counts on affected photos.
+   * Merge an admin-confirmed set of guest identities. Keep the union of
+   * selections and the latest value per photo/type, without losing comments
+   * or hidden moderation records. The caller can include guest/invite updates
+   * in the same transaction.
    */
-  async mergeGuestFeedback(keepGuestId, sourceGuestIds) {
+  async mergeGuestFeedback(keepGuestId, sourceGuestIds, executor = null) {
     try {
       const sources = (sourceGuestIds || []).filter((id) => id && id !== keepGuestId);
       if (sources.length === 0) {
         return { merged: 0, photos: 0 };
       }
 
-      const affected = await db('photo_feedback')
-        .whereIn('guest_id', sources)
-        .select('photo_id');
-      const photoIds = [...new Set(affected.map((r) => r.photo_id))];
+      const merge = async (trx) => {
+        const survivor = await trx('gallery_guests')
+          .where({ id: keepGuestId, is_deleted: formatBoolean(false) })
+          .first();
+        if (!survivor?.identifier) throw new Error('Merge target guest not found');
 
-      await db('photo_feedback')
-        .whereIn('guest_id', sources)
-        .update({
+        // Include the survivor's rows: previous merges may already have left
+        // stale identifiers or duplicate selections attached to this guest.
+        const scope = () => trx('photo_feedback')
+          .where({ event_id: survivor.event_id })
+          .whereIn('guest_id', [keepGuestId, ...sources]);
+        const rows = await scope().select(
+          'id', 'photo_id', 'guest_id', 'feedback_type', 'is_hidden', 'created_at', 'updated_at',
+        );
+        const photoIds = [...new Set(rows.map((row) => row.photo_id))];
+        const sourceIds = new Set(sources.map(Number));
+        const merged = rows.filter((row) => sourceIds.has(Number(row.guest_id))).length;
+
+        // SQLite may return epoch milliseconds or SQL/ISO strings; PostgreSQL
+        // returns Dates. Compare actual times, with id as a deterministic tie.
+        const timestamp = (row) => {
+          const value = row.updated_at ?? row.created_at;
+          if (typeof value === 'number') return value;
+          const text = typeof value === 'string' && /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(value)
+            ? `${value.replace(' ', 'T')}Z` : value;
+          return new Date(text).getTime() || 0;
+        };
+        rows.sort((a, b) => timestamp(b) - timestamp(a) || b.id - a.id);
+        const seen = new Set();
+        const duplicates = [];
+        for (const row of rows) {
+          if (row.feedback_type === 'comment' || row.is_hidden) continue;
+          const key = `${row.photo_id}:${row.feedback_type}`;
+          if (seen.has(key)) duplicates.push(row.id);
+          else seen.add(key);
+        }
+        // Keep bound-parameter counts below SQLite's limit for large galleries.
+        for (let i = 0; i < duplicates.length; i += 500) {
+          await trx('photo_feedback').whereIn('id', duplicates.slice(i, i + 500)).delete();
+        }
+        await scope().update({
           guest_id: keepGuestId,
-          updated_at: new Date(),
+          guest_identifier: survivor.identifier,
+          // Preserve when the guest made the choice: a merge is not a newer
+          // vote and must not override a later choice in a subsequent merge.
         });
-
-      for (const pid of photoIds) {
-        await this.updatePhotoFeedbackStats(pid);
-      }
-
-      return { merged: affected.length, photos: photoIds.length };
+        for (const photoId of photoIds) {
+          await this.updatePhotoFeedbackStats(photoId, trx);
+        }
+        return { merged, photos: photoIds.length };
+      };
+      return await (executor ? merge(executor) : db.transaction(merge));
     } catch (error) {
       logger.error('Error merging guest feedback:', error);
       throw error;

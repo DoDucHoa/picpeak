@@ -17,6 +17,21 @@ import { usePublicSettings } from '../../hooks/usePublicSettings';
 import { usePublicDarkMode } from '../../hooks/usePublicDarkMode';
 import { resolveLoginLogoClasses } from '../../utils/loginLogoSize';
 
+/**
+ * Where to go after login. Only paths inside the authenticated customer
+ * surface are followed — never another origin (`//host`, `/\host`) and never
+ * back to the public login / invite / reset pages. The target page re-checks
+ * access on its own, so this only decides where to land.
+ */
+export function safeCustomerReturnTo(value: string | null): string {
+  const fallback = '/customer/dashboard';
+  if (!value || !value.startsWith('/customer/') || value.startsWith('//') || value.includes('\\')) {
+    return fallback;
+  }
+  if (/^\/customer\/(login|invite|reset-password)(\/|\?|$)/.test(value)) return fallback;
+  return value;
+}
+
 export const CustomerLoginPage: React.FC = () => {
   const { t } = useTranslation();
   const { isAuthenticated, setSession } = useCustomerAuth();
@@ -51,7 +66,7 @@ export const CustomerLoginPage: React.FC = () => {
   }, [searchParams, t]);
 
   if (isAuthenticated) {
-    return <Navigate to="/customer/dashboard" replace />;
+    return <Navigate to={safeCustomerReturnTo(searchParams.get('returnTo'))} replace />;
   }
 
   const validateForm = (): boolean => {
@@ -172,7 +187,7 @@ export const CustomerLoginPage: React.FC = () => {
                   backgroundColor: 'var(--color-elevated, rgba(220, 38, 38, 0.05))',
                 }}
               >
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-600" />
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-status hue-danger" />
                 <span className="text-sm">{errors.form}</span>
               </div>
             )}

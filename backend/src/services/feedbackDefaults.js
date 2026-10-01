@@ -81,23 +81,41 @@ function parseBooleanSetting(rawValue) {
   return undefined;
 }
 
+/**
+ * The keyboard shortcut scheme, from a stored setting value. Values are
+ * stored JSON encoded, sometimes more than once, so every layer is unwrapped
+ * before the value is checked against the known schemes.
+ */
 function parseKeybindModeSetting(rawValue) {
   let value = rawValue;
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      if (typeof parsed === 'string') value = parsed;
-    } catch {
-      /* keep raw */
-    }
+  while (typeof value === 'string') {
+    let parsed;
+    try { parsed = JSON.parse(value); } catch { break; }
+    if (parsed === value) break;
+    value = parsed;
   }
   return KEYBIND_MODES.includes(value) ? value : undefined;
 }
 
 /**
- * Resolve the global feedback defaults in ONE query (mirrors
- * getBrandingDefaults' batched whereIn rather than firing seven `.first()`
- * calls on every event creation).
+ * The lightbox keyboard shortcut scheme for every gallery (P3, spec 5.10):
+ * one global value, read live. Never throws; the default when unset or
+ * unknown. The unwrapping above mirrors decodeSettingValue in
+ * eventSettings.js, kept here so this module needs only db and logger.
+ */
+async function readKeybindModeSetting() {
+  try {
+    const row = await db('app_settings').where('setting_key', KEYBIND_MODE_SETTING_KEY).first();
+    return parseKeybindModeSetting(row?.setting_value) ?? DEFAULT_KEYBIND_MODE;
+  } catch (error) {
+    logger.error('Failed to read the keyboard shortcut mode', { error: error.message });
+    return DEFAULT_KEYBIND_MODE;
+  }
+}
+
+/**
+ * Resolve the global feedback defaults in ONE query (a batched whereIn
+ * rather than seven `.first()` calls on every event creation).
  *
  * Never throws: a settings-table hiccup must not fail event creation, so the
  * built-in fallbacks stand in.
@@ -167,4 +185,5 @@ module.exports = {
   DEFAULT_KEYBIND_MODE,
   resolveEventFeedbackDefaults,
   applyFeedbackDefaults,
+  readKeybindModeSetting,
 };

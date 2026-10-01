@@ -12,12 +12,14 @@ import { useGalleryAuth, useTheme } from '../contexts';
 import { useGalleryInfo } from '../hooks/useGallery';
 import { GalleryView } from '../components/gallery';
 import { GallerySkeleton } from '../components/gallery/GallerySkeleton';
+import { PasswordChangeRequiredNotice } from '../components/gallery/PasswordChangeRequiredNotice';
 import { analyticsService } from '../services/analytics.service';
 import { galleryService } from '../services';
 import { GALLERY_THEME_PRESETS } from '../types/theme.types';
 import { buildResourceUrl } from '../utils/url';
 import { isGalleryPublic, normalizeRequirePassword } from '../utils/accessControl';
 import { detectInAppBrowser } from '../utils/inAppBrowser';
+import { isAdminSessionExpired, isPasswordChangeRequired } from '../utils/passwordChangeRequired';
 
 export const GalleryPage: React.FC = () => {
   const { slug: rawSlug, token: rawToken } = useParams<{ slug: string; token?: string }>();
@@ -60,6 +62,8 @@ export const GalleryPage: React.FC = () => {
     Boolean(rawSlug && !rawToken && /^[0-9a-fA-F]{32}$/.test(rawSlug))
   );
   const [identifierError, setIdentifierError] = useState<string | null>(null);
+  const [identifierNeedsPasswordChange, setIdentifierNeedsPasswordChange] = useState(false);
+  const [identifierAdminSessionExpired, setIdentifierAdminSessionExpired] = useState(false);
   const lastResolvedIdentifier = React.useRef<string | null>(null);
 
   React.useEffect(() => {
@@ -98,6 +102,8 @@ export const GalleryPage: React.FC = () => {
           setResolvedToken(undefined);
           const message = error?.response?.data?.error || 'Unable to resolve gallery link';
           setIdentifierError(message);
+          setIdentifierNeedsPasswordChange(isPasswordChangeRequired(error));
+          setIdentifierAdminSessionExpired(isAdminSessionExpired(error));
         })
         .finally(() => {
           if (!cancelled) {
@@ -323,6 +329,25 @@ export const GalleryPage: React.FC = () => {
     return <GallerySkeleton />;
   }
 
+  // An admin preview refused only because the admin still has to rotate a
+  // temporary password. /resolve and /info report it as 403
+  // MUST_CHANGE_PASSWORD, and "gallery not found" would be untrue.
+  if (
+    (identifierNeedsPasswordChange && identifierError && !resolvedSlug && !isResolvingIdentifier) ||
+    isPasswordChangeRequired(infoError)
+  ) {
+    return <PasswordChangeRequiredNotice />;
+  }
+
+  // An admin preview refused because the admin session idled out (401
+  // SESSION_TIMEOUT). Signing in again is the way back, not a guest login.
+  if (
+    (identifierAdminSessionExpired && identifierError && !resolvedSlug && !isResolvingIdentifier) ||
+    (isAdminPreview && isAdminSessionExpired(infoError))
+  ) {
+    return <PasswordChangeRequiredNotice reason="session" />;
+  }
+
   // Gallery missing / archived / expired-link / unresolvable identifier all
   // collapse into the customisable "gallery-not-found" CMS page (#324).
   // Admins can edit the title, body, and logo from the CMS Pages tab; the
@@ -409,7 +434,6 @@ export const GalleryPage: React.FC = () => {
           event_date: galleryInfo.event_date,
           color_theme: galleryInfo.color_theme,
           expires_at: galleryInfo.expires_at,
-          allow_user_uploads: galleryInfo.allow_user_uploads,
           allow_downloads: galleryInfo.allow_downloads,
         }}
       />

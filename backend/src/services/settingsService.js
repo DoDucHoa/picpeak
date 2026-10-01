@@ -149,8 +149,7 @@ const getPublicSettings = async () => {
     'recaptcha_enabled',
     'recaptcha_site_key',
     'event_require_customer_name',
-    'event_require_customer_email',
-    'event_require_admin_email'
+    'event_require_customer_email'
   ];
 
   const settings = await db('settings')

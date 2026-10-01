@@ -48,12 +48,6 @@ async function getConfiguredBackupRoots(trustedRoot) {
   } catch (_) {
     // best effort — fall through to whatever roots we already have
   }
-  // path.delimiter, not a literal ':'. On Linux the two are the same character,
-  // so nothing about production changes. On Windows a literal ':' splits the
-  // drive letter off every entry, so 'C:\\backups' became the two roots 'C' and
-  // '\\backups', which path.resolve below then turned into <cwd>/C and the
-  // drive root: two directories the operator never allowed, quietly added to an
-  // allowlist whose whole job is to keep a restore inside known ground.
   for (const extra of (process.env.RESTORE_ALLOWED_ROOTS || '').split(path.delimiter)) {
     if (extra.trim()) roots.push(extra.trim());
   }
@@ -79,6 +73,42 @@ function assertSafeSqlitePath(p) {
   if (typeof p !== 'string' || !SAFE_SQLITE_PATH_RE.test(p)) {
     throw new Error(`Refusing to run sqlite3 against an unsafe path: ${p}`);
   }
+}
+
+// The manifest records the SHA-256 of the database dump file it points at
+// (database.checksum, taken after compression). Per-file checksums were
+// verified on download and restore, but the dump itself never was, so a dump
+// swapped or truncated in the backup store was still replayed as SQL. A keyed
+// manifest covers this checksum, which makes the check meaningful against a
+// tampered store. Manifests written before the checksum existed carry none:
+// they restore with a warning, or are refused when the operator requires keyed
+// manifests (BACKUP_MANIFEST_REQUIRE_KEYED), since there is nothing to verify.
+async function verifyDatabaseDumpChecksum(dumpPath, expectedChecksum, warn = () => {}) {
+  const expected = typeof expectedChecksum === 'string' ? expectedChecksum.trim().toLowerCase() : '';
+  if (!expected) {
+    if (/^(1|true|yes)$/i.test(String(process.env.BACKUP_MANIFEST_REQUIRE_KEYED || ''))) {
+      throw new Error(
+        'The backup manifest records no checksum for the database dump, so it cannot be verified. ' +
+        'Refusing to restore because BACKUP_MANIFEST_REQUIRE_KEYED is set.'
+      );
+    }
+    warn('Backup manifest records no database dump checksum; the dump was restored without verification');
+    return { verified: false };
+  }
+  const actual = await new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    createReadStream(dumpPath)
+      .on('data', (chunk) => hash.update(chunk))
+      .on('end', () => resolve(hash.digest('hex')))
+      .on('error', reject);
+  });
+  if (actual !== expected) {
+    throw new Error(
+      'The database dump does not match the checksum recorded in the backup manifest. ' +
+      'The file was changed or damaged after the backup was taken; refusing to restore it.'
+    );
+  }
+  return { verified: true };
 }
 
 // GHSA-xfvx: the layered candidate resolution for `manifest.database.backup_file`
@@ -422,6 +452,45 @@ class RestoreService {
         this.log('warn',
           'Post-restore migrate:safe failed — restore data is in place but the schema may lag the running image. ' +
           `A container restart will retry via wait-for-db.sh. Error: ${migErr.message}`);
+      }
+
+      // Documents the source read from its legacy root (<cwd>/storage) were
+      // backed up under a storage-relative path; point their rows at it once
+      // both the rows and the files are back (legacyStoredFiles.js).
+      // After the migrations, which leave these outside-root values alone.
+      // Every restore type: a database restore followed by a separate files
+      // restore only has both halves in place after the second one.
+      if (manifest.metadata && manifest.metadata.stored_path_map) {
+        try {
+          const { applyStoredPathMap, holdsBytes } = require('../utils/legacyStoredFiles');
+          const { getStoragePath } = require('../config/storage');
+          const root = getStoragePath();
+          const sums = manifest.metadata.stored_path_sha256 || {};
+          // Only where the backed-up bytes are actually there: after a partial
+          // restore a different file may sit at the mapped path.
+          // A files-only or selective restore leaves the live rows: those are
+          // moved only when the document they name is gone.
+          const updated = await applyStoredPathMap(db, manifest.metadata.stored_path_map,
+            (rel) => holdsBytes(path.join(root, ...rel.split('/')), sums[rel]),
+            { onlyUnreadable: !['full', 'database'].includes(options.restoreType) });
+          if (updated) this.log('info', `Pointed ${updated} restored document path(s) at their backed-up location`);
+        } catch (err) {
+          this.log('warn', `Updating restored document paths failed: ${err.message}`);
+        }
+      }
+
+      // The standard contract template was checked against the database
+      // this restore replaced (#1445).
+      require('./contract/defaultTemplate').forgetEnsured();
+      // A restored profile may still carry the retired PDF font path (#1445);
+      // the renderer no longer reads it, so move it into the uploaded fonts
+      // now rather than at the next restart.
+      if (migrationsApplied) {
+        try {
+          await require('./pdf/uploadedFonts').migrateLegacyFont();
+        } catch (err) {
+          this.log('warn', `Moving the restored custom PDF font failed: ${err.message}`);
+        }
       }
 
       // Faces last (#1163). This used to run in step 6, before the migrations
@@ -862,9 +931,14 @@ class RestoreService {
     }
 
     const [, bucket, prefix] = s3PathMatch;
+    // testConnection() only vets the endpoint hostname once; the SDK would
+    // resolve it again for every download below. Pin the client to the
+    // validated address, as downloadFileFromS3 does.
+    const pinnedAgents = await this.pinnedS3Agents(options.s3Config);
     const s3Client = new S3StorageAdapter({
       ...options.s3Config,
-      bucket
+      bucket,
+      ...pinnedAgents
     });
 
     const localPath = path.join(this.tempDir, 'restore-download');
@@ -1085,6 +1159,13 @@ class RestoreService {
         '~/<your-compose-dir>/backup/database/ on the host.'
       );
     }
+
+    // Before anything is decompressed or replayed: the dump must be the one
+    // the manifest describes.
+    await verifyDatabaseDumpChecksum(
+      dbBackupPath, manifest.database.checksum, (msg) => this.log('warn', msg)
+    );
+    this.log('info', 'Database dump checksum checked against the manifest');
 
     // Decompress if needed
     let restoreFile = dbBackupPath;
@@ -1726,6 +1807,70 @@ END $$;`
   }
 
   /**
+   * Pinned http/https agents for an S3 client, built from the endpoint's
+   * validated addresses. Every restore download from S3 goes through this.
+   *
+   * SSRF guard: an admin-configured S3 endpoint could point at a
+   * private/internal or cloud-metadata address for unauthenticated egress
+   * via the server, so the endpoint is resolved and vetted first.
+   * Prod-only, matching S3StorageAdapter's own gate (dev points at
+   * localhost MinIO deliberately). No custom endpoint (default AWS) means
+   * nothing to pin.
+   *
+   * A boolean isHostAllowed() preflight is check-then-connect: the AWS
+   * SDK re-resolves the endpoint hostname on its own when it actually
+   * connects, so a DNS-rebinding attacker (or an infra rebinding
+   * condition) could answer the preflight lookup with a public address
+   * and the SDK's own later lookup with a private/metadata one.
+   * validateExternalUrlAsync's resolved addresses get pinned into the
+   * S3Client's requestHandler via pinnedRequestOptions — the same
+   * primitive webhookDeliveryWorker.js/emailWebhookTransport.js use for
+   * outbound HTTP — so the connection can only land on an address that
+   * was actually vetted.
+   */
+  async pinnedS3Agents(s3Config) {
+    if (process.env.NODE_ENV !== 'production' || !s3Config || !s3Config.endpoint) return {};
+    const { validateExternalUrlAsync } = require('../utils/networkValidation');
+    const { pinnedRequestOptions } = require('../utils/pinnedRequest');
+    const endpointUrl = /^https?:\/\//.test(s3Config.endpoint)
+      ? s3Config.endpoint
+      : `https://${s3Config.endpoint}`;
+    const urlCheck = await validateExternalUrlAsync(endpointUrl);
+    if (!urlCheck.valid) {
+      const approved = urlCheck.reason === 'private' && await this.approvedPrivateS3Agents(s3Config);
+      if (approved) return approved;
+      throw new Error('S3 endpoint resolves to a private or internal network address');
+    }
+    const { httpAgent, httpsAgent } = pinnedRequestOptions(urlCheck);
+    return { httpAgent, httpsAgent };
+  }
+
+  /**
+   * A private endpoint a Super Admin approved for backups (issue 1641) is
+   * restorable from too. Its agents re-validate every connection instead of
+   * pinning, which holds the same line against rebinding; link-local and
+   * metadata answers stay refused. Null when not approved, including when the
+   * approval cannot be read.
+   */
+  async approvedPrivateS3Agents(s3Config) {
+    const policy = require('../utils/s3EndpointPolicy');
+    let approval = null;
+    try {
+      const row = await db('app_settings').where({ setting_key: policy.APPROVAL_SETTING }).first();
+      approval = row ? row.setting_value : null;
+      try { approval = JSON.parse(approval); } catch (_) { /* stored unquoted */ }
+    } catch (error) {
+      logger.warn('Could not read the S3 private endpoint approval; treating it as absent', { error: error.message });
+      return null;
+    }
+    const sslEnabled = s3Config.sslEnabled !== false;
+    if (!policy.isPrivateEndpointApproved(s3Config.endpoint, sslEnabled, approval)) return null;
+    const access = { sslEnabled, allowPrivate: true };
+    await policy.assertS3EndpointAllowed(s3Config.endpoint, access);
+    return { ...policy.s3EndpointAgents(s3Config.endpoint, access), allowPrivateEndpoint: true };
+  }
+
+  /**
    * Download file from S3
    */
   async downloadFileFromS3(s3Url, localPath, s3Config) {
@@ -1734,38 +1879,10 @@ END $$;`
       throw new Error('Invalid S3 URL format');
     }
 
-    // SSRF guard: this method calls S3StorageAdapter.download() directly
-    // rather than going through testConnection(), so it must re-run the same
-    // DNS-resolving host check testConnection() applies — otherwise an
-    // admin-configured S3 endpoint could point at a private/internal or
-    // cloud-metadata address for unauthenticated egress via the server.
-    // Prod-only, matching S3StorageAdapter's own gate (dev points at
-    // localhost MinIO deliberately).
-    //
-    // A boolean isHostAllowed() preflight is check-then-connect: the AWS
-    // SDK re-resolves the endpoint hostname on its own when it actually
-    // connects, so a DNS-rebinding attacker (or an infra rebinding
-    // condition) could answer the preflight lookup with a public address
-    // and the SDK's own later lookup with a private/metadata one.
-    // validateExternalUrlAsync's resolved addresses get pinned into the
-    // S3Client's requestHandler via pinnedRequestOptions — the same
-    // primitive webhookDeliveryWorker.js/emailWebhookTransport.js use for
-    // outbound HTTP — so the connection can only land on an address that
-    // was actually vetted.
-    let pinnedAgents = {};
-    if (process.env.NODE_ENV === 'production' && s3Config && s3Config.endpoint) {
-      const { validateExternalUrlAsync } = require('../utils/networkValidation');
-      const { pinnedRequestOptions } = require('../utils/pinnedRequest');
-      const endpointUrl = /^https?:\/\//.test(s3Config.endpoint)
-        ? s3Config.endpoint
-        : `https://${s3Config.endpoint}`;
-      const urlCheck = await validateExternalUrlAsync(endpointUrl);
-      if (!urlCheck.valid) {
-        throw new Error('S3 endpoint resolves to a private or internal network address');
-      }
-      const { httpAgent, httpsAgent } = pinnedRequestOptions(urlCheck);
-      pinnedAgents = { httpAgent, httpsAgent };
-    }
+    // This method calls S3StorageAdapter.download() directly rather than
+    // going through testConnection(), so it depends entirely on the vetted,
+    // pinned agents.
+    const pinnedAgents = await this.pinnedS3Agents(s3Config);
 
     const [, bucket, key] = s3PathMatch;
     const s3Client = new S3StorageAdapter({
@@ -1954,5 +2071,6 @@ module.exports = {
     assertSafeSqlitePath,
     pathEscapes,
     resolveContainedDbBackupCandidates,
+    verifyDatabaseDumpChecksum,
   },
 };

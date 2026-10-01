@@ -2,12 +2,15 @@ const express = require('express');
 const { db } = require('../database/db');
 const { adminAuth } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
+const { seesAllEvents } = require('../middleware/ownership');
 const { sanitizeDays } = require('../utils/sqlSecurity');
 const { formatBoolean } = require('../utils/dbCompat');
 const { resolveAdapter } = require('../services/trackers');
 const logger = require('../utils/logger');
 const { errorResponse, getPagination } = require('../utils/routeHelpers');
 const { measureLocalStorageUsage } = require('../services/localStorageUsage');
+const { queueTimestamp } = require('../utils/queueTimestamps');
+const { IS_VIDEO_SQL } = require('../utils/mediaTypeSql');
 const router = express.Router();
 
 /**
@@ -29,22 +32,22 @@ function normaliseDateKey(value) {
  * Event ids the caller's dashboard may aggregate over, or `null` when the
  * caller is unrestricted (GHSA-c2jj / gqx7 / jhcf).
  *
- * These endpoints are gated only by `analytics.view`, which the `editor` role
- * holds — yet the events *list* restricts editors to their own rows
- * (adminEvents/crud.js: `roleName === 'editor'` → `created_by = admin.id`).
- * The dashboard therefore reported instance-wide totals, and the analytics
- * endpoint returned other admins' gallery names and slugs, to a role that
- * cannot see those events anywhere else.
+ * These endpoints are gated only by `analytics.view`, which scoped roles such
+ * as `editor` hold — yet the events *list* restricts those roles to their own
+ * events plus ownerless ones (ownership.scopeEventsListQuery). The dashboard
+ * therefore reported instance-wide totals, and the analytics endpoint returned
+ * other admins' gallery names and slugs, to a role that cannot see those
+ * events anywhere else.
  *
- * Scoped on `editor` specifically to mirror the events list exactly, so the
- * `admin` role's dashboard is unchanged. (`filterOwnedEventIds` uses the
- * broader `!== super_admin` rule; the two conventions disagree in this
- * codebase and matching the list is the no-regression choice.)
+ * Scoped with seesAllEvents to mirror the events list exactly, so the
+ * super_admin and `admin` dashboards stay instance-wide.
  *
  * @returns {Promise<number[]|null>} ids to restrict to, or null for no limit
  */
 function isScopedAdmin(admin) {
-  return admin?.roleName === 'editor';
+  // Mirrors the events list: every role except super_admin and admin is
+  // limited to its own events plus ownerless ones.
+  return !seesAllEvents(admin);
 }
 
 /**
@@ -58,7 +61,8 @@ function isScopedAdmin(admin) {
  */
 function applyEventScope(query, admin, column) {
   if (!isScopedAdmin(admin)) return query;
-  return query.whereIn(column, db('events').select('id').where('created_by', admin.id));
+  return query.whereIn(column, db('events').select('id')
+    .where((q) => q.whereNull('created_by').orWhere('created_by', admin.id)));
 }
 
 // Get dashboard statistics
@@ -86,6 +90,13 @@ router.get('/stats', adminAuth, requirePermission('analytics.view'), async (req,
 
     // Get total photos count
     const totalPhotos = await applyEventScope(db('photos'), req.admin, 'event_id')
+      .count('id as count')
+      .first();
+
+    // How many of those rows are videos. totalPhotos stays the count of both
+    // types; the dashboard shows the split when this is non-zero.
+    const totalVideos = await applyEventScope(db('photos'), req.admin, 'event_id')
+      .whereRaw(IS_VIDEO_SQL)
       .count('id as count')
       .first();
 
@@ -182,6 +193,7 @@ router.get('/stats', adminAuth, requirePermission('analytics.view'), async (req,
       activeEvents: activeEvents.count || 0,
       expiringEvents: expiringEvents.count || 0,
       totalPhotos: totalPhotos.count || 0,
+      totalVideos: Number(totalVideos.count) || 0,
       // Real bytes on this disk. Null when the measurement failed, which the
       // UI shows as "unavailable" rather than substituting a number that
       // means something else.
@@ -274,12 +286,12 @@ router.get('/health', adminAuth, requirePermission('settings.view'), async (req,
       .where('status', 'pending')
       .count('* as count');
     
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    
+    // Failures of the last day, by created_at: scheduled_at is NULL for mail
+    // that was to go out at once (issue 1670). The bind is engine-shaped — a
+    // Date on Postgres, epoch ms on SQLite — so it compares on both.
     const [failedEmails] = await db('email_queue')
       .where('status', 'failed')
-      .where('scheduled_at', '>=', twentyFourHoursAgo.toISOString())
+      .where('created_at', '>=', queueTimestamp(Date.now() - 24 * 60 * 60 * 1000))
       .count('* as count');
 
     const emailStatus = failedEmails.count > 10 ? 'warning' : 'healthy';

@@ -10,7 +10,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { ConfirmDialogProvider } from '../../../components/common/ConfirmDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -38,7 +39,6 @@ vi.mock('../../../services/events.service', () => ({
     resetPassword: vi.fn(),
     publishEvent: vi.fn(),
     renameEvent: vi.fn(),
-    revealNow: vi.fn(),
     archiveEvent: vi.fn(),
     sendGalleryEmail: vi.fn(),
   },
@@ -46,10 +46,12 @@ vi.mock('../../../services/events.service', () => ({
 
 const getEventPhotos = vi.fn();
 vi.mock('../../../services/photos.service', () => ({
+  CREDIT_FILTER_NONE: '__none__',
   photosService: {
     getEventPhotos: (...args: unknown[]) => getEventPhotos(...args),
     getFilterSummary: vi.fn().mockResolvedValue({}),
     getExportFormats: vi.fn().mockResolvedValue([]),
+    getPhotoCredits: vi.fn().mockResolvedValue({ credits: [], none: 0 }),
   },
 }));
 
@@ -94,14 +96,19 @@ const EVENT = {
 
 function renderPage(entry: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // A data router, as in the app: the page blocks navigation with useBlocker.
+  const router = createMemoryRouter(
+    [
+      { path: '/admin/events/:id', element: <EventDetailsPage /> },
+      { path: '/admin/events', element: <div>events list</div> },
+    ],
+    { initialEntries: [entry] },
+  );
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="/admin/events/:id" element={<EventDetailsPage />} />
-          <Route path="/admin/events" element={<div>events list</div>} />
-        </Routes>
-      </MemoryRouter>
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>
     </QueryClientProvider>
   );
 }

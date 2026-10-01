@@ -6,7 +6,9 @@
  * so on SQLite:
  *
  *   allow_downloads:    0 !== false → true   (button shown while disabled)
- *   allow_user_uploads: 1 === true  → false  (button hidden while enabled)
+ *   allow_user_uploads: 1 === true  → false  (button hidden while enabled;
+ *                                     guest uploads are removed since P3,
+ *                                     so the payload now always says false)
  *   if (allow_downloads === false)  → never fires, so ALL download endpoints
  *                                     kept serving with downloads switched off
  *
@@ -103,8 +105,8 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
       expect((await getPayload()).allow_downloads).toBe(false);
     });
 
-    test('payload reports allow_user_uploads true (was false — upload button hidden)', async () => {
-      expect((await getPayload()).allow_user_uploads).toBe(true);
+    test('payload always reports uploads off, whatever the stored 1 says (P3)', async () => {
+      expect((await getPayload()).allow_user_uploads).toBe(false);
     });
 
     test('single-photo download is refused', async () => {
@@ -147,21 +149,132 @@ describe('gallery flags survive SQLite 0/1 storage (#1028)', () => {
     });
   });
 
+  // Right-click, devtools and canvas are one switch each in Image security,
+  // live for every gallery; the event columns no longer decide them.
   describe('protection flags', () => {
-    test('0/1 protection toggles are reported the way they are stored', async () => {
-      await setEventFlags({
-        disable_right_click: 1,
-        enable_devtools_protection: 1,
-        use_canvas_rendering: 1,
-        watermark_downloads: 1,
-        overlay_protection: 0,
-      });
-      const event = await getPayload();
-      expect(event.disable_right_click).toBe(true);
-      expect(event.enable_devtools_protection).toBe(true);
-      expect(event.use_canvas_rendering).toBe(true);
-      expect(event.watermark_downloads).toBe(true);
-      expect(event.overlay_protection).toBe(false);
+    const setGlobal = (key, value) => db('app_settings')
+      .insert({ setting_key: key, setting_value: JSON.stringify(value), setting_type: 'security' })
+      .onConflict('setting_key').merge();
+    const setGlobals = async (value) => {
+      await setGlobal('disable_right_click', value);
+      await setGlobal('enable_devtools_protection', value);
+      await setGlobal('enable_canvas_rendering', value);
+    };
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+    const flags = (e) => [e.disable_right_click, e.enable_devtools_protection, e.use_canvas_rendering];
+
+    afterAll(async () => {
+      await setGlobals(false);
+      await setEventFlags({ disable_right_click: 0, enable_devtools_protection: 0, use_canvas_rendering: 0 });
+    });
+
+    test('the event columns are ignored when the switches are off', async () => {
+      await setGlobals(false);
+      await setEventFlags({ disable_right_click: 1, enable_devtools_protection: 1, use_canvas_rendering: 1 });
+      expect(flags(await getPayload())).toEqual([false, false, false]);
+      expect(flags(await getInfo())).toEqual([false, false, false]);
+    });
+
+    test('the switches apply to an event whose columns are off', async () => {
+      await setGlobals(true);
+      await setEventFlags({ disable_right_click: 0, enable_devtools_protection: 0, use_canvas_rendering: 0 });
+      expect(flags(await getPayload())).toEqual([true, true, true]);
+      expect(flags(await getInfo())).toEqual([true, true, true]);
+    });
+
+    test('overlay protection is still reported the way it is stored', async () => {
+      await setEventFlags({ overlay_protection: 0 });
+      expect((await getPayload()).overlay_protection).toBe(false);
+    });
+  });
+
+  // Downloaded files are watermarked from Branding only, so both gallery
+  // resolvers report the Branding switch; the event's own flag is ignored.
+  describe('download watermark flag', () => {
+    const setSwitch = (value) => db('app_settings')
+      .insert({
+        setting_key: 'branding_watermark_downloads_enabled',
+        setting_value: JSON.stringify(value),
+        setting_type: 'branding',
+      })
+      .onConflict('setting_key').merge();
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+
+    afterAll(async () => {
+      await setSwitch(false);
+      await setEventFlags({ watermark_downloads: 0 });
+    });
+
+    test('reports clean downloads when only the event flag is on', async () => {
+      await setSwitch(false);
+      await setEventFlags({ watermark_downloads: 1 });
+      expect((await getPayload()).watermark_downloads).toBe(false);
+      expect((await getInfo()).watermark_downloads).toBe(false);
+    });
+
+    test('reports watermarked downloads when the Branding switch is on', async () => {
+      await setSwitch(true);
+      await setEventFlags({ watermark_downloads: 0 });
+      expect((await getPayload()).watermark_downloads).toBe(true);
+      expect((await getInfo()).watermark_downloads).toBe(true);
+    });
+  });
+
+  // Branding decides the hero logo's size and position and the logo on the
+  // password page for every gallery (P3, spec 5.10); the event's own columns
+  // are ignored.
+  describe('hero logo globals (P3)', () => {
+    const setSetting = (key, value) => db('app_settings')
+      .insert({ setting_key: key, setting_value: JSON.stringify(value), setting_type: 'branding' })
+      .onConflict('setting_key').merge();
+    const getInfo = async () => {
+      const res = await request(app).get(`/api/gallery/${SLUG}/info`);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+    const KEYS = ['branding_logo_size', 'branding_hero_logo_position', 'branding_gallery_password_logo_visible'];
+
+    afterAll(async () => {
+      await db('app_settings').whereIn('setting_key', KEYS).delete();
+      await setEventFlags({ hero_logo_size: null, hero_logo_position: 'top', login_logo_visible: null });
+    });
+
+    test('takes size, position and the password page logo from Branding, never from the event', async () => {
+      await setSetting('branding_logo_size', 'large');
+      await setSetting('branding_hero_logo_position', 'bottom');
+      await setSetting('branding_gallery_password_logo_visible', false);
+      await setEventFlags({ hero_logo_size: 'small', hero_logo_position: 'center', login_logo_visible: 1 });
+
+      const payload = await getPayload();
+      expect(payload.hero_logo_size).toBe('large');
+      expect(payload.hero_logo_position).toBe('bottom');
+      const info = await getInfo();
+      expect(info.hero_logo_size).toBe('large');
+      expect(info.hero_logo_position).toBe('bottom');
+      expect(info.login_logo_visible).toBe(false);
+    });
+
+    test('falls back to medium, top and shown when nothing is set', async () => {
+      await db('app_settings').whereIn('setting_key', KEYS).delete();
+      await setEventFlags({ hero_logo_size: 'small', hero_logo_position: 'center', login_logo_visible: 0 });
+      const info = await getInfo();
+      expect(info.hero_logo_size).toBe('medium');
+      expect(info.hero_logo_position).toBe('top');
+      expect(info.login_logo_visible).toBe(true);
+    });
+
+    test('reads a position stored JSON encoded twice', async () => {
+      await setEventFlags({ hero_logo_position: 'bottom' });
+      await setSetting('branding_hero_logo_position', JSON.stringify('center'));
+      expect((await getInfo()).hero_logo_position).toBe('center');
     });
   });
 

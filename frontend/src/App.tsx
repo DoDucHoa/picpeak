@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { analyticsService, AnalyticsRouteTracker } from './services/analytics.service';
+import { analyticsService } from './services/analytics.service';
 
 import { GalleryAuthProvider, MaintenanceProvider } from './contexts';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -24,8 +24,10 @@ import {
   DownloadOrdersPage,
   AnalyticsPage,
   SettingsPage,
-  SystemHealthPage,
-  UserManagementPage,
+  // SystemHealthPage and UserManagementPage are no longer routed from here:
+  // they render as the Settings > Health and Settings > Users tabs, and
+  // SettingsPage imports them itself. /admin/system-health and /admin/users
+  // redirect to those tabs, further down.
   CustomerManagementPage,
   CustomerDetailPage,
   WebhookDeliveriesPage,
@@ -33,6 +35,8 @@ import {
   QuotesListPage,
   QuoteEditorPage,
   QuoteDetailPage,
+  QuoteCatalogPage,
+  QuoteTemplateEditorPage,
   BillsListPage,
   BillEditorPage,
   BillDetailPage,
@@ -49,9 +53,11 @@ import { HoursLoggingPage } from './pages/admin/clients/HoursLoggingPage';
 // (carved into its own chunk in vite.config.ts) doesn't ship with the
 // main app. Only pages that visit /admin/clients/calendar fetch it.
 const CalendarPage = lazy(() => import('./pages/admin/clients/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+// Its own chunk: the template editor carries the drag-and-drop library (#1445).
+const ContractTemplateEditorPage = lazy(() => import('./pages/admin/contracts/ContractTemplateEditorPage').then((m) => ({ default: m.ContractTemplateEditorPage })));
 const MessagesPage = lazy(() => import('./pages/admin/messages/MessagesPage').then((m) => ({ default: m.MessagesPage })));
 import { QuoteResponsePage } from './pages/public/QuoteResponsePage';
-import { ContractResponsePage } from './pages/public/ContractResponsePage';
+import { ContractResponsePage, ContractSigningSessionPage } from './pages/public/ContractResponsePage';
 import { ProjectsListPage } from './pages/admin/projects/ProjectsListPage';
 import { ProjectCockpitPage } from './pages/admin/projects/ProjectCockpitPage';
 import { WorkflowsListPage } from './pages/admin/workflows/WorkflowsListPage';
@@ -61,9 +67,14 @@ import { ContractsListPage } from './pages/admin/contracts/ContractsListPage';
 import { ContractEditorPage } from './pages/admin/contracts/ContractEditorPage';
 import { ContractDetailPage } from './pages/admin/contracts/ContractDetailPage';
 import { BlockLibraryPage } from './pages/admin/contracts/BlockLibraryPage';
+import { ContractTemplatesPage } from './pages/admin/contracts/ContractTemplatesPage';
+import { ContractAttachmentsPage } from './pages/admin/contracts/ContractAttachmentsPage';
 import { PaymentCheckPage } from './pages/public/PaymentCheckPage';
 import { AcceptInvitePage } from './pages/public/AcceptInvitePage';
 import { TransfersPage } from './pages/admin/transfers/TransfersPage';
+import { AutomationLayout } from './components/admin/AutomationLayout';
+import { RequirePermission } from './components/admin/RequirePermission';
+import { ReminderTemplatesPage } from './pages/admin/settings/ReminderTemplatesPage';
 import { TransferDownloadPage } from './pages/public/TransferDownloadPage';
 import { TransferUploadPage } from './pages/public/TransferUploadPage';
 import {
@@ -76,7 +87,12 @@ import {
   CustomerQuotesPage,
   CustomerBillsPage,
   CustomerContractsPage,
+  CustomerContractSignPage,
+  CustomerQuoteRespondPage,
   CustomerResetPasswordPage,
+  CustomerDocumentsPage,
+  CustomerDocumentPage,
+  CustomerEventPage,
 } from './pages/customer';
 import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { AdminLayout, AdminAuthWrapper } from './components/admin';
@@ -85,8 +101,8 @@ import { AccountingLayout, AccountingIndex } from './components/admin/Accounting
 import { AccountingInboxPage } from './pages/admin/accounting/AccountingInboxPage';
 import { ExpensesLedgerPage } from './pages/admin/accounting/ExpensesLedgerPage';
 import { RequireFeature } from './components/admin/RequireFeature';
-import { PageErrorBoundary, OfflineIndicator, SkipLink, DynamicFavicon, RobotsMetaTags, CMSContentBlock, Loading } from './components/common';
-import { MaintenanceWrapper } from './components/MaintenanceWrapper';
+import { PageErrorBoundary, OfflineIndicator, DynamicFavicon, RobotsMetaTags, CMSContentBlock, Loading } from './components/common';
+import { RootLayout } from './components/RootLayout';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
 import { ConfirmDialogProvider } from './components/common';
 import { usePublicSettings } from './hooks/usePublicSettings';
@@ -127,8 +143,15 @@ function AnalyticsBootstrap() {
         websiteId: settings.rybbit_website_id,
         doNotTrack: true,
         // Mask every /gallery/* path (they embed the share token) so Rybbit's
-        // auto-tracked page views never carry the secret (GHSA-7m6c).
-        maskPatterns: ['/gallery/**'],
+        // auto-tracked page views never carry the secret (GHSA-7m6c). The
+        // other token-bearing pages never load the tracker at all (see
+        // isCredentialPath in analytics.service); they are listed here too
+        // so a page view recorded before a client-side navigation away from
+        // them cannot carry the token either.
+        maskPatterns: [
+          '/gallery/**', '/invite/**', '/quote/**', '/contract/**', '/payment-check/**',
+          '/transfer/**', '/transfer-upload/**', '/customer/invite/**', '/customer/reset-password/**',
+        ],
       });
       return;
     }
@@ -185,33 +208,34 @@ function RedirectCustomerDetail() {
   return <Navigate to={`/admin/clients/accounts/${id}`} replace />;
 }
 
-function App() {
-  // Track dark mode for toast theming
-  const [toastTheme, setToastTheme] = useState<'light' | 'dark'>('light');
+/**
+ * Settings, with one redirect in front of it.
+ *
+ * `?tab=reminderTemplates` moved out of Settings into the Automation section.
+ * A query string cannot be matched by a Route path, and doing the check inside
+ * SettingsPage lost a race with that page's own URL-sync effect, which rewrites
+ * an unknown ?tab= to the default before a redirect rendered there can fire.
+ * Sitting above the page, this runs before any of that.
+ */
+function SettingsRoute() {
+  const [params] = useSearchParams();
+  if (params.get('tab') === 'reminderTemplates') {
+    return <Navigate to="/admin/automation/reminder-templates" replace />;
+  }
+  return <SettingsPage />;
+}
 
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setToastTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
+function RedirectWorkflowEditor() {
+  const { id } = useParams();
+  return <Navigate to={`/admin/automation/workflows/${id}`} replace />;
+}
 
-  return (
-    <PageErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AnalyticsBootstrap />
-        <MaintenanceProvider>
-          <ThemeProvider>
-            <GlobalThemeProvider>
-              <ConfirmDialogProvider>
-              <DynamicFavicon />
-              <RobotsMetaTags />
-              <Router>
-                <AnalyticsRouteTracker />
-                <MaintenanceWrapper>
-                  <SkipLink />
-                  <Routes>
+// A data router, created once, so pages can block navigation with
+// useBlocker (spec finding 16). The route list is the one that sat inside
+// <Routes>, moved verbatim under the root layout.
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
                   {/* Public gallery routes */}
                   <Route path="/gallery/preview" element={<PreviewPage />} />
                   {/* Live Slideshow ("Diashow") — token-only fullscreen kiosk.
@@ -255,22 +279,20 @@ function App() {
                       <Route path="events/new" element={<CreateEventPage />} />
                       <Route path="events/:id" element={<EventDetailsPage />} />
                       <Route path="events/:id/feedback" element={<EventFeedbackPage />} />
-                      <Route path="archives" element={<ArchivesPage />} />
+                      {/* Archives is a sub-page of the Events section now —
+                          an archived event is still an event. Static segment,
+                          so it outranks events/:id. */}
+                      <Route path="events/archives" element={<ArchivesPage />} />
+
                       {/* Download orders (migration 214) — the queue a client
                           lands in once a gallery runs out of free downloads. */}
                       <Route path="download-orders" element={<DownloadOrdersPage />} />
                       {/* PicTransfer (#997) — cross-event file transfers.
-                          Gated by the `transfers` flag (strictly opt-in). */}
+                          Gated by the `transfers` flag (strictly opt-in). It
+                          keeps this URL and joins Events and Archives in the
+                          Sharing section, which activates on both trees. */}
                       <Route element={<RequireFeature flag="transfers" />}>
                         <Route path="transfers" element={<TransfersPage />} />
-                      </Route>
-
-                      {/* Feature-gated surfaces — redirect to /admin/dashboard when flag is off. */}
-                      <Route element={<RequireFeature flag="analytics" />}>
-                        <Route path="analytics" element={<AnalyticsPage />} />
-                      </Route>
-                      <Route element={<RequireFeature flag="userManagement" />}>
-                        <Route path="users" element={<UserManagementPage />} />
                       </Route>
                       <Route element={<RequireFeature flag="messaging" />}>
                         <Route path="messages" element={
@@ -278,6 +300,11 @@ function App() {
                             <MessagesPage />
                           </Suspense>
                         } />
+                      </Route>
+
+                      {/* Feature-gated surfaces — redirect to /admin/dashboard when flag is off. */}
+                      <Route element={<RequireFeature flag="analytics" />}>
+                        <Route path="analytics" element={<AnalyticsPage />} />
                       </Route>
                       {/* Clients section (#354 follow-up). Parent route
                           gated by the top-level `clients` flag — when off
@@ -301,6 +328,9 @@ function App() {
                           {/* Quotes (CRM) — gated by `quotes`. */}
                           <Route element={<RequireFeature flag="quotes" />}>
                             <Route path="quotes" element={<QuotesListPage />} />
+                            {/* Catalogue + templates (#1451). Static segments outrank quotes/:id. */}
+                            <Route path="quotes/catalog" element={<QuoteCatalogPage />} />
+                            <Route path="quotes/catalog/templates/:id" element={<QuoteTemplateEditorPage />} />
                             <Route path="quotes/new" element={<QuoteEditorPage />} />
                             <Route path="quotes/:id" element={<QuoteDetailPage />} />
                             <Route path="quotes/:id/edit" element={<QuoteEditorPage />} />
@@ -326,6 +356,9 @@ function App() {
                             <Route path="contracts" element={<ContractsListPage />} />
                             <Route path="contracts/new" element={<ContractEditorPage />} />
                             <Route path="contracts/blocks" element={<BlockLibraryPage />} />
+                            <Route path="contracts/templates" element={<ContractTemplatesPage />} />
+                            <Route path="contracts/templates/:id" element={<Suspense fallback={<Loading />}><ContractTemplateEditorPage /></Suspense>} />
+                            <Route path="contracts/attachments" element={<ContractAttachmentsPage />} />
                             <Route path="contracts/:id" element={<ContractDetailPage />} />
                             <Route path="contracts/:id/edit" element={<ContractEditorPage />} />
                           </Route>
@@ -411,17 +444,56 @@ function App() {
                       <Route path="customers"     element={<Navigate to="/admin/clients/accounts" replace />} />
                       <Route path="customers/:id" element={<RedirectCustomerDetail />} />
 
-                      {/* Workflows (automation engine) — top-level area gated
-                          by the `workflows` flag. */}
-                      <Route element={<RequireFeature flag="workflows" />}>
-                        <Route path="workflows" element={<WorkflowsListPage />} />
-                        <Route path="workflows/approvals" element={<WorkflowApprovalsPage />} />
-                        <Route path="workflows/:id" element={<WorkflowEditorPage />} />
+                      {/* Automation section — the workflow engine plus the
+                          reminder email templates it sends. Reminder emails
+                          came from Settings; the page already pointed at
+                          Workflows for its schedule, so the two now sit in one
+                          section. Each sub-area keeps its own flag. */}
+                      <Route path="automation" element={<AutomationLayout />}>
+                        {/* Both gates, for the same reason reminder-templates
+                            carries them: a section opens as soon as ANY item
+                            in it is permitted, so `reminderEmails` alone would
+                            otherwise let a role without workflows.view open
+                            the builder and watch its queries 403. */}
+                        <Route element={<RequireFeature flag="workflows" />}>
+                          <Route element={<RequirePermission permission="workflows.view" />}>
+                            <Route path="workflows" element={<WorkflowsListPage />} />
+                            {/* Flattened out from under workflows/ so the
+                                Workflows entry doesn't stay highlighted here. */}
+                            <Route path="approvals" element={<WorkflowApprovalsPage />} />
+                            <Route path="workflows/:id" element={<WorkflowEditorPage />} />
+                          </Route>
+                        </Route>
+                        {/* Reminder emails needs BOTH gates. As a Settings tab
+                            it was gated by living in Settings, which filters
+                            tabs by permission and snaps away from one the role
+                            cannot see. A section page has no such inheritance:
+                            the section opens as soon as ANY item in it is
+                            permitted, so a workflows-only role would otherwise
+                            reach this page and watch its queries 403. */}
+                        <Route element={<RequireFeature flag="reminderEmails" />}>
+                          <Route element={<RequirePermission permission="email.view" />}>
+                            <Route path="reminder-templates" element={<ReminderTemplatesPage />} />
+                          </Route>
+                        </Route>
                       </Route>
 
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="system-health" element={<SystemHealthPage />} />
+                      <Route path="settings" element={<SettingsRoute />} />
                       <Route path="webhooks/:id/deliveries" element={<WebhookDeliveriesPage />} />
+
+                      {/* Navigation cleanup — Archives, Messages, PicTransfer,
+                          Workflows, Users and System health are no longer
+                          top-level. Kept indefinitely as redirects: these paths
+                          are bookmarked and appear in already-sent email.
+                          Messages and PicTransfer are absent on purpose — they
+                          keep the URLs they always had. */}
+                      <Route path="archives"           element={<Navigate to="/admin/events/archives" replace />} />
+                      <Route path="workflows"          element={<Navigate to="/admin/automation/workflows" replace />} />
+                      <Route path="workflows/approvals" element={<Navigate to="/admin/automation/approvals" replace />} />
+                      <Route path="workflows/:id"      element={<RedirectWorkflowEditor />} />
+                      {/* Users and System health became Settings tabs. */}
+                      <Route path="users"              element={<Navigate to="/admin/settings?tab=users" replace />} />
+                      <Route path="system-health"      element={<Navigate to="/admin/settings?tab=health" replace />} />
 
                       {/* Old top-level routes — these surfaces now live as
                           Settings tabs (#feature-flags-settings-reorg).
@@ -443,6 +515,10 @@ function App() {
                   {/* Public quote accept/decline page (CRM). Token-only,
                       no auth required. */}
                   <Route path="/quote/:token" element={<QuoteResponsePage />} />
+                  {/* Contract signing. The static /contract/signing (a session
+                      opened from the customer portal) is listed first and,
+                      being static, always outranks /contract/:token. */}
+                  <Route path="/contract/signing" element={<ContractSigningSessionPage />} />
                   <Route path="/contract/:token" element={<ContractResponsePage />} />
 
                   {/* Admin payment-check page (CRM) — token only,
@@ -484,8 +560,15 @@ function App() {
                           <Route path="dashboard" element={<CustomerDashboardPage />} />
                           <Route path="calendar" element={<CustomerCalendarPage />} />
                           <Route path="quotes" element={<CustomerQuotesPage />} />
+                          {/* Respond / sign inside the portal session, so the
+                              portal never hands out the emailed link tokens. */}
+                          <Route path="quotes/:id/respond" element={<CustomerQuoteRespondPage />} />
                           <Route path="contracts" element={<CustomerContractsPage />} />
+                          <Route path="contracts/:id/sign" element={<CustomerContractSignPage />} />
                           <Route path="bills" element={<CustomerBillsPage />} />
+                          <Route path="documents" element={<CustomerDocumentsPage />} />
+                          <Route path="documents/:id" element={<CustomerDocumentPage />} />
+                          <Route path="events/:slug" element={<CustomerEventPage />} />
                           <Route path="profile" element={<CustomerProfilePage />} />
                         </Route>
 
@@ -506,9 +589,33 @@ function App() {
                       didn't match. Top-level `/:slug` is consumed above by
                       LegalPage; this picks up deeper unknown paths. */}
                   <Route path="*" element={<CMSContentBlock slug="not-found" />} />
-                </Routes>
-              </MaintenanceWrapper>
-            </Router>
+    </Route>,
+  ),
+);
+
+function App() {
+  // Track dark mode for toast theming
+  const [toastTheme, setToastTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setToastTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <PageErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AnalyticsBootstrap />
+        <MaintenanceProvider>
+          <ThemeProvider>
+            <GlobalThemeProvider>
+              <ConfirmDialogProvider>
+              <DynamicFavicon />
+              <RobotsMetaTags />
+              <RouterProvider router={router} />
 
             {/* Offline indicator */}
             <OfflineIndicator />

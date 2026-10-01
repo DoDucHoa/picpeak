@@ -90,11 +90,13 @@ export interface PublicSettings {
   // Event field requirements
   event_require_customer_name?: boolean;
   event_require_customer_email?: boolean;
-  event_require_admin_email?: boolean;
   event_require_event_date?: boolean;
   event_require_expiration?: boolean;
   event_default_require_password?: boolean;
   event_default_feedback_enabled?: boolean;
+  // Uploader names (#1561)
+  event_default_guest_name_mode?: 'off' | 'optional' | 'required';
+  event_default_show_credits_to_guests?: boolean;
   // Per-type feedback defaults (#1044) — seed the create form's feedback panel.
   event_default_allow_ratings?: boolean;
   event_default_allow_likes?: boolean;

@@ -6,7 +6,7 @@
  * budget for canvas memory that fails silently when exceeded — blank
  * tiles, no error. A gallery is hundreds of tiles and one lightbox image,
  * so the tiles render <img> whatever the protection level says, and the
- * lightbox keeps the per-event toggle and the `maximum` implication.
+ * lightbox follows the Image security switch.
  *
  * Source-level pin: nothing under components/gallery except the lightbox renderers
  * may hand `useCanvasRendering` to AuthenticatedImage.
@@ -46,14 +46,8 @@ describe('canvas rendering stays in the lightbox', () => {
     }
   });
 
-  it('only lightbox renderers turn canvas on for protection level maximum', () => {
-    const offenders = files.filter((file) => !lightboxRenderers.includes(file)
-      && /useCanvasRendering[^\n]*protectionLevel === 'maximum'/.test(fs.readFileSync(file, 'utf8')));
-    expect(offenders.map((f) => path.relative(root, f))).toEqual([]);
-  });
-
-  it('the lightbox still does both', () => {
+  it('the lightbox passes the canvas switch through', () => {
     const source = fs.readFileSync(lightbox, 'utf8');
-    expect(source).toMatch(/useCanvasRendering=\{useCanvasRendering \|\| protectionLevel === 'maximum'\}/);
+    expect(source).toMatch(/useCanvasRendering=\{useCanvasRendering\}/);
   });
 });

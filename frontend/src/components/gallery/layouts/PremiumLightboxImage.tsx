@@ -13,9 +13,9 @@ interface PremiumLightboxImageProps extends RenderSlideProps {
 /** Return undefined for YARL's ordinary image renderer, including all neighbours.
  * Keeping the slide's image type lets its Zoom plugin own gestures and transforms. */
 export function renderPremiumLightboxImage({
-  slide, offset, slug, useCanvasRendering, protectionLevel, onImageLoad,
+  slide, offset, slug, useCanvasRendering, onImageLoad,
 }: PremiumLightboxImageProps) {
-  if (!isImageSlide(slide) || offset !== 0 || !(useCanvasRendering || protectionLevel === 'maximum')) {
+  if (!isImageSlide(slide) || offset !== 0 || !useCanvasRendering) {
     return undefined;
   }
 

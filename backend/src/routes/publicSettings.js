@@ -28,6 +28,9 @@ router.get('/', async (req, res) => {
               'event_default_allow_reactions',
               'event_default_allow_color_labels',
               'event_default_keybind_mode',
+              // Uploader names (#1561), for the create form.
+              'event_default_guest_name_mode',
+              'event_default_show_credits_to_guests',
               'gallery_show_filter_bar',
               'event_phone_field_enabled',
               // #613 — guest upload UI needs to know the per-batch file
@@ -207,7 +210,6 @@ router.get('/', async (req, res) => {
       // Event field requirements
       event_require_customer_name: settingsObject.event_require_customer_name !== false,
       event_require_customer_email: settingsObject.event_require_customer_email !== false,
-      event_require_admin_email: settingsObject.event_require_admin_email !== false,
       event_require_event_date: settingsObject.event_require_event_date !== false,
       event_require_expiration: settingsObject.event_require_expiration !== false,
       // Default value for "Require password" toggle in event creation form
@@ -216,6 +218,12 @@ router.get('/', async (req, res) => {
       // Defaults to false (matches the prior hard-coded form default), so
       // existing installs see no behaviour change until an admin flips it.
       event_default_feedback_enabled: settingsObject.event_default_feedback_enabled === true,
+      // Uploader names (#1561). Off by default; the backend applies the same
+      // fallbacks when a create request omits them.
+      event_default_guest_name_mode: ['off', 'optional', 'required'].includes(settingsObject.event_default_guest_name_mode)
+        ? settingsObject.event_default_guest_name_mode
+        : 'off',
+      event_default_show_credits_to_guests: settingsObject.event_default_show_credits_to_guests === true,
       // Per-type feedback defaults (#1044). The fallbacks mirror
       // FEEDBACK_TOGGLES in services/feedbackDefaults.js — the backend is
       // still the authority; these only pre-fill the create form.

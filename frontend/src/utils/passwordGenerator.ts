@@ -294,3 +294,24 @@ export function validatePassword(password: string, config: Partial<PasswordConfi
     score
   };
 }
+// No 0/o, 1/l/i: the password is often read out or typed from a message.
+const RANDOM_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+function randomPart(length: number): string {
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => RANDOM_ALPHABET[b % RANDOM_ALPHABET.length]).join('');
+}
+
+/**
+ * A password for a Generate or Regenerate button (event form redesign P4):
+ * a readable prefix from the event's name and year, plus six random
+ * characters. The name and date are part of the gallery address, so a
+ * password made only from them could be guessed on the first try.
+ */
+export function nextEventPassword(eventName: string, eventDate: string, current = ''): string {
+  const prefix = generatePasswordSuggestions({ eventName, eventDate })[0];
+  let next = current;
+  while (next === current) next = `${prefix}-${randomPart(6)}`;
+  return next;
+}

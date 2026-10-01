@@ -2,6 +2,7 @@ const { scheduledTask } = require('./scheduledTask');
 const { db } = require('../database/db');
 const { archiveEvent } = require('./archiveService');
 const { queueEmail, getSupportEmail } = require('./emailProcessor');
+const { resolveAdminEmail } = require('./notificationEmail');
 const { buildShareLinkVariants } = require('./shareLinkService');
 const logger = require('../utils/logger');
 const { formatBoolean } = require('../utils/dbCompat');
@@ -83,7 +84,7 @@ async function emitGalleryExpiring(event) {
         expiresAt: event.expires_at,
         daysRemaining,
         customerEmail: event.customer_email || event.host_email || null,
-        adminEmail: event.admin_email || null,
+        adminEmail: await resolveAdminEmail(event),
         galleryLink: shareUrl,
       },
     });
@@ -154,6 +155,9 @@ async function sendGalleryExpiredEmails(event) {
   const recipientEmail = event.customer_email || event.host_email;
   const recipientName = event.customer_name || event.host_name || (recipientEmail ? recipientEmail.split('@')[0] : null);
   const supportEmail = await getSupportEmail();
+  // The admin address (spec 5.11): the global notification email, else the
+  // event's own. It is also the {{admin_email}} contact in the mail.
+  const adminEmail = await resolveAdminEmail(event);
 
   const customerVars = {
     customer_name: recipientName,
@@ -162,16 +166,16 @@ async function sendGalleryExpiredEmails(event) {
     event_name: event.event_name,
     event_date: event.event_date,
     expiry_date: event.expires_at,
-    admin_email: event.admin_email,
+    admin_email: adminEmail,
     support_email: supportEmail
   };
 
   if (recipientEmail) {
     await queueEmail(event.id, recipientEmail, 'gallery_expired', customerVars);
   }
-  // Also notify admin (when configured).
-  if (event.admin_email && event.admin_email !== recipientEmail) {
-    await queueEmail(event.id, event.admin_email, 'gallery_expired', {
+  // Also notify the admin address, unless it is the recipient.
+  if (adminEmail && adminEmail !== recipientEmail) {
+    await queueEmail(event.id, adminEmail, 'gallery_expired', {
       ...customerVars,
       host_name: 'Admin'
     });
@@ -220,7 +224,7 @@ async function handleExpiredEvent(event, { sendLegacyEmails = true } = {}) {
           eventDate: event.event_date,
           expiresAt: event.expires_at,
           customerEmail: event.customer_email || event.host_email || null,
-          adminEmail: event.admin_email || null,
+          adminEmail: await resolveAdminEmail(event),
         },
       });
     } catch (err) {

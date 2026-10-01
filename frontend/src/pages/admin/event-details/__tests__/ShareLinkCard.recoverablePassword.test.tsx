@@ -43,7 +43,7 @@ function renderCard(event: Partial<Event> = {}, passwordVersion = 0) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const tree = (version: number) => (
     <QueryClientProvider client={client}>
-      <ShareLinkCard event={{ ...baseEvent, ...event } as Event} setShowPasswordReset={() => {}} passwordVersion={version} />
+      <ShareLinkCard event={{ ...baseEvent, ...event } as Event} onChangePassword={() => {}} passwordVersion={version} />
     </QueryClientProvider>
   );
   const utils = render(tree(passwordVersion));
@@ -61,7 +61,7 @@ describe('ShareLinkCard — recoverable gallery password', () => {
     renderCard();
     await waitFor(() => expect(eventsService.getGalleryPasswordStatus).toHaveBeenCalledWith(7));
     expect(screen.queryByTestId('show-gallery-password')).toBeNull();
-    expect(screen.getByText('events.resetGalleryPassword')).toBeInTheDocument();
+    expect(screen.getByText('events.changePasswordLink')).toBeInTheDocument();
   });
 
   it('shows no password button for a public gallery without client access', async () => {

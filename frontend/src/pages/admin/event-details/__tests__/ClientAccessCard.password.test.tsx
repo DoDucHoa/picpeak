@@ -1,19 +1,21 @@
 /**
  * Client access has always stored a real bcrypt password; only the UI called
- * it a PIN, and nothing checked what was typed. A one-character secret went
- * straight through, on the credential that opens the same gallery the guest
- * password guards with a six-character floor.
+ * it a PIN, and nothing checked what was typed. The floor (six characters,
+ * not digits only) is now checked when the Settings save bar saves the draft
+ * (saveDraft.validateDraft, pinned in saveDraft.test.ts).
  *
- * This pins the two halves of the fix on the event page: the same floor as
- * the gallery password, checked before the PATCH goes out, and the generator
- * the gallery password has had all along.
+ * This pins the card itself: in Settings > Access the switch and the password
+ * go into the page's draft and nothing is sent from here; on the Overview the
+ * card shows the link and no password field.
  */
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render as rtlRender, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 
 import type { Event } from '../../../../types';
+import type { EditFormState } from '../types';
 
 vi.mock('react-i18next', async () => {
   const actual = await vi.importActual<typeof import('react-i18next')>('react-i18next');
@@ -29,9 +31,20 @@ vi.mock('react-i18next', async () => {
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const updateEvent = vi.fn(async () => ({}));
+const status = vi.fn();
+const reveal = vi.fn();
 vi.mock('../../../../services/events.service', () => ({
-  eventsService: { updateEvent: (...args: unknown[]) => updateEvent(...args) },
+  eventsService: {
+    updateEvent: (...args: unknown[]) => updateEvent(...args),
+    getGalleryPasswordStatus: (...args: unknown[]) => status(...args),
+    getGalleryPassword: (...args: unknown[]) => reveal(...args),
+  },
 }));
+
+// Settings mode reads the password status through TanStack Query.
+const render = (ui: React.ReactElement) => rtlRender(
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>,
+);
 
 import { ClientAccessCard } from '../ClientAccessCard';
 
@@ -42,63 +55,108 @@ const event = {
   event_type: 'wedding',
   event_date: '2026-09-19',
   client_access_enabled: true,
-  client_share_token: null,
+  client_share_token: 'tok',
   is_archived: false,
 } as unknown as Event;
 
-const field = () => screen.getByPlaceholderText('clientAccess.passwordPlaceholder');
-const setButton = () => screen.getByRole('button', { name: /clientAccess.setPassword/ });
+const form = { client_access_enabled: false, client_password: '' } as EditFormState;
+const apply = (setEditForm: ReturnType<typeof vi.fn>, call = 0) => {
+  const arg = setEditForm.mock.calls[call][0];
+  return typeof arg === 'function' ? arg(form) : arg;
+};
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  status.mockResolvedValue({ enabled: true, password_stored: false, client_password_stored: false });
+});
 afterEach(cleanup);
 
-describe('ClientAccessCard: the client password', () => {
-  it('refuses a password shorter than six characters without calling the API', async () => {
-    const user = userEvent.setup();
-    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
-
-    await user.type(field(), 'abc');
-    await user.click(setButton());
-
-    expect(await screen.findByText('validation.passwordMinLength')).toBeInTheDocument();
+describe('ClientAccessCard in Settings > Access', () => {
+  it('puts the enable switch in the draft and saves nothing', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    expect(apply(setEditForm).client_access_enabled).toBe(true);
     expect(updateEvent).not.toHaveBeenCalled();
   });
 
-  it('refuses a digits-only password, which is exactly what a PIN habit produces', async () => {
-    const user = userEvent.setup();
-    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
-
-    await user.type(field(), '482100');
-    await user.click(setButton());
-
-    expect(await screen.findByText(/Password cannot be just numbers/)).toBeInTheDocument();
+  it('puts a typed password in the draft', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    await userEvent.type(screen.getByPlaceholderText('clientAccess.passwordPlaceholder'), 'W');
+    expect(apply(setEditForm).client_password).toBe('W');
     expect(updateEvent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /clientAccess.setPassword/ })).toBeNull();
   });
 
-  it('saves a password that clears the floor', async () => {
-    const user = userEvent.setup();
-    const refetchEvent = vi.fn();
-    render(<ClientAccessCard event={event} refetchEvent={refetchEvent} />);
-
-    await user.type(field(), 'Wedding-2026');
-    await user.click(setButton());
-
-    await waitFor(() => expect(updateEvent).toHaveBeenCalledWith(7, { client_password: 'Wedding-2026' }));
-    expect(refetchEvent).toHaveBeenCalled();
+  it('forgets a typed password when client access is switched off', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true, client_password: 'Typed-123' };
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    const arg = setEditForm.mock.calls[0][0];
+    const next = typeof arg === 'function' ? arg(on) : arg;
+    expect(next).toMatchObject({ client_access_enabled: false, client_password: '' });
   });
 
-  it('offers the generator and drops what it produces straight into the field', async () => {
-    const user = userEvent.setup();
+  it('has no password field while client access is off in the draft', () => {
+    render(<ClientAccessCard event={event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={vi.fn()} />);
+    expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
+  });
+});
+
+describe('ClientAccessCard client password (spec 5.4)', () => {
+  it('says no client password is set for an event already on without one, and Generate fills one', async () => {
+    const setEditForm = vi.fn();
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={{ ...event, has_client_password: false } as Event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={setEditForm} />);
+    expect(screen.getByText(/No client password set/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    const arg = setEditForm.mock.calls[0][0];
+    expect((typeof arg === 'function' ? arg(on) : arg).client_password.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('shows the stored client password on request when one is set', async () => {
+    status.mockResolvedValue({ enabled: true, password_stored: false, client_password_stored: true });
+    reveal.mockResolvedValue({ enabled: true, password: null, client_password: '7788aa' });
+    const on = { ...form, client_access_enabled: true };
+    render(<ClientAccessCard event={{ ...event, has_client_password: true } as Event} refetchEvent={vi.fn()} mode="settings" editForm={on} setEditForm={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Show' }));
+    expect(await screen.findByText('7788aa')).toBeInTheDocument();
+  });
+
+  // Switching access off keeps the stored password, so switching it back on
+  // must not replace the one the client already holds.
+  it('keeps the existing client password when client access is switched back on', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={{ ...event, client_access_enabled: false, has_client_password: true } as Event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    expect(apply(setEditForm)).toMatchObject({ client_access_enabled: true, client_password: '' });
+  });
+
+  it('generates a client password when client access is switched on', async () => {
+    const setEditForm = vi.fn();
+    render(<ClientAccessCard event={{ ...event, client_access_enabled: false, has_client_password: false } as Event} refetchEvent={vi.fn()} mode="settings" editForm={form} setEditForm={setEditForm} />);
+    await userEvent.click(screen.getByRole('checkbox'));
+    const next = apply(setEditForm);
+    expect(next.client_access_enabled).toBe(true);
+    expect(next.client_password.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe('ClientAccessCard on the Overview', () => {
+  it('shows the link and no settings', () => {
     render(<ClientAccessCard event={event} refetchEvent={vi.fn()} />);
+    expect(screen.getByDisplayValue(/client-access\?token=tok/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('clientAccess.passwordPlaceholder')).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
 
-    const generate = screen.getByRole('button', { name: 'passwordGenerator.generatePassword' });
-    await user.click(generate);
-
-    // The generator resolves on a short timer of its own.
-    await waitFor(() => expect((field() as HTMLInputElement).value.length).toBeGreaterThanOrEqual(6), {
-      timeout: 3000,
-    });
-    // Whatever it produced must itself clear the floor this card enforces.
-    expect((field() as HTMLInputElement).value).not.toMatch(/^\d+$/);
+  it('keeps Regenerate as an immediate action', async () => {
+    const refetch = vi.fn();
+    render(<ClientAccessCard event={event} refetchEvent={refetch} />);
+    await userEvent.click(screen.getByRole('button', { name: /clientAccess.regenerateToken/ }));
+    expect(updateEvent).toHaveBeenCalledWith(7, { regenerate_client_token: true });
   });
 });

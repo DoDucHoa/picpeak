@@ -3,6 +3,8 @@ import type { Photo, PhotoCategory } from '../../../types';
 import type { ColorLabel } from '../../../services/feedback.service';
 import type { FeedbackFilterType } from '../GalleryFilter';
 import { photosInScope } from '../folders';
+import { creditKeyOf } from '../../../utils/photoCredits';
+import { photoMatchesFilenameSearch, photoNameCompare } from '../../../utils/photoFilename';
 export type GallerySort = 'date' | 'name' | 'size' | 'rating' | 'capture_date';
 export interface GalleryFilterOptions {
   sourcePhotos?: Photo[]; categories?: PhotoCategory[]; folderId: number | string | null;
@@ -10,10 +12,12 @@ export interface GalleryFilterOptions {
   watermarkEnabled: boolean; slug: string; activeFilters: FeedbackFilterType[]; activeColorFilters: ColorLabel[];
   mediaFilter: 'all' | 'photo' | 'video'; isGuestIdentityMode: boolean;
   myFeedbackPhotoIds: Record<FeedbackFilterType, Set<number>>; selectedPersonIds: number[]; peopleMatchAny: boolean;
+  // "By" filter (#1561): a key from utils/photoCredits, null = everyone.
+  selectedCreditKey?: string | null;
 }
 export const resolveMediaType = (photo: Photo): 'photo' | 'video' =>
   photo.media_type === 'video' || photo.mime_type?.startsWith('video/') || photo.type === 'video' ? 'video' : 'photo';
-export function useGalleryFiltering({ sourcePhotos, categories, folderId, selectedCategoryId, searchTerm, sortBy, sortDesc, watermarkEnabled, slug, activeFilters, activeColorFilters, mediaFilter, isGuestIdentityMode, myFeedbackPhotoIds, selectedPersonIds, peopleMatchAny }: GalleryFilterOptions) {
+export function useGalleryFiltering({ sourcePhotos, categories, folderId, selectedCategoryId, searchTerm, sortBy, sortDesc, watermarkEnabled, slug, activeFilters, activeColorFilters, mediaFilter, isGuestIdentityMode, myFeedbackPhotoIds, selectedPersonIds, peopleMatchAny, selectedCreditKey = null }: GalleryFilterOptions) {
   return useMemo(() => {
     if (!sourcePhotos) return [];
 
@@ -37,10 +41,7 @@ export function useGalleryFiltering({ sourcePhotos, categories, folderId, select
 
     // Apply search filter
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      photos = photos.filter(photo => 
-        photo.filename.toLowerCase().includes(term)
-      );
+      photos = photos.filter(photo => photoMatchesFilenameSearch(photo, searchTerm));
     }
     
     // Apply feedback filters. Multi-select (#889): a photo matching ANY
@@ -84,6 +85,12 @@ export function useGalleryFiltering({ sourcePhotos, categories, folderId, select
       });
     }
 
+    // Apply the "By" filter (#1561). Composes with the rest, so "Anna's photos
+    // that I liked" works.
+    if (selectedCreditKey) {
+      photos = photos.filter(photo => creditKeyOf(photo) === selectedCreditKey);
+    }
+
     // Apply colour-label filters (#1044). Guest-scoped by construction:
     // `my_color_label` is the requesting viewer's own label, which is what a
     // proofing client means by "show me my greens". Composes with (ANDs
@@ -102,7 +109,7 @@ export function useGalleryFiltering({ sourcePhotos, categories, folderId, select
       switch (sortBy) {
         case 'name':
           // Natural order is ascending (A-Z); flip when sortDesc=true
-          return (sortDesc ? -1 : 1) * a.filename.localeCompare(b.filename);
+          return (sortDesc ? -1 : 1) * photoNameCompare(a, b);
         case 'size':
           return flip * (b.size - a.size);
         case 'rating': {
@@ -134,5 +141,5 @@ export function useGalleryFiltering({ sourcePhotos, categories, folderId, select
     }
     
     return photos;
-  }, [sourcePhotos, categories, folderId, selectedCategoryId, searchTerm, sortBy, sortDesc, watermarkEnabled, slug, activeFilters, activeColorFilters, mediaFilter, isGuestIdentityMode, myFeedbackPhotoIds, selectedPersonIds, peopleMatchAny]);
+  }, [sourcePhotos, categories, folderId, selectedCategoryId, searchTerm, sortBy, sortDesc, watermarkEnabled, slug, activeFilters, activeColorFilters, mediaFilter, isGuestIdentityMode, myFeedbackPhotoIds, selectedPersonIds, peopleMatchAny, selectedCreditKey]);
 }

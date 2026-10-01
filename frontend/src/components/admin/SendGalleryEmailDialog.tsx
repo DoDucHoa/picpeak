@@ -7,6 +7,8 @@ interface SendGalleryEmailDialogProps {
   eventName: string;
   recipient: string;
   requirePassword: boolean;
+  /** A copy of the gallery password is stored: the server fills it into the mail (P4). */
+  storedPassword?: boolean;
   isSending: boolean;
   onConfirm: (password?: string) => void;
   onClose: () => void;
@@ -25,11 +27,16 @@ interface SendGalleryEmailDialogProps {
  *
  * Galleries with no password skip the field entirely — there is nothing to
  * carry, and the email says so.
+ *
+ * When a copy of the password is stored, the server fills it into the mail
+ * (event form redesign P4), so the field shows only on "Use a different
+ * password".
  */
 export const SendGalleryEmailDialog: React.FC<SendGalleryEmailDialogProps> = ({
   eventName,
   recipient,
   requirePassword,
+  storedPassword = false,
   isSending,
   onConfirm,
   onClose,
@@ -38,35 +45,39 @@ export const SendGalleryEmailDialog: React.FC<SendGalleryEmailDialogProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  // With a stored copy the server fills the password in (P4); the admin types
+  // one only to change it.
+  const [useDifferent, setUseDifferent] = useState(false);
+  const askPassword = requirePassword && (!storedPassword || useDifferent);
 
   const handleSubmit = () => {
-    if (requirePassword) {
+    if (askPassword) {
       if (!password || password.trim().length < 6) {
         setError(t('events.publishDialog.errorMinLength', 'Password must be at least 6 characters long.'));
         return;
       }
     }
     setError(undefined);
-    onConfirm(requirePassword ? password : undefined);
+    onConfirm(askPassword ? password : undefined);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="max-w-md w-full">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+          <h2 className="text-xl font-semibold text-heading">
             {t('events.sendGalleryEmail.title', 'Send gallery email')}
           </h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            className="text-neutral-400 hover:text-body"
             aria-label={t('common.close', 'Close')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+        <p className="text-soft mb-4">
           {t('events.sendGalleryEmail.description', {
             eventName,
             recipient,
@@ -74,7 +85,16 @@ export const SendGalleryEmailDialog: React.FC<SendGalleryEmailDialogProps> = ({
           })}
         </p>
 
-        {requirePassword && (
+        {!askPassword && storedPassword && requirePassword && (
+          <div className="mb-4 text-sm text-body">
+            <p>{t('events.mailPassword.storedNote', 'The email includes the stored gallery password.')}</p>
+            <button type="button" className="mt-1 text-accent font-medium" onClick={() => setUseDifferent(true)}>
+              {t('events.mailPassword.useDifferent', 'Use a different password')}
+            </button>
+          </div>
+        )}
+
+        {askPassword && (
           <div className="space-y-3 mb-4">
             <Input
               type={showPassword ? 'text' : 'password'}
@@ -102,6 +122,11 @@ export const SendGalleryEmailDialog: React.FC<SendGalleryEmailDialogProps> = ({
                 </button>
               }
             />
+            {storedPassword && (
+              <button type="button" className="text-sm text-accent font-medium" onClick={() => setUseDifferent(false)}>
+                {t('events.mailPassword.useStored', 'Use the stored password')}
+              </button>
+            )}
           </div>
         )}
 
