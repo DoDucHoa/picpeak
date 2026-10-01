@@ -558,6 +558,8 @@ create screen is not touched until P5.
 
 ### P5: New create screen
 
+Done 2026-10-01: 692a66d6..d9438c94. Verified by the Tests workflow and the E2E smoke subset on PR #2 of the fork. The expiry is preselected from Settings even where Settings do not require one, with Never one click away.
+
 - Create page rebuilt from the section components in create mode (5.5), with the
   navigation guard.
 - Backend create accepts the photo source fields with the `photos.upload` guard.
