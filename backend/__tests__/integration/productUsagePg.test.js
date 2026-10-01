@@ -283,7 +283,7 @@ maybe('product usage on Postgres', () => {
     });
 
     const report = await service().snapshot();
-    expect(report.gallery_layouts).toEqual(['other']);
+    expect(report.gallery_layouts).toEqual(['masonry']);
     expect(report.features.custom_css.configured).toBe(true);
   });
 });
