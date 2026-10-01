@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { ThemeConfig, EventTheme, GALLERY_THEME_PRESETS } from '../types/theme.types';
+import type { BrandTheme } from '../types/theme.types';
 import { fontsService, extractFamilyName, type FontDefinition } from '../services/fonts.service';
 import { applyForceColorMode } from '../utils/themeMigration';
 import { getReadableForeground } from '../utils/contrast';
@@ -55,7 +55,7 @@ async function loadFontForFamily(cssFontFamily: string | undefined | null): Prom
   if (injectedFamilies.has(family)) return;
   const fonts = await getFontsList();
   const match = fonts.find((f) => f.family.toLowerCase() === family.toLowerCase());
-  if (!match) return; // unknown family — browser falls back to the CSS generic
+  if (!match) return; // unknown family: browser falls back to the CSS generic
   ensureFontFaceLoaded(match.family, match.weights);
 }
 
@@ -67,14 +67,25 @@ function resolveColorMode(mode: 'light' | 'dark' | 'auto' | undefined): 'light' 
   return 'light';
 }
 
+// The brand the app paints with before the instance theme has loaded. Same
+// values as the defaults in styles/tokens.css, so the first paint and the
+// first applyTheme agree.
+const DEFAULT_BRAND_THEME: BrandTheme = {
+  primaryColor: '#5C8762',
+  accentColor: '#22c55e',
+  accentDarkColor: '#5C8762',
+  backgroundColor: '#fafafa',
+  surfaceColor: '#ffffff',
+  elevatedColor: '#f5f5f5',
+  surfaceBorderColor: '#e5e5e5',
+  textColor: '#171717',
+  mutedTextColor: '#737373',
+  borderRadius: 'md',
+};
+
 interface ThemeContextType {
-  theme: ThemeConfig;
-  themeName: string;
-  resolvedColorMode: 'light' | 'dark';
-  setTheme: (theme: ThemeConfig) => void;
-  setThemeByName: (themeName: string) => void;
-  applyTheme: (theme: ThemeConfig) => void;
-  resetTheme: () => void;
+  theme: BrandTheme;
+  setTheme: (theme: BrandTheme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -89,24 +100,20 @@ export const useTheme = () => {
 
 interface ThemeProviderProps {
   children: ReactNode;
-  initialTheme?: ThemeConfig;
-  initialThemeName?: string;
+  initialTheme?: BrandTheme;
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  initialTheme = GALLERY_THEME_PRESETS.default.config,
-  initialThemeName = 'default'
+  initialTheme = DEFAULT_BRAND_THEME,
 }) => {
-  const [theme, setTheme] = useState<ThemeConfig>(initialTheme);
-  const [themeName, setThemeName] = useState(initialThemeName);
-  const [resolvedColorMode, setResolvedColorMode] = useState<'light' | 'dark'>(() => resolveColorMode(initialTheme.colorMode));
+  const [theme, setTheme] = useState<BrandTheme>(initialTheme);
 
   // Subscribe to the instance-wide force color mode setting. When an admin
-  // toggles "Force dark / light" in Branding, all open admin and gallery
-  // tabs re-apply the active theme through applyForceColorMode within the
-  // refetch interval so the lock takes effect without a full reload.
-  // Refetch is best-effort — a stale cached value just means a delayed flip,
+  // toggles "Force dark / light" in Branding, all open tabs re-apply the
+  // active theme through applyForceColorMode within the refetch interval so
+  // the lock takes effect without a full reload.
+  // Refetch is best-effort: a stale cached value just means a delayed flip,
   // not a broken state.
   const { data: publicSettings } = usePublicSettings({ refetchInterval: 30_000 });
   const forcedMode = publicSettings?.branding_force_color_mode === 'dark'
@@ -115,18 +122,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       ? 'light'
       : null;
 
-  const applyTheme = useCallback((rawThemeConfig: ThemeConfig) => {
+  const applyTheme = useCallback((rawThemeConfig: BrandTheme) => {
     const root = document.documentElement;
 
     // Honour the instance-wide force color mode at the chokepoint so every
-    // call site (gallery, admin, preview iframe, branding live preview) is
-    // forced to follow without each one having to remember to do it.
+    // call site (admin, portal, branding live preview) is forced to follow
+    // without each one having to remember to do it.
     // applyForceColorMode is a no-op when forcedMode is null, and only
     // swaps surface/text tokens when the active theme doesn't natively
-    // support the locked mode — accent CI colours are preserved either way.
+    // support the locked mode; accent CI colours are preserved either way.
     const themeConfig = applyForceColorMode(rawThemeConfig, forcedMode);
 
-    // Apply CSS variables — 8-token CI palette.
+    // Apply CSS variables: 8-token CI palette.
     // Legacy --color-primary / --color-primary-light / --color-primary-dark
     // are kept for any consumer still reading them; they mirror accent-dark.
     if (themeConfig.primaryColor) {
@@ -138,9 +145,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (themeConfig.accentColor) {
       root.style.setProperty('--color-accent', themeConfig.accentColor);
       // Pick a readable foreground (white or black) for text/icons sitting
-      // on top of `--color-accent`. The gallery header Download CTA reads
-      // this via `var(--color-accent-fg, #ffffff)` so a pale accent doesn't
-      // leave the button text unreadable (PR #401 review follow-up).
+      // on top of `--color-accent`, so a pale accent doesn't leave button
+      // text unreadable (PR #401 review follow-up).
       root.style.setProperty('--color-accent-fg', getReadableForeground(themeConfig.accentColor));
     }
 
@@ -157,23 +163,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     
     if (themeConfig.backgroundColor) {
       root.style.setProperty('--color-background', themeConfig.backgroundColor);
-
-      // Cache the resolved background by slug so the next visit can
-      // apply it from the inline bootstrap in index.html before React
-      // mounts (#358 — eliminates the white flash on dark-theme galleries).
-      try {
-        const m = window.location.pathname.match(/\/gallery\/([^/?#]+)/);
-        if (m && m[1]) {
-          localStorage.setItem(
-            `gallery-theme-bg-${decodeURIComponent(m[1])}`,
-            themeConfig.backgroundColor
-          );
-        }
-      } catch {
-        /* ignore — caching is best-effort */
-      }
     }
-    
+
     if (themeConfig.textColor) {
       root.style.setProperty('--color-text', themeConfig.textColor);
     }
@@ -186,9 +177,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       void loadFontForFamily(themeConfig.fontFamily);
     }
 
-    // "Same as body" is stored as headingFontFamily='' — in that case
+    // "Same as body" is stored as headingFontFamily=''; in that case
     // mirror the body family so a stale --heading-font-family (e.g.
-    // from a previously-visited gallery with a serif heading theme)
+    // from a previously applied theme with a serif heading)
     // doesn't bleed into pages that picked the matched-fonts option.
     // Without this fall-through the CSS variable retained the last
     // explicit value across theme switches, which is why the customer
@@ -233,7 +224,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     
     // Apply surface colors
     const effectiveMode = resolveColorMode(themeConfig.colorMode);
-    setResolvedColorMode(effectiveMode);
 
     if (themeConfig.surfaceColor) {
       root.style.setProperty('--color-surface', themeConfig.surfaceColor);
@@ -287,89 +277,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       const map = effectiveMode === 'dark' ? darkShadowMap : lightShadowMap;
       root.style.setProperty('--shadow-default', map[themeConfig.shadowStyle]);
     }
-
-    // Apply background pattern
-    if (themeConfig.backgroundPattern && themeConfig.backgroundPattern !== 'none') {
-      const patternMap = {
-        dots: `radial-gradient(circle, ${themeConfig.textColor}20 1px, transparent 1px)`,
-        grid: `linear-gradient(${themeConfig.textColor}10 1px, transparent 1px), linear-gradient(90deg, ${themeConfig.textColor}10 1px, transparent 1px)`,
-        waves: `url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 50 14c10.271 0 15.362 1.222 24.629 4.928.955.383 1.869.74 2.75 1.072h6.225c-2.51-.73-5.139-1.691-8.233-2.928C65.888 13.278 60.562 12 50 12c-10.626 0-16.855 1.397-26.66 5.063l-1.767.662c-2.475.923-4.66 1.674-6.724 2.275h6.335zm0-20C13.258 2.892 8.077 4 0 4V2c5.744 0 9.951-.574 14.85-2h6.334zM77.38 0C85.239 2.966 90.502 4 100 4V2c-6.842 0-11.386-.542-16.396-2h-6.225zM0 14c8.44 0 13.718-1.21 22.272-4.402l1.768-.661C33.64 5.347 39.647 4 50 4c10.271 0 15.362 1.222 24.629 4.928C84.112 12.722 89.438 14 100 14v-2c-10.271 0-15.362-1.222-24.629-4.928C65.888 3.278 60.562 2 50 2 39.374 2 33.145 3.397 23.34 7.063l-1.767.662C13.223 10.84 8.163 12 0 12v2z' fill='${themeConfig.textColor}' fill-opacity='0.05'/%3E%3C/svg%3E")`,
-      };
-      root.style.setProperty('--background-pattern', patternMap[themeConfig.backgroundPattern]);
-      root.style.setProperty('--background-pattern-size', themeConfig.backgroundPattern === 'dots' ? '20px 20px' : themeConfig.backgroundPattern === 'grid' ? '20px 20px' : '100px 20px');
-    } else {
-      root.style.removeProperty('--background-pattern');
-      root.style.removeProperty('--background-pattern-size');
-    }
-    
-    // Apply custom CSS if provided
-    if (themeConfig.customCss) {
-      let styleElement = document.getElementById('custom-theme-styles');
-      if (!styleElement) {
-        styleElement = document.createElement('style');
-        styleElement.id = 'custom-theme-styles';
-        document.head.appendChild(styleElement);
-      }
-      styleElement.textContent = themeConfig.customCss;
-    }
   }, [forcedMode]);
 
-  const setThemeConfig = useCallback((newTheme: ThemeConfig) => {
+  const setThemeConfig = useCallback((newTheme: BrandTheme) => {
     setTheme(newTheme);
     applyTheme(newTheme);
   }, [applyTheme]);
 
-  const setThemeByName = useCallback((name: string) => {
-    const presetTheme = GALLERY_THEME_PRESETS[name];
-    if (presetTheme) {
-      setThemeName(name);
-      setTheme(presetTheme.config);
-      applyTheme(presetTheme.config);
-    }
-  }, [applyTheme]);
-
-  const resetTheme = useCallback(() => {
-    setThemeByName('default');
-  }, [setThemeByName]);
-
   // Apply theme when it changes, OR when force-mode changes (so an admin
   // toggling Force dark / light in Branding flips every open tab on the
-  // next public-settings refetch tick — no reload needed).
+  // next public-settings refetch tick, no reload needed).
   useEffect(() => {
     applyTheme(theme);
   }, [theme, applyTheme]);
-
-  // Load theme from localStorage on mount (skip if in gallery view)
-  useEffect(() => {
-    // Check if we're in a gallery view by looking at the URL
-    const isGalleryView = window.location.pathname.includes('/gallery/');
-    if (!isGalleryView) {
-      const savedTheme = localStorage.getItem('gallery-theme');
-      if (savedTheme) {
-        try {
-          const parsed = JSON.parse(savedTheme);
-          setTheme(parsed.config);
-          setThemeName(parsed.name);
-        } catch (e) {
-          console.error('Failed to load saved theme:', e);
-        }
-      }
-    }
-  }, []);
-
-  // Save theme to localStorage when it changes (but not in gallery views)
-  useEffect(() => {
-    // Don't save theme in gallery views to avoid conflicts
-    const isGalleryView = window.location.pathname.includes('/gallery/');
-    if (!isGalleryView) {
-      // Only save if theme has actually changed
-      const currentSaved = localStorage.getItem('gallery-theme');
-      const newValue = JSON.stringify({ name: themeName, config: theme });
-      if (currentSaved !== newValue) {
-        localStorage.setItem('gallery-theme', newValue);
-      }
-    }
-  }, [theme, themeName]);
 
   // Listen for system color scheme changes when colorMode is 'auto'
   useEffect(() => {
@@ -383,13 +303,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   const contextValue = useMemo(() => ({
     theme,
-    themeName,
-    resolvedColorMode,
     setTheme: setThemeConfig,
-    setThemeByName,
-    applyTheme,
-    resetTheme
-  }), [theme, themeName, resolvedColorMode, setThemeConfig, setThemeByName, applyTheme, resetTheme]);
+  }), [theme, setThemeConfig]);
 
   return (
     <ThemeContext.Provider value={contextValue}>
@@ -421,6 +336,4 @@ function darkenColor(color: string, percent: number): string {
     (B > 0 ? B : 0)).toString(16).slice(1);
 }
 
-// Re-export types
-export type { ThemeConfig, EventTheme };
-export { GALLERY_THEME_PRESETS };
+export type { BrandTheme };

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 
 import { ThemeCustomizerEnhanced } from '../ThemeCustomizerEnhanced';
-import type { ThemeConfig } from '../../../types/theme.types';
+import type { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 
 vi.mock('react-i18next', async () => {
   const actual = await vi.importActual<typeof import('react-i18next')>('react-i18next');

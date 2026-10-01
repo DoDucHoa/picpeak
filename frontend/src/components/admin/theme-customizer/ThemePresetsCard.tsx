@@ -2,7 +2,7 @@ import React from 'react';
 import { Sparkles, Check, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../common';
-import { GALLERY_THEME_PRESETS } from '../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../types/legacyGalleryTheme.types';
 import { layoutIcons } from './icons';
 
 interface ThemePresetsCardProps {

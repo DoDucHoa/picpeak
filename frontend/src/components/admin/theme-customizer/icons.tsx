@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, LayoutTemplate, Grid3X3, Layers, Play, Clock, Image, LayoutGrid, Minimize2, EyeOff, Columns, Film } from 'lucide-react';
-import { GalleryLayoutType, HeaderStyleType, HeroDividerStyle } from '../../../types/theme.types';
+import { GalleryLayoutType, HeaderStyleType, HeroDividerStyle } from '../../../types/legacyGalleryTheme.types';
 
 export const layoutIcons: Record<GalleryLayoutType, React.ReactNode> = {
   grid: <Grid3X3 className="w-5 h-5" />,

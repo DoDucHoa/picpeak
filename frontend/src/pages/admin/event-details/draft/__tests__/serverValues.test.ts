@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eventFormValues, themeValue } from '../serverValues';
-import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../../types/legacyGalleryTheme.types';
 import type { Event } from '../../../../../types';
 
 const legacy = {

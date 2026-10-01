@@ -19,6 +19,28 @@
   --cg-placeholder: #f2f2f2;
   --cg-font: 'Red Hat Display', 'Inter', sans-serif;
   --cg-title-font: 'DM Serif Display', Georgia, serif;
+  /* Shared components the gallery renders (Button, the guest modals, folder
+     tiles, the people sheet, comments) read the brand tokens. The brand sits
+     on :root on every page, so pin those tokens to the fixed palette here or
+     a dark or coloured brand would repaint them inside the white gallery. */
+  --color-background: var(--cg-bg);
+  --color-surface: var(--cg-bg);
+  --color-elevated: var(--cg-placeholder);
+  --color-surface-border: var(--cg-divider);
+  --color-text: var(--cg-text);
+  --color-muted-text: var(--cg-muted);
+  --color-accent: var(--cg-accent);
+  --color-accent-fg: #ffffff;
+  --color-accent-dark: var(--cg-accent);
+  --color-accent-dark-fg: #ffffff;
+  --color-primary: var(--cg-accent);
+  --color-primary-light: #ffbd57; /* lightenColor(accent, 20), as ThemeContext derives it */
+  --color-primary-dark: #bd5700;  /* darkenColor(accent, 20) */
+  --font-family: var(--cg-font);
+  --heading-font-family: var(--cg-font);
+  --border-radius: 0.5rem;
+  --font-size-base: 16px;
+  --shadow-default: 0 4px 6px rgba(0,0,0,0.1);
   background: var(--cg-bg);
   color: var(--cg-text);
   font-family: var(--cg-font);

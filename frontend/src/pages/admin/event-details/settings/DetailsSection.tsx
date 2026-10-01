@@ -4,7 +4,7 @@ import { Card, LocalizedDateInput, useConfirm } from '../../../../components/com
 import { WelcomeMessageEditor } from '../../../../components/admin';
 import { CustomerAccountPicker } from '../../../../components/admin/CustomerAccountPicker';
 import { useActiveEventTypes } from '../../../../hooks/useActiveEventTypes';
-import { GALLERY_THEME_PRESETS } from '../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../types/legacyGalleryTheme.types';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
 import { ExpiryField } from './ExpiryField';

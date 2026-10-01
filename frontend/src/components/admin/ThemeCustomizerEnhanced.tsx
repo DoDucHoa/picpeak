@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Palette, RotateCcw } from 'lucide-react';
 import { Button } from '../common';
-import { ThemeConfig, GALLERY_THEME_PRESETS, GalleryLayoutType } from '../../types/theme.types';
+import { ThemeConfig, GALLERY_THEME_PRESETS, GalleryLayoutType } from '../../types/legacyGalleryTheme.types';
 import type { EnabledTemplate } from '../../services/cssTemplates.service';
 import { settingsService } from '../../services/settings.service';
 import { fontsService, type FontDefinition } from '../../services/fonts.service';

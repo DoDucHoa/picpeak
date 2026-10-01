@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { storedThemeKind } from '../storedThemeKind';
-import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../../types/legacyGalleryTheme.types';
 
 describe('storedThemeKind (spec 5.9)', () => {
   it('reads NULL and an unknown name as inherit', () => {

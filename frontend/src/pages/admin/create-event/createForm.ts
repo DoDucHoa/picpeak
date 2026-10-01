@@ -1,5 +1,5 @@
 import { format as formatDate } from 'date-fns';
-import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../types/theme.types';
+import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 import type { FeedbackSettings } from '../../../services/feedback.service';
 import { nextEventPassword } from '../../../utils/passwordGenerator';
 import { expiryFromToday } from '../event-details/settings/ExpiryField';

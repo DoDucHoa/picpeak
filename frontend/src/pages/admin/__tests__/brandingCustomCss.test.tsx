@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { GALLERY_THEME_PRESETS } from '../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../types/legacyGalleryTheme.types';
 
 const CSS = '.gallery-premium-footer p:first-child { display: none; }';
 const savedTheme = { ...GALLERY_THEME_PRESETS.galleryPremium.config, customCss: CSS };

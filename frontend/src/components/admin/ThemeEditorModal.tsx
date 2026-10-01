@@ -3,7 +3,7 @@ import { X, Save, RotateCcw, Grid3X3, Layers, Play, Clock, LayoutGrid, Check, Co
 import { Button } from '../common';
 import { ThemeCustomizerEnhanced } from './ThemeCustomizerEnhanced';
 import { GalleryPreview } from './GalleryPreview';
-import { ThemeConfig, GALLERY_THEME_PRESETS, GalleryLayoutType } from '../../types/theme.types';
+import { ThemeConfig, GALLERY_THEME_PRESETS, GalleryLayoutType } from '../../types/legacyGalleryTheme.types';
 import { cssTemplatesService, type EnabledTemplate } from '../../services/cssTemplates.service';
 import { useTranslation } from 'react-i18next';
 

@@ -3,7 +3,8 @@ import { Eye, Palette, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button, Card, Input, ErrorBoundary, Loading, MarkdownContent } from '../../components/common';
 import { ThemeCustomizerEnhanced, GalleryPreview } from '../../components/admin';
-import { useTheme, type ThemeConfig, GALLERY_THEME_PRESETS } from '../../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { type ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { settingsService, type BrandingSettings } from '../../services/settings.service';
 import { businessProfileService } from '../../services/businessProfile.service';
@@ -240,7 +241,6 @@ export const BrandingPage: React.FC = () => {
         setTheme({
           ...preset.config,
           logoUrl: currentTheme.logoUrl,
-          customCss: currentTheme.customCss
         });
       }
     }

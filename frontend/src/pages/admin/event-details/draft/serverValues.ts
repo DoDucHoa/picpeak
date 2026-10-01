@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import type { Event } from '../../../../types';
 import type { CustomerGroup } from '../../../../services/customerAdmin.service';
-import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS, type ThemeConfig } from '../../../../types/legacyGalleryTheme.types';
 import { normalizeRequirePassword } from '../../../../utils/accessControl';
 import type { EditFormState, ThemeDraft } from '../types';
 import { safeParseDate } from '../utils';

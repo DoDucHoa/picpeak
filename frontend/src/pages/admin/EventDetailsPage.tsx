@@ -14,7 +14,7 @@ import { splitMediaCount } from '../../utils/mediaCounts';
 import { photosService, AdminPhoto, type PhotoFilters as PhotoFilterParams, type FeedbackFilters } from '../../services/photos.service';
 import { feedbackService, FeedbackSettings as FeedbackSettingsType } from '../../services/feedback.service';
 import { cssTemplatesService } from '../../services/cssTemplates.service';
-import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/theme.types';
+import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { safeParseDate, eventHasGuests } from './event-details/utils';
 import { INITIAL_EDIT_FORM, type EventDetailsTab, type ThemeDraft } from './event-details/types';
 import { eventFormValues, themeValue } from './event-details/draft/serverValues';

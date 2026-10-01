@@ -17,7 +17,7 @@ import {
 import { Button, Input, Card, Loading } from '../../components/common';
 import { useModal, useMutationWithToast } from '../../hooks';
 import { eventTypesService, EventType, CreateEventTypeData, UpdateEventTypeData } from '../../services/eventTypes.service';
-import { GALLERY_THEME_PRESETS } from '../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { SectionPageHeader } from '../../components/admin/SectionPageHeader';
 
 // Common emoji options for event types

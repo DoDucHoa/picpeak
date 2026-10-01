@@ -2,7 +2,7 @@ import React from 'react';
 import { ImageIcon, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../common';
-import { ThemeConfig, HeaderStyleType, HeroDividerStyle } from '../../../types/theme.types';
+import { ThemeConfig, HeaderStyleType, HeroDividerStyle } from '../../../types/legacyGalleryTheme.types';
 import { headerStyleIcons, dividerStylePreviews } from './icons';
 
 interface HeaderStyleCardProps {

@@ -26,7 +26,7 @@ vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ Custom
 
 import { EventSettingsContext } from '../EventSettingsContext';
 import { DetailsSection } from '../DetailsSection';
-import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../../types/legacyGalleryTheme.types';
 
 const form = {
   customer_name: 'Anna', customer_email: 'a@example.com', customer_phone: '', customer_accounts: [],

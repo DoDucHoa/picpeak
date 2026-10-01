@@ -5,7 +5,7 @@ import { Card } from '../../../components/common';
 import { ThemeCustomizerEnhanced } from '../../../components/admin';
 import { usePublicSettings } from '../../../hooks/usePublicSettings';
 import type { EnabledTemplate } from '../../../services/cssTemplates.service';
-import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../../types/theme.types';
+import { ThemeConfig, GALLERY_THEME_PRESETS } from '../../../types/legacyGalleryTheme.types';
 import type { EditFormState, ThemeDraft } from './types';
 
 interface EventThemeSectionProps {

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { GALLERY_THEME_PRESETS } from '../../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../../types/legacyGalleryTheme.types';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'fs';

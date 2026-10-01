@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Camera, Calendar } from 'lucide-react';
-import { ThemeConfig, GalleryLayoutType, HeroDividerStyle } from '../../types/theme.types';
+import { ThemeConfig, GalleryLayoutType, HeroDividerStyle } from '../../types/legacyGalleryTheme.types';
 import { buildResourceUrl } from '../../utils/url';
 import { useTranslation } from 'react-i18next';
 

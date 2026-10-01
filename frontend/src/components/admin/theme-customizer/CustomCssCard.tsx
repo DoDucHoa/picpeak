@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Code, Info, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../common';
-import { ThemeConfig } from '../../../types/theme.types';
+import { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 
 interface CustomCssCardProps {
   localTheme: ThemeConfig;

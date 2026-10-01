@@ -2,7 +2,7 @@ import React from 'react';
 import { Type } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../../common';
-import { ThemeConfig } from '../../../types/theme.types';
+import { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 import type { FontDefinition } from '../../../services/fonts.service';
 import { buildFontFamilyValue, resolveFontDropdownValue } from './fontUtils';
 

@@ -1,4 +1,4 @@
-import { GALLERY_THEME_PRESETS } from '../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../types/legacyGalleryTheme.types';
 
 export type StoredThemeKind = 'inherit' | 'preset' | 'custom';
 

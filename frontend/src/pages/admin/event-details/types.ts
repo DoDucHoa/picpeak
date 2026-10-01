@@ -1,4 +1,4 @@
-import type { ThemeConfig } from '../../../types/theme.types';
+import type { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 
 export type EventDetailsTab = 'overview' | 'photos' | 'categories' | 'guests' | 'downloads' | 'settings';
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Palette, RotateCcw, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card } from '../../common';
-import { ThemeConfig } from '../../../types/theme.types';
+import { ThemeConfig } from '../../../types/legacyGalleryTheme.types';
 import { ColorPickerRow } from './ColorPickerRow';
 
 interface ColorCustomizationCardProps {

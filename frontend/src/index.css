@@ -39,20 +39,6 @@
     @apply antialiased;
     overflow-x: hidden;
   }
-  
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: var(--background-pattern);
-    background-size: var(--background-pattern-size);
-    opacity: 1;
-    pointer-events: none;
-    z-index: -1;
-  }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {

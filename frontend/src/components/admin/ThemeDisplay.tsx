@@ -11,7 +11,7 @@ import {
   Columns,
   Film
 } from 'lucide-react';
-import { ThemeConfig, GalleryLayoutType, GALLERY_THEME_PRESETS } from '../../types/theme.types';
+import { ThemeConfig, GalleryLayoutType, GALLERY_THEME_PRESETS } from '../../types/legacyGalleryTheme.types';
 import { useTranslation } from 'react-i18next';
 
 interface ThemeDisplayProps {

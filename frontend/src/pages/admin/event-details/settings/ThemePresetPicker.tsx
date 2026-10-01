@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemePresetsCard } from '../../../../components/admin/theme-customizer/ThemePresetsCard';
-import { GALLERY_THEME_PRESETS } from '../../../../types/theme.types';
+import { GALLERY_THEME_PRESETS } from '../../../../types/legacyGalleryTheme.types';
 import type { ThemeDraft } from '../types';
 
 /**

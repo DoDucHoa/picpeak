@@ -2,7 +2,7 @@ import React from 'react';
 import { Layout, Check, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, Input } from '../../common';
-import { ThemeConfig, GalleryLayoutType } from '../../../types/theme.types';
+import { ThemeConfig, GalleryLayoutType } from '../../../types/legacyGalleryTheme.types';
 import { layoutIcons } from './icons';
 
 interface GalleryLayoutCardProps {
