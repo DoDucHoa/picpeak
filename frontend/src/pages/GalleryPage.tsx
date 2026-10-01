@@ -8,14 +8,13 @@ import { usePublicSettings } from '../hooks/usePublicSettings';
 
 import { Card, CardContent, Input, Button, ReCaptcha, CMSContentBlock, PoweredBy } from '../components/common';
 import { LanguageSelector } from '../components/common/LanguageSelector';
-import { useGalleryAuth, useTheme } from '../contexts';
+import { useGalleryAuth } from '../contexts';
 import { useGalleryInfo } from '../hooks/useGallery';
-import { GalleryView } from '../components/gallery';
+import { ClientGallery } from '../features/client-gallery';
 import { GallerySkeleton } from '../components/gallery/GallerySkeleton';
 import { PasswordChangeRequiredNotice } from '../components/gallery/PasswordChangeRequiredNotice';
 import { analyticsService } from '../services/analytics.service';
 import { galleryService } from '../services';
-import { GALLERY_THEME_PRESETS } from '../types/theme.types';
 import { buildResourceUrl } from '../utils/url';
 import { isGalleryPublic, normalizeRequirePassword } from '../utils/accessControl';
 import { detectInAppBrowser } from '../utils/inAppBrowser';
@@ -26,7 +25,6 @@ export const GalleryPage: React.FC = () => {
   const { isAuthenticated, login, event, isLoading: isRestoringSession } = useGalleryAuth();
   const { t } = useTranslation();
   const { format } = useLocalizedDate();
-  const { setTheme } = useTheme();
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -134,51 +132,17 @@ export const GalleryPage: React.FC = () => {
   
   const { data: settingsData, isLoading: isLoadingSettings } = usePublicSettings();
 
-  // Apply theme for gallery (both login page and authenticated view)
-  React.useEffect(() => {
-    if (galleryInfo && settingsData) {
-      let themeToApply = null;
-
-      if (galleryInfo.color_theme) {
-        try {
-          // Check if it's a valid JSON string
-          if (galleryInfo.color_theme.startsWith('{')) {
-            themeToApply = JSON.parse(galleryInfo.color_theme);
-          } else {
-            // Handle legacy theme names - check if it's a preset
-            const preset = GALLERY_THEME_PRESETS[galleryInfo.color_theme];
-            if (preset) {
-              themeToApply = preset.config;
-            } else {
-              // Unknown theme name, fall back to global theme
-              if (settingsData.theme_config) {
-                themeToApply = settingsData.theme_config;
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Failed to parse event theme:', e);
-          // Fall back to global theme
-          if (settingsData.theme_config) {
-            themeToApply = settingsData.theme_config;
-          }
-        }
-      } else if (settingsData.theme_config) {
-        // No event theme, use global theme
-        themeToApply = settingsData.theme_config;
-      }
-
-      // The hero photo ID is injected into gallerySettings by GalleryView,
-      // which reads it off the /photos response. /info doesn't carry it.
-
-      // Apply theme. Force color mode is enforced inside ThemeContext.applyTheme
-      // (it subscribes to public settings) so callers don't have to wrap the
-      // theme themselves — keeps the lock consistent across every entry point.
-      if (themeToApply) {
-        setTheme(themeToApply);
-      }
-    }
-  }, [galleryInfo, settingsData, setTheme]);
+  // Admin preview seed (#868), memoised: the gallery controller memoises its
+  // whole result on the seed's identity, so a fresh object per render would
+  // rebuild it on every render of this page.
+  const adminPreviewSeed = React.useMemo(() => (galleryInfo ? {
+    id: 0,
+    event_name: galleryInfo.event_name,
+    event_type: galleryInfo.event_type,
+    event_date: galleryInfo.event_date,
+    expires_at: galleryInfo.expires_at,
+    allow_downloads: galleryInfo.allow_downloads,
+  } : null), [galleryInfo]);
 
   React.useEffect(() => {
     if (!resolvedSlug || isResolvingIdentifier) {
@@ -322,7 +286,7 @@ export const GalleryPage: React.FC = () => {
     }
   };
 
-  // Show the same skeleton GalleryView uses while photos load, so the
+  // Show the same skeleton the gallery uses while photos load, so the
   // visitor sees one continuous loading state from URL open to real photos
   // instead of three different full-page interstitials (#321).
   if (isLoadingInfo) {
@@ -420,29 +384,16 @@ export const GalleryPage: React.FC = () => {
   const gallerySlugForView = resolvedSlug ?? rawSlug ?? '';
 
   // Admin preview (#868): render the gallery directly, no gallery session.
-  // GalleryView fetches photos by slug (the axios interceptor forwards
+  // The gallery fetches photos by slug (the axios interceptor forwards
   // admin_preview=1 + the admin cookie), and reads its live event from that
   // response; this prop only seeds the initial header from /info.
-  if (isAdminPreview && galleryInfo) {
-    return (
-      <GalleryView
-        slug={gallerySlugForView}
-        event={{
-          id: 0,
-          event_name: galleryInfo.event_name,
-          event_type: galleryInfo.event_type,
-          event_date: galleryInfo.event_date,
-          color_theme: galleryInfo.color_theme,
-          expires_at: galleryInfo.expires_at,
-          allow_downloads: galleryInfo.allow_downloads,
-        }}
-      />
-    );
+  if (isAdminPreview && adminPreviewSeed) {
+    return <ClientGallery slug={gallerySlugForView} event={adminPreviewSeed} />;
   }
 
   // Show gallery view if authenticated
   if (isAuthenticated && event) {
-    return <GalleryView slug={gallerySlugForView} event={event} requiresPassword={requiresPassword} />;
+    return <ClientGallery slug={gallerySlugForView} event={event} requiresPassword={requiresPassword} />;
   }
 
   // Public gallery: auto-login is in flight (or about to fire). Show the
@@ -463,7 +414,7 @@ export const GalleryPage: React.FC = () => {
     //
     // Reachable two ways: a failed or expired auto-login, and clearing the
     // session from inside the gallery (the Logout button that should not have
-    // been there, or GalleryView's 401 handler). Retry re-arms the latch; it
+    // been there, or the gallery's 401 handler). Retry re-arms the latch; it
     // is a button rather than an automatic re-fire so a genuinely failing
     // gallery cannot spin.
     return (

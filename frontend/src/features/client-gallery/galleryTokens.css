@@ -172,6 +172,28 @@
   .client-gallery .cg-toolbar-compact .cg-tb-quota { display: none; }
 }
 
+/* Page sections around the album: the client banner, folder tiles, the empty
+   tab line, the info and promo text, and the back to top button. */
+.client-gallery .cg-client-banner { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0 60px 16px; color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-client-banner svg { width: 18px; height: 18px; flex: none; }
+.client-gallery .cg-folders { padding: 0 60px 24px; }
+.client-gallery .cg-empty { margin: 0; padding: 120px 24px; text-align: center; color: var(--cg-muted); font-size: 15px; }
+.client-gallery .cg-notes { padding: 60px; color: var(--cg-muted); font-size: 14px; line-height: 1.6; }
+.client-gallery .cg-note + .cg-note { margin-top: 24px; }
+.client-gallery .cg-note a { color: inherit; text-decoration: underline; }
+.client-gallery .cg-back-to-top {
+  position: fixed; right: 24px; bottom: 24px; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; margin: 0; padding: 0; border: 0; border-radius: 8px;
+  background: rgba(32, 32, 32, .92); color: #fff; cursor: pointer;
+}
+.client-gallery .cg-back-to-top:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+@media (max-width: 767px) {
+  .client-gallery .cg-client-banner, .client-gallery .cg-folders { padding-left: 12px; padding-right: 12px; }
+  .client-gallery .cg-notes { padding: 40px 12px; }
+  .client-gallery .cg-back-to-top { right: 16px; bottom: 16px; }
+}
+
 /* Photo viewer. YARL portals to <body>, outside the gallery's own root, so
    its root carries .client-gallery itself to pick up the tokens above. The
    rail, the side panel and the filmstrip all live inside it, because YARL

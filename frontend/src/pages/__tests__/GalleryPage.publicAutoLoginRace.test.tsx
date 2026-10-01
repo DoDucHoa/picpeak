@@ -33,7 +33,6 @@ let auth = {
 
 vi.mock('../../contexts', () => ({
   useGalleryAuth: () => auth,
-  useTheme: () => ({ setTheme: vi.fn() }),
 }));
 
 vi.mock('../../hooks/useGallery', () => ({
@@ -63,8 +62,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }),
 }));
 
-vi.mock('../../components/gallery', () => ({
-  GalleryView: () => <div data-testid="gallery-view" />,
+vi.mock('../../features/client-gallery', () => ({
+  ClientGallery: () => <div data-testid="gallery-view" />,
 }));
 
 vi.mock('../../components/gallery/GallerySkeleton', () => ({

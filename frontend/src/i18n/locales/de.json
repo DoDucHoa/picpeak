@@ -10057,6 +10057,9 @@
     "share": "Teilen",
     "linkCopied": "Link kopiert",
     "logout": "Abmelden",
-    "people": "Personen"
+    "people": "Personen",
+    "emptyLiked": "Noch keine Fotos mit Gefällt mir",
+    "emptyPicked": "Noch keine Fotos ausgewählt",
+    "backToTop": "Nach oben"
   }
 }

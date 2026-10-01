@@ -6,7 +6,7 @@ import type { Photo } from '../../../types';
 import { HeartIcon, PickIcon } from '../icons';
 
 interface ListRowProps {
-  photo: Photo; y: number; height: number; slug: string; canvas: boolean;
+  photo: Photo; y: number; height: number; slug: string;
   showOriginalFilename: boolean;
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
@@ -31,7 +31,7 @@ export function formatDimensions(w?: number | null, h?: number | null): string {
  * sits inside another and each one gets Enter and Space natively. Text cells
  * let clicks fall through to the open button; only the buttons catch them.
  */
-function ListRowImpl({ photo, y, height, slug, canvas, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks }: ListRowProps) {
+function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks }: ListRowProps) {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
   const onLoad = useCallback(() => setLoaded(true), []);
@@ -61,7 +61,6 @@ function ListRowImpl({ photo, y, height, slug, canvas, showOriginalFilename, onO
             alt=""
             slug={slug}
             isGallery
-            useCanvasRendering={canvas}
             queuePriority="normal"
             onLoad={onLoad}
             decoding="async"

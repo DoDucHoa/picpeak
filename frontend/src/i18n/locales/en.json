@@ -10091,6 +10091,9 @@
     "share": "Share",
     "linkCopied": "Link copied",
     "logout": "Log out",
-    "people": "People"
+    "people": "People",
+    "emptyLiked": "No liked photos yet",
+    "emptyPicked": "No picked photos yet",
+    "backToTop": "Back to top"
   }
 }

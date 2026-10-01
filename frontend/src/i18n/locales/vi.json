@@ -10083,6 +10083,9 @@
     "share": "Chia sẻ",
     "linkCopied": "Đã chép link",
     "logout": "Đăng xuất",
-    "people": "Người trong ảnh"
+    "people": "Người trong ảnh",
+    "emptyLiked": "Chưa thích ảnh nào",
+    "emptyPicked": "Chưa chọn ảnh nào",
+    "backToTop": "Lên đầu trang"
   }
 }

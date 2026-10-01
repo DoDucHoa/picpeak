@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import type { Photo, PhotoCategory } from '../../../types';
 import type { ColorLabel } from '../../../services/feedback.service';
-import type { FeedbackFilterType } from '../GalleryFilter';
 import { photosInScope } from '../folders';
 import { creditKeyOf } from '../../../utils/photoCredits';
 import { photoMatchesFilenameSearch, photoNameCompare } from '../../../utils/photoFilename';
+/** The viewer's own feedback a photo can be filtered by. */
+export type FeedbackFilterType = 'liked' | 'favorited' | 'rated' | 'commented';
 export type GallerySort = 'date' | 'name' | 'size' | 'rating' | 'capture_date';
 export interface GalleryFilterOptions {
   sourcePhotos?: Photo[]; categories?: PhotoCategory[]; folderId: number | string | null;

@@ -9,7 +9,6 @@ import { GalleryAuthProvider, MaintenanceProvider } from './contexts';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GalleryPage } from './pages/GalleryPage';
 import { ClientAccessPage } from './pages/ClientAccessPage';
-import { PreviewPage } from './pages/gallery/PreviewPage';
 import { DownloadOrderPage } from './pages/gallery/DownloadOrderPage';
 const SlideshowPage = lazy(() => import('./pages/gallery/SlideshowPage').then((m) => ({ default: m.SlideshowPage })));
 import { LegalPage } from './pages/public/LegalPage';
@@ -237,7 +236,6 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />}>
                   {/* Public gallery routes */}
-                  <Route path="/gallery/preview" element={<PreviewPage />} />
                   {/* Live Slideshow ("Diashow") — token-only fullscreen kiosk.
                       Self-manages its session token; no GalleryAuthProvider. */}
                   <Route path="/gallery/:slug/show/:token" element={

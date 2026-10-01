@@ -188,3 +188,11 @@ export function CheckIcon() {
     </Svg>
   );
 }
+
+export function ShieldIcon() {
+  return (
+    <Svg>
+      <path d="M12 3.5 5 6.25v5.5c0 4.15 2.95 7.6 7 8.75 4.05-1.15 7-4.6 7-8.75v-5.5L12 3.5Z" />
+    </Svg>
+  );
+}

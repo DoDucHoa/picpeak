@@ -11,7 +11,7 @@ const make = (n: number, extra: Partial<Photo> = {}) => Array.from({ length: n }
   id: i + 1, filename: `p${i}.jpg`, url: '/o', type: 'individual', size: 1000, uploaded_at: '', ...extra,
 })) as Photo[];
 
-const base = { slug: 's', canvas: false, allowLikes: true, allowPicks: true, showOriginalFilename: false };
+const base = { slug: 's', allowLikes: true, allowPicks: true, showOriginalFilename: false };
 
 beforeEach(() => {
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });

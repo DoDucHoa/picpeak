@@ -40,7 +40,7 @@ afterEach(() => {
 
 describe('Filmstrip', () => {
   it('windows a long album and centres the open photo', () => {
-    render(<Filmstrip photos={make(2000)} openId={1000} slug="s" canvas={false} showOriginalFilename={false} onNavigate={vi.fn()} />);
+    render(<Filmstrip photos={make(2000)} openId={1000} slug="s" showOriginalFilename={false} onNavigate={vi.fn()} />);
     const thumbs = screen.getAllByTestId('filmstrip-thumb');
     expect(thumbs.length).toBeLessThan(40);
     const current = thumbs.filter((el) => el.getAttribute('aria-current') === 'true');
@@ -50,23 +50,23 @@ describe('Filmstrip', () => {
 
   it('follows the open photo when it changes', () => {
     const photos = make(2000);
-    const { rerender } = render(<Filmstrip photos={photos} openId={1000} slug="s" canvas={false} showOriginalFilename={false} onNavigate={vi.fn()} />);
-    rerender(<Filmstrip photos={photos} openId={1500} slug="s" canvas={false} showOriginalFilename={false} onNavigate={vi.fn()} />);
+    const { rerender } = render(<Filmstrip photos={photos} openId={1000} slug="s" showOriginalFilename={false} onNavigate={vi.fn()} />);
+    rerender(<Filmstrip photos={photos} openId={1500} slug="s" showOriginalFilename={false} onNavigate={vi.fn()} />);
     const current = screen.getAllByTestId('filmstrip-thumb').filter((el) => el.getAttribute('aria-current') === 'true');
     expect(current[0].getAttribute('data-photo-id')).toBe('1500');
   });
 
   it('names each thumbnail the way the file info panel does', () => {
     const photos = make(3).map((p) => ({ ...p, original_filename: `DSC_${p.id}.jpg` }));
-    const { rerender } = render(<Filmstrip photos={photos} openId={1} slug="s" canvas={false} showOriginalFilename={false} onNavigate={vi.fn()} />);
+    const { rerender } = render(<Filmstrip photos={photos} openId={1} slug="s" showOriginalFilename={false} onNavigate={vi.fn()} />);
     expect(screen.getAllByTestId('filmstrip-thumb')[0].getAttribute('aria-label')).toBe('p1.jpg');
-    rerender(<Filmstrip photos={photos} openId={1} slug="s" canvas={false} showOriginalFilename onNavigate={vi.fn()} />);
+    rerender(<Filmstrip photos={photos} openId={1} slug="s" showOriginalFilename onNavigate={vi.fn()} />);
     expect(screen.getAllByTestId('filmstrip-thumb')[0].getAttribute('aria-label')).toBe('DSC_1.jpg');
   });
 
   it('leaves a placeholder rather than loading the original when there is no thumbnail', () => {
     const photos = make(3).map((p, i) => (i === 1 ? { ...p, thumbnail_url: undefined } : p));
-    render(<Filmstrip photos={photos} openId={1} slug="s" canvas={false} showOriginalFilename={false} onNavigate={vi.fn()} />);
+    render(<Filmstrip photos={photos} openId={1} slug="s" showOriginalFilename={false} onNavigate={vi.fn()} />);
     const thumbs = screen.getAllByTestId('filmstrip-thumb');
     expect(thumbs[0].querySelector('img')).not.toBeNull();
     expect(thumbs[1].querySelector('img')).toBeNull();
@@ -74,7 +74,7 @@ describe('Filmstrip', () => {
 
   it('navigates to a clicked thumbnail', () => {
     const onNavigate = vi.fn();
-    render(<Filmstrip photos={make(20)} openId={1} slug="s" canvas={false} showOriginalFilename={false} onNavigate={onNavigate} />);
+    render(<Filmstrip photos={make(20)} openId={1} slug="s" showOriginalFilename={false} onNavigate={onNavigate} />);
     fireEvent.click(screen.getAllByTestId('filmstrip-thumb')[2]);
     expect(onNavigate).toHaveBeenCalledWith(3);
   });

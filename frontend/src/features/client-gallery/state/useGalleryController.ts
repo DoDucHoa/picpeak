@@ -8,6 +8,7 @@ import { useDevToolsProtection } from '../../../hooks/useDevToolsProtection';
 import { useWatermarkSettings } from '../../../hooks/useWatermarkSettings';
 import { usePublicSettings } from '../../../hooks/usePublicSettings';
 import { useGalleryFiltering, resolveMediaType } from '../../../components/gallery/hooks/useGalleryFiltering';
+import type { FeedbackFilterType } from '../../../components/gallery/hooks/useGalleryFiltering';
 import { useGallerySelection } from '../../../components/gallery/hooks/useGallerySelection';
 import {
   findFolderByKey,
@@ -18,7 +19,6 @@ import {
   readFolderParam,
   writeFolderParam,
 } from '../../../components/gallery/folders';
-import type { FeedbackFilterType } from '../../../components/gallery/GalleryFilter';
 import type { DownloadGate } from '../../../contexts/DownloadGateContext';
 import type {
   DownloadOrder, DownloadPackage, QuotaExceededPayload,
@@ -172,7 +172,7 @@ function readGuestId(): string {
 /**
  * Everything the client gallery does, with none of how it looks: data,
  * URL state, downloads and the quota, people, folders, client visibility and
- * the image protections. Lifted out of the old GalleryView so the new design
+ * the image protections. Lifted out of the old themable gallery so the new design
  * renders from one object.
  *
  * Every function on the result is stable across renders unless its inputs

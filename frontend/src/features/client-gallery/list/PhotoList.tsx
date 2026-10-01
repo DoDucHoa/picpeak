@@ -8,7 +8,7 @@ import { useViewportWidth } from '../layout/useViewportWidth';
 import { ListRow } from './ListRow';
 
 interface PhotoListProps {
-  photos: Photo[]; slug: string; canvas: boolean;
+  photos: Photo[]; slug: string;
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   showOriginalFilename: boolean;

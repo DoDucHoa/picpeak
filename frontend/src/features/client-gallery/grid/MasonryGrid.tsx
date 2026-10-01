@@ -8,7 +8,7 @@ import { useViewportWidth } from '../layout/useViewportWidth';
 import { GridTile } from './GridTile';
 
 interface MasonryGridProps {
-  photos: Photo[]; slug: string; canvas: boolean;
+  photos: Photo[]; slug: string;
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   selecting: boolean; selectedIds: Set<number>; onSelect: (id: number) => void;

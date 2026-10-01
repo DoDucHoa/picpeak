@@ -10,7 +10,7 @@ const GAP = 6;
 const HEIGHT = 72;
 
 interface FilmstripProps {
-  photos: Photo[]; openId: number | null; slug: string; canvas: boolean;
+  photos: Photo[]; openId: number | null; slug: string;
   showOriginalFilename: boolean;
   onNavigate: (id: number) => void;
 }
@@ -20,7 +20,7 @@ interface FilmstripProps {
  * own scroll container, so a 2000 photo album mounts a screenful of thumbnails
  * rather than all of them. The open photo is kept in the middle.
  */
-export function Filmstrip({ photos, openId, slug, canvas, showOriginalFilename, onNavigate }: FilmstripProps) {
+export function Filmstrip({ photos, openId, slug, showOriginalFilename, onNavigate }: FilmstripProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Stable for the same reason as in MasonryGrid: both are dependencies of the
@@ -73,7 +73,6 @@ export function Filmstrip({ photos, openId, slug, canvas, showOriginalFilename, 
                   alt=""
                   slug={slug}
                   isGallery
-                  useCanvasRendering={canvas}
                   queuePriority="normal"
                   decoding="async"
                   draggable={false}

@@ -3,8 +3,8 @@ import type { QuotaExceededPayload } from '../services/downloadQuota.service';
 
 /**
  * Everything a per-photo download button needs to gate itself against the
- * download-quota feature, without threading quota state through
- * PhotoGridWithLayouts, all seven layouts, and PhotoLightbox individually.
+ * download-quota feature, without threading quota state through every
+ * component between the gallery and the button.
  *
  * Supplied as a context for the same reason DownloadedPhotosContext is: only
  * the download buttons care, and the gallery already holds one query's worth

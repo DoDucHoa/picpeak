@@ -62,9 +62,9 @@ const EMPTY_CHOICES: DownloadResolutionChoice[] = [];
 /**
  * Every download path of the client gallery, and the allowance around them.
  *
- * Every bulk path ends in `refreshDownloadQuota(slug)`: the server claims the
- * slots before it sends a byte, so re-reading the allowance is all the
- * browser does. It never works the numbers out for itself.
+ * Every bulk path ends in a quota refresh: the server claims the slots before
+ * it sends a byte, so re-reading the allowance is all the browser does. It
+ * never works the numbers out for itself.
  */
 export function useGalleryDownloads({
   slug, data, isClient, isExpired, filteredPhotos, scopedPhotos, openFolder,

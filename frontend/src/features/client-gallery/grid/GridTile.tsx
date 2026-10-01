@@ -8,7 +8,7 @@ import { HeartIcon, PickIcon } from '../icons';
 
 interface GridTileProps {
   photo: Photo; width: number; height: number; x: number; y: number; priority: 'high' | 'normal';
-  slug: string; canvas: boolean;
+  slug: string;
   onOpen: (id: number) => void; onToggle: (photo: Photo, kind: 'like' | 'favorite') => void;
   allowLikes: boolean; allowPicks: boolean;
   selecting: boolean; selected: boolean; onSelect: (id: number) => void;
@@ -23,11 +23,13 @@ interface GridTileProps {
  * button laid over the image, and the badges are its siblings on top, so no
  * button sits inside another and each one gets Enter and Space natively.
  */
-function GridTileImpl({ photo, width, height, x, y, priority, slug, canvas, onOpen, onToggle, allowLikes, allowPicks, selecting, selected, onSelect }: GridTileProps) {
+function GridTileImpl({ photo, width, height, x, y, priority, slug, onOpen, onToggle, allowLikes, allowPicks, selecting, selected, onSelect }: GridTileProps) {
   const { t } = useTranslation();
   const coarse = useInputMode() === 'touch';
-  // AuthenticatedImage reports a finished load only through onLoad, and the
-  // canvas path keys an effect on it, so the callback has to stay stable.
+  // AuthenticatedImage reports a finished load only through onLoad, so the
+  // callback has to stay stable. Tiles never draw on a canvas, whatever the
+  // event's protection says: hundreds of canvases exhaust iOS Safari's canvas
+  // memory and the tiles go blank without an error (canvasLightboxOnly.test).
   const [loaded, setLoaded] = useState(false);
   const onLoad = useCallback(() => setLoaded(true), []);
 
@@ -43,7 +45,6 @@ function GridTileImpl({ photo, width, height, x, y, priority, slug, canvas, onOp
         alt=""
         slug={slug}
         isGallery
-        useCanvasRendering={canvas}
         queuePriority={priority}
         onLoad={onLoad}
         decoding="async"

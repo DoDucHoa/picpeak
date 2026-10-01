@@ -196,7 +196,7 @@ The system includes comprehensive CSS protection located in `src/styles/image-pr
 ### Lightbox Implementation
 
 ```typescript
-// In PhotoLightbox component
+// In the photo viewer (features/client-gallery/viewer/PhotoViewer.tsx)
 <AuthenticatedImage
   src={currentPhoto.url}
   alt={currentPhoto.filename}

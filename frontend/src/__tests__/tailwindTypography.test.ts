@@ -57,7 +57,6 @@ describe('tailwind typography plugin (#1288)', () => {
       // The mapping is keyed on that class; a consumer that drops it silently
       // falls back to the near-black palette.
       for (const file of [
-        'src/components/gallery/GalleryLayout.tsx',
         'src/components/common/CMSContentBlock.tsx',
       ]) {
         const src = readFileSync(resolve(root, file), 'utf8');

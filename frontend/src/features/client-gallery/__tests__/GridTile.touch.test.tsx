@@ -7,7 +7,7 @@ import { __inputModeTesting } from '../../../hooks/useInputMode';
 vi.mock('../../../components/common', () => ({ AuthenticatedImage: () => <img alt="" /> }));
 
 const photo = { id: 3, filename: 'a.jpg', url: '/o', slideshow_url: '/p', type: 'individual', size: 1, uploaded_at: '', width: 4000, height: 6000, like_count: 2, is_liked: false, is_favorited: true } as never;
-const base = { photo, width: 300, height: 450, x: 0, y: 0, priority: 'normal' as const, slug: 's', canvas: false, allowLikes: true, allowPicks: true, selecting: false, selected: false, onSelect: vi.fn() };
+const base = { photo, width: 300, height: 450, x: 0, y: 0, priority: 'normal' as const, slug: 's', allowLikes: true, allowPicks: true, selecting: false, selected: false, onSelect: vi.fn() };
 
 /** Report a coarse, hover-less pointer (a phone), as the PhotoCard tests do. */
 function stubTouchDevice(isTouch: boolean) {

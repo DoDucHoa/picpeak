@@ -33,6 +33,11 @@ declare module 'yet-another-react-lightbox' {
   interface SlideTypes {
     video: ViewerVideoSlide;
   }
+  // The preview the canvas branch falls back to. YARL's Thumbnails plugin
+  // declares the same field; this viewer does not load that plugin.
+  interface SlideImage {
+    thumbnail?: string;
+  }
 }
 
 interface PhotoViewerProps {
@@ -224,7 +229,7 @@ export function PhotoViewer({ photos, openId, onClose, onNavigate, c, onToggle }
                   : <FileInfoPanel photo={photo} showOriginalFilename={c.showOriginalFilename} />}
               </aside>
             )}
-            <Filmstrip photos={photos} openId={openId} slug={c.slug} canvas={c.protection.canvas} showOriginalFilename={c.showOriginalFilename} onNavigate={onNavigate} />
+            <Filmstrip photos={photos} openId={openId} slug={c.slug} showOriginalFilename={c.showOriginalFilename} onNavigate={onNavigate} />
           </>
         ),
         buttonPrev: touch || photos.length <= 1 ? () => null : undefined,
