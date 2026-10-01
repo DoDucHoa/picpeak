@@ -30,8 +30,10 @@ vi.mock('../state/useGalleryController', () => ({
 }));
 
 const toggle = vi.fn();
+// Swapped per test: true while a feedback prompt or the limit modal is up.
+const feedback = { blocking: false };
 vi.mock('../state/useFeedbackToggle', () => ({
-  useFeedbackToggle: () => ({ toggle, modals: null }),
+  useFeedbackToggle: () => ({ toggle, modals: null, blocking: feedback.blocking }),
 }));
 
 // The viewer is YARL, which portals and animates; a stand-in that shows what
@@ -81,6 +83,7 @@ beforeEach(() => {
   // jsdom does not implement scrolling; the virtualisers call it on mount.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   viewerProps.mockClear();
+  feedback.blocking = false;
   controller = withUrl({});
 });
 
@@ -161,6 +164,22 @@ describe('ClientGallery', () => {
   it('does not touch the viewer when the quota dialog opens with no photo open', () => {
     const { rerender } = render(<ClientGallery slug="s" event={seed} />);
     controller = { ...controller, quotaOffer: { exceeded: null } };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.closePhoto).not.toHaveBeenCalled();
+  });
+
+  it('closes the viewer when a feedback prompt or the limit modal opens behind it', () => {
+    controller = withUrl({ photo: 3 });
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    expect(controller.closePhoto).not.toHaveBeenCalled();
+    feedback.blocking = true;
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.closePhoto).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the album alone when a feedback prompt opens with no photo open', () => {
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    feedback.blocking = true;
     rerender(<ClientGallery slug="s" event={seed} />);
     expect(controller.closePhoto).not.toHaveBeenCalled();
   });

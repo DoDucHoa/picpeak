@@ -115,7 +115,9 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
   const fs = c.feedbackSettings;
   const allowLikes = !!fs?.feedback_enabled && !!fs?.allow_likes;
   const allowPicks = !!fs?.feedback_enabled && !!fs?.allow_favorites;
-  const { toggle, modals } = useFeedbackToggle(c.slug, c.photosQueryKey, !!fs?.require_name_email);
+  const { toggle, modals, blocking: feedbackBlocking } = useFeedbackToggle(
+    c.slug, c.photosQueryKey, !!fs?.require_name_email, fs?.show_feedback_to_guests !== false,
+  );
 
   // A tab whose feedback switch is off is not rendered, so a URL still naming
   // it would leave the viewer on a tab they cannot see or leave. Judged only
@@ -128,15 +130,17 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
     if ((tab === 'liked' && !allowLikes) || (tab === 'picked' && !allowPicks)) setTab('all');
   }, [settingsLoaded, tab, allowLikes, allowPicks, setTab]);
 
-  // YARL makes everything outside its portal inert while open, the quota
-  // dialog included. A download refused from the viewer raises that dialog,
-  // so the viewer steps aside the moment it appears.
+  // YARL makes everything outside its portal inert while open, every dialog
+  // of this page included. A download refused from the viewer raises the
+  // quota dialog, and a like or pick can raise the guest name prompt, the
+  // name and email form or the limit notice, so the viewer steps aside the
+  // moment one of them appears.
   const latestViewer = useRef({ photo: c.url.photo, closePhoto: c.closePhoto });
   latestViewer.current = { photo: c.url.photo, closePhoto: c.closePhoto };
-  const quotaOfferOpen = c.quotaOffer !== null;
+  const dialogOpen = c.quotaOffer !== null || feedbackBlocking;
   useEffect(() => {
-    if (quotaOfferOpen && latestViewer.current.photo !== null) latestViewer.current.closePhoto();
-  }, [quotaOfferOpen]);
+    if (dialogOpen && latestViewer.current.photo !== null) latestViewer.current.closePhoto();
+  }, [dialogOpen]);
 
   // Only the grid can tick photos, so starting a selection in the list moves
   // the album to the grid rather than leaving rows nobody can select.

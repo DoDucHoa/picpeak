@@ -17,12 +17,19 @@ const COUNT = { like: 'like_count', favorite: 'favorite_count' } as const;
  * invalidating it would refetch every page of a large album on each tap.
  * A second POST of the same type removes it on the server, so the call is
  * the same for on and off.
+ *
+ * `showCounts` is the event's show_feedback_to_guests: with it off the server
+ * sends every count as 0, so only the flag flips and the count stays put.
+ *
+ * `blocking` is true while something this hook needs the guest to answer is
+ * on screen: the guest name prompt, the name and email form, or the limit
+ * notice. The viewer has to close for those, or they open behind it.
  */
-export function useFeedbackToggle(slug: string, photosKey: unknown[], requireNameEmail: boolean) {
+export function useFeedbackToggle(slug: string, photosKey: unknown[], requireNameEmail: boolean, showCounts = true) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const guestIdentity = useGuestIdentityOptional();
-  const { modal: limitModal, handleError } = useFeedbackLimitModal();
+  const { modal: limitModal, handleError, isOpen: limitOpen } = useFeedbackLimitModal();
   const [identity, setIdentity] = useState<{ name: string; email: string } | null>(null);
   const [pending, setPending] = useState<{ photo: Photo; kind: Kind } | null>(null);
   const inFlight = useRef<Set<string>>(new Set());
@@ -35,11 +42,11 @@ export function useFeedbackToggle(slug: string, photosKey: unknown[], requireNam
         photos: old.photos.map((p) => p.id !== photoId ? p : {
           ...p,
           [FLAG[kind]]: on,
-          [COUNT[kind]]: Math.max(0, (p[COUNT[kind]] ?? 0) + (on ? 1 : -1)),
+          ...(showCounts ? { [COUNT[kind]]: Math.max(0, (p[COUNT[kind]] ?? 0) + (on ? 1 : -1)) } : {}),
         }),
       };
     });
-  }, [queryClient, photosKey]);
+  }, [queryClient, photosKey, showCounts]);
 
   const send = useCallback(async (photo: Photo, kind: Kind, who: { name: string; email: string } | null) => {
     const lockKey = `${photo.id}:${kind}`;
@@ -101,5 +108,7 @@ export function useFeedbackToggle(slug: string, photosKey: unknown[], requireNam
     </>
   );
 
-  return { toggle, modals };
+  const blocking = Boolean(guestIdentity?.promptOpen) || pending !== null || limitOpen;
+
+  return { toggle, modals, blocking };
 }
