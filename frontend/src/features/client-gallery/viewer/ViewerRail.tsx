@@ -65,7 +65,7 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
       {allowLikes && (
         <button
           type="button"
-          className={`cg-viewer-btn${photo.is_liked ? ' cg-viewer-liked' : ''}`}
+          className="cg-viewer-btn"
           aria-label={photo.is_liked ? t('clientGallery.unlike', 'Unlike') : t('clientGallery.like', 'Like')}
           aria-pressed={Boolean(photo.is_liked)}
           onClick={() => onToggle(photo, 'like')}
@@ -84,7 +84,8 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
           <PickIcon filled={Boolean(photo.is_favorited)} />
         </button>
       )}
-      <span className="cg-viewer-divider" aria-hidden="true" />
+      {/* The divider separates the reactions from the tools, so it goes when there are none. */}
+      {(allowLikes || allowPicks) && <span className="cg-viewer-divider" data-testid="viewer-divider" aria-hidden="true" />}
       {allowComments && (
         <button
           type="button"

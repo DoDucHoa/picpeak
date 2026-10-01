@@ -54,6 +54,14 @@ describe('PhotoList', () => {
     expect(onToggle).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: 2 }), 'favorite');
   });
 
+  it('leaves a placeholder rather than loading the original when there is no thumbnail', () => {
+    const photos = make(2).map((p, i) => (i === 0 ? { ...p, thumbnail_url: '/t/1' } : p));
+    render(<PhotoList photos={photos} {...base} onOpen={vi.fn()} onToggle={vi.fn()} />);
+    const cells = screen.getAllByTestId('row-thumb');
+    expect(cells[0].querySelector('img')).not.toBeNull();
+    expect(cells[1].querySelector('img')).toBeNull();
+  });
+
   it('never nests one button inside another', () => {
     render(<PhotoList photos={make(3)} {...base} onOpen={vi.fn()} onToggle={vi.fn()} />);
     screen.getAllByRole('button').forEach((b) => expect(b.querySelector('button')).toBeNull());

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthenticatedImage } from '../../../components/common';
 import { useInputMode } from '../../../hooks/useInputMode';

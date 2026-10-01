@@ -26,7 +26,12 @@ vi.mock('../../../services/feedback.service', () => ({
 }));
 
 vi.mock('../../../components/gallery/PhotoComments', () => ({
-  PhotoComments: ({ comments }: { comments: unknown[] }) => <div data-testid="photo-comments">{comments.length}</div>,
+  PhotoComments: ({ comments }: { comments: unknown[] }) => (
+    <div data-testid="photo-comments">
+      <span data-testid="comment-count">{comments.length}</span>
+      <textarea aria-label="Your comment" />
+    </div>
+  ),
 }));
 
 const photos = Array.from({ length: 100 }, (_, i) => ({
@@ -72,14 +77,21 @@ describe('PhotoViewer', () => {
     expect(onNavigate).toHaveBeenCalledWith(1);
   });
 
-  it('leaves the arrow keys alone while the guest types', () => {
+  it('leaves the arrow keys and Escape alone while the guest types a comment', async () => {
+    getPhotoFeedback.mockResolvedValue({ feedback: [], summary: {}, my_feedback: {} });
     const onNavigate = vi.fn();
-    renderViewer({ onNavigate });
-    const input = document.createElement('textarea');
-    document.body.appendChild(input);
-    fireEvent.keyDown(input, { key: 'ArrowRight' });
+    const onClose = vi.fn();
+    renderViewer({ onNavigate, onClose, c: fakeController({ feedbackSettings: { feedback_enabled: true, allow_comments: true } }) });
+    fireEvent.click(screen.getByRole('button', { name: /comments/i }));
+    const textarea = await screen.findByRole('textbox', { name: 'Your comment' });
+    fireEvent.keyDown(textarea, { key: 'ArrowRight' });
+    fireEvent.keyDown(textarea, { key: 'ArrowLeft' });
+    fireEvent.keyDown(textarea, { key: 'Escape' });
+    // Let any swipe or close YARL might have started run out.
+    await new Promise((resolve) => setTimeout(resolve, 400));
     expect(onNavigate).not.toHaveBeenCalled();
-    input.remove();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId('photo-comments')).toBeTruthy();
   });
 
   it('closes on Escape', () => {
@@ -87,6 +99,18 @@ describe('PhotoViewer', () => {
     renderViewer({ onClose });
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('closes an open side panel on the first Escape and the viewer on the second', () => {
+    const onClose = vi.fn();
+    renderViewer({ onClose });
+    fireEvent.click(screen.getByRole('button', { name: /file info/i }));
+    expect(screen.getByText('5152 × 7728')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByText('5152 × 7728')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('mounts no more than three slides', () => {
@@ -128,11 +152,17 @@ describe('PhotoViewer', () => {
     expect(screen.queryByRole('button', { name: /comments/i })).toBeNull();
   });
 
-  it('offers nothing to react with when feedback is off', () => {
+  it('offers nothing to react with when feedback is off, and drops the divider with it', () => {
     renderViewer({ c: fakeController({ feedbackSettings: { feedback_enabled: false, allow_likes: true, allow_favorites: true, allow_comments: true } }) });
     expect(screen.queryByRole('button', { name: /^like$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^pick$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /comments/i })).toBeNull();
+    expect(screen.queryByTestId('viewer-divider')).toBeNull();
+  });
+
+  it('keeps the divider under the reactions when there are some', () => {
+    renderViewer();
+    expect(screen.getByTestId('viewer-divider')).toBeTruthy();
   });
 
   it('toggles like and pick on the current photo', () => {
@@ -151,7 +181,7 @@ describe('PhotoViewer', () => {
     });
     renderViewer({ c: fakeController({ feedbackSettings: { feedback_enabled: true, allow_comments: true } }) });
     fireEvent.click(screen.getByRole('button', { name: /comments/i }));
-    await waitFor(() => expect(screen.getByTestId('photo-comments').textContent).toBe('1'));
+    await waitFor(() => expect(screen.getByTestId('comment-count').textContent).toBe('1'));
     expect(getPhotoFeedback).toHaveBeenCalledWith('s', '2');
   });
 

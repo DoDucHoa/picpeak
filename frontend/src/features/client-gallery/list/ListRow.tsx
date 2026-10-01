@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthenticatedImage } from '../../../components/common';
 import { thumbnailUrlForTile } from '../../../components/gallery/imageTiers';
@@ -36,6 +36,7 @@ function ListRowImpl({ photo, y, height, slug, canvas, showOriginalFilename, onO
   const [loaded, setLoaded] = useState(false);
   const onLoad = useCallback(() => setLoaded(true), []);
   const name = showOriginalFilename && photo.original_filename ? photo.original_filename : photo.filename;
+  const thumbSrc = thumbnailUrlForTile(photo.thumbnail_url, photo, 80);
 
   return (
     <div
@@ -51,19 +52,23 @@ function ListRowImpl({ photo, y, height, slug, canvas, showOriginalFilename, onO
         aria-label={name}
         onClick={() => onOpen(photo.id)}
       />
-      <div className="cg-row-thumb">
-        <AuthenticatedImage
-          src={thumbnailUrlForTile(photo.thumbnail_url, photo, 80) || photo.url}
-          alt=""
-          slug={slug}
-          isGallery
-          useCanvasRendering={canvas}
-          queuePriority="normal"
-          onLoad={onLoad}
-          decoding="async"
-          draggable={false}
-          className={`cg-tile-img${loaded ? ' loaded' : ''}`}
-        />
+      {/* Without a thumbnail the cell stays a placeholder box: an 80px cell
+          never pulls the original. */}
+      <div className="cg-row-thumb" data-testid="row-thumb">
+        {thumbSrc && (
+          <AuthenticatedImage
+            src={thumbSrc}
+            alt=""
+            slug={slug}
+            isGallery
+            useCanvasRendering={canvas}
+            queuePriority="normal"
+            onLoad={onLoad}
+            decoding="async"
+            draggable={false}
+            className={`cg-tile-img${loaded ? ' loaded' : ''}`}
+          />
+        )}
       </div>
       <div className="cg-row-name">{name}</div>
       <div className="cg-row-dim">{formatDimensions(photo.width, photo.height)}</div>

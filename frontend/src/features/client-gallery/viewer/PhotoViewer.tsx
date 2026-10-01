@@ -134,8 +134,8 @@ export function PhotoViewer({ photos, openId, onClose, onNavigate, c, onToggle }
 
   // Read through refs by the window listener and YARL's view callback, so
   // neither has to be re-registered on every step.
-  const latest = useRef({ photos, index, onNavigate, onClose });
-  latest.current = { photos, index, onNavigate, onClose };
+  const latest = useRef({ photos, index, onNavigate, onClose, panel });
+  latest.current = { photos, index, onNavigate, onClose, panel };
 
   // The arrow keys and Escape are handled here rather than by YARL: its own
   // listener sits on its container and only hears keys while that has focus,
@@ -145,11 +145,13 @@ export function PhotoViewer({ photos, openId, onClose, onNavigate, c, onToggle }
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       if (isEditable(event.target)) return;
-      const { photos: list, index: at, onNavigate: go, onClose: close } = latest.current;
+      const { photos: list, index: at, onNavigate: go, onClose: close, panel: openPanel } = latest.current;
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        close();
+        // One layer at a time: an open side panel goes first, the viewer next.
+        if (openPanel) setPanel(null);
+        else close();
         return;
       }
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -222,7 +224,7 @@ export function PhotoViewer({ photos, openId, onClose, onNavigate, c, onToggle }
                   : <FileInfoPanel photo={photo} showOriginalFilename={c.showOriginalFilename} />}
               </aside>
             )}
-            <Filmstrip photos={photos} openId={openId} slug={c.slug} canvas={c.protection.canvas} onNavigate={onNavigate} />
+            <Filmstrip photos={photos} openId={openId} slug={c.slug} canvas={c.protection.canvas} showOriginalFilename={c.showOriginalFilename} onNavigate={onNavigate} />
           </>
         ),
         buttonPrev: touch || photos.length <= 1 ? () => null : undefined,

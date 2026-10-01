@@ -11,6 +11,7 @@ const HEIGHT = 72;
 
 interface FilmstripProps {
   photos: Photo[]; openId: number | null; slug: string; canvas: boolean;
+  showOriginalFilename: boolean;
   onNavigate: (id: number) => void;
 }
 
@@ -19,7 +20,7 @@ interface FilmstripProps {
  * own scroll container, so a 2000 photo album mounts a screenful of thumbnails
  * rather than all of them. The open photo is kept in the middle.
  */
-export function Filmstrip({ photos, openId, slug, canvas, onNavigate }: FilmstripProps) {
+export function Filmstrip({ photos, openId, slug, canvas, showOriginalFilename, onNavigate }: FilmstripProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Stable for the same reason as in MasonryGrid: both are dependencies of the
@@ -51,6 +52,7 @@ export function Filmstrip({ photos, openId, slug, canvas, onNavigate }: Filmstri
         {virtualizer.getVirtualItems().map((item) => {
           const photo = photos[item.index];
           const current = item.index === index;
+          const thumbSrc = thumbnailUrlForTile(photo.thumbnail_url, photo, THUMB);
           return (
             <button
               key={item.key}
@@ -58,22 +60,26 @@ export function Filmstrip({ photos, openId, slug, canvas, onNavigate }: Filmstri
               data-testid="filmstrip-thumb"
               data-photo-id={photo.id}
               aria-current={current ? 'true' : undefined}
-              aria-label={photo.filename}
+              aria-label={showOriginalFilename && photo.original_filename ? photo.original_filename : photo.filename}
               className={`cg-filmstrip-thumb${current ? ' cg-filmstrip-current' : ''}`}
               style={{ width: THUMB, height: THUMB, transform: `translateX(${item.start}px)` }}
               onClick={() => onNavigate(photo.id)}
             >
-              <AuthenticatedImage
-                src={thumbnailUrlForTile(photo.thumbnail_url, photo, THUMB) || photo.url}
-                alt=""
-                slug={slug}
-                isGallery
-                useCanvasRendering={canvas}
-                queuePriority="normal"
-                decoding="async"
-                draggable={false}
-                className="cg-filmstrip-img"
-              />
+              {/* Without a thumbnail the button stays a placeholder box: a
+                  56px thumb never pulls the original. */}
+              {thumbSrc && (
+                <AuthenticatedImage
+                  src={thumbSrc}
+                  alt=""
+                  slug={slug}
+                  isGallery
+                  useCanvasRendering={canvas}
+                  queuePriority="normal"
+                  decoding="async"
+                  draggable={false}
+                  className="cg-filmstrip-img"
+                />
+              )}
             </button>
           );
         })}
