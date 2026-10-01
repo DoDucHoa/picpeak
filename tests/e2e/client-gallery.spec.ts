@@ -115,7 +115,17 @@ for (const vp of VIEWPORTS) {
       await press(page.getByRole('menuitem', { name: 'File Name' }));
       await expect(page).toHaveURL(/[?&]sort=name/);
 
-      const firstName = () => page.getByTestId('tile-open').first().getAttribute('aria-label');
+      // The tiles are named by the stored file name unless the install shows
+      // original names, so the uploaded name is looked up by photo id.
+      const listed = await page.request.get(`/api/admin/photos/${g.eventId}/photos`, {
+        headers: { Authorization: `Bearer ${g.token}` },
+      });
+      expect(listed.ok()).toBeTruthy();
+      const body = await listed.json();
+      const uploadedName = new Map<string, string>(
+        (body.photos || body).map((p: { id: number; original_filename: string }) => [String(p.id), p.original_filename]),
+      );
+      const firstName = async () => uploadedName.get((await tiles(page).first().getAttribute('data-photo-id')) ?? '');
       await expect.poll(firstName).toMatch(/^(alpha|foxtrot)\.jpg$/);
       const before = await firstName();
 
