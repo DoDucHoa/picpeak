@@ -119,3 +119,28 @@ describe('closePhoto', () => {
     expect(window.history.length).toBe(before);
   });
 });
+
+describe('pick count', () => {
+  it('counts picks across the whole gallery for the limit, while the tabs stay in the folder', async () => {
+    const picked = [
+      { ...photos[0], is_favorited: true },
+      photos[1],
+      { id: 5, filename: 'e.jpg', url: '/5', type: 'individual', size: 1, uploaded_at: '2026-01-05', is_favorited: false, category_id: 9 },
+      { id: 6, filename: 'f.jpg', url: '/6', type: 'individual', size: 1, uploaded_at: '2026-01-06', is_favorited: true, category_id: 9 },
+      { id: 7, filename: 'g.jpg', url: '/7', type: 'individual', size: 1, uploaded_at: '2026-01-07', is_favorited: true, category_id: 9 },
+    ];
+    gallery.data = { event: { id: 1 }, photos: picked, categories: folderCategories };
+    window.history.replaceState(null, '', '/gallery/s?folder=c-9');
+    const { result } = renderHook(() => useGalleryController('s', seed, false), { wrapper });
+    await waitFor(() => expect(result.current.folders.open?.id).toBe(9));
+    expect(result.current.counts.picked).toBe(2);
+    expect(result.current.pickedTotal).toBe(3);
+  });
+});
+
+describe('feedback settings', () => {
+  it('loads them for the admin preview, whose seed carries no event id', async () => {
+    const { result } = renderHook(() => useGalleryController('s', { ...seed, id: 0 }, false), { wrapper });
+    await waitFor(() => expect(result.current.feedbackSettings?.feedback_enabled).toBe(true));
+  });
+});

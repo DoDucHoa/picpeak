@@ -65,7 +65,8 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
     tabs.push({
       tab: 'picked',
       label: t('clientGallery.tabs.pick', 'Pick'),
-      count: pickLimit ? `${c.counts.picked} / ${pickLimit}` : String(c.counts.picked),
+      // The limit is gallery-wide, so its count is too, even inside a folder.
+      count: pickLimit ? `${c.pickedTotal} / ${pickLimit}` : String(c.counts.picked),
       icon: <PickIcon filled />,
     });
   }

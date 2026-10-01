@@ -38,6 +38,15 @@ describe('GalleryToolbar', () => {
     expect(screen.getByRole('tab', { name: /total 205/i })).toBeTruthy();
   });
 
+  it('counts the pick limit across the gallery inside a folder', () => {
+    const c = fakeController({
+      counts: { all: 40, liked: 0, picked: 2 }, pickedTotal: 9,
+      folders: { ...fakeController().folders, open: folder },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /^pick 9 \/ 205$/i })).toBeTruthy();
+  });
+
   it('shows Pick N without a limit', () => {
     render(<GalleryToolbar c={fakeController({ pickLimit: null })} onShare={vi.fn()} />);
     expect(screen.getByRole('tab', { name: /^pick 9$/i })).toBeTruthy();

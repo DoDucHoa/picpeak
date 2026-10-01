@@ -21,7 +21,7 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
     setSort: vi.fn(), toggleDir: vi.fn(), setView: vi.fn(), setTab: vi.fn(),
     openPhoto: vi.fn(), closePhoto: vi.fn(),
     visiblePhotos: [], scopedPhotos: [], counts: { all: 205, liked: 0, picked: 9 },
-    pickLimit: 205,
+    pickLimit: 205, pickedTotal: 9,
     feedbackSettings: { feedback_enabled: true, allow_likes: true, allow_favorites: true },
     identityMode: 'simple',
     heroPhoto: null, heroLogoUrl: null, brandName: '',

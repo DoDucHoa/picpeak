@@ -79,6 +79,8 @@ export interface GalleryController {
   closePhoto: () => void;
   visiblePhotos: Photo[]; scopedPhotos: Photo[]; counts: { all: number; liked: number; picked: number };
   pickLimit: number | null;
+  /** Picks across the whole gallery: the pick limit is gallery-wide, the tabs are not. */
+  pickedTotal: number;
   feedbackSettings: Partial<FeedbackSettings> | undefined; identityMode: 'simple' | 'guest';
   heroPhoto: Photo | null; heroLogoUrl: string | null; brandName: string;
   protection: { level: 'basic' | 'standard' | 'enhanced' | 'maximum'; disableRightClick: boolean; devtools: boolean; canvas: boolean };
@@ -310,7 +312,8 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
 
   // Fetch feedback settings
   const { data: feedbackSettings } = useQuery<Partial<FeedbackSettings>>({
-    queryKey: ['gallery-feedback-settings', event.id],
+    // Keyed on the slug: the admin preview seeds an event id of 0.
+    queryKey: ['gallery-feedback-settings', slug],
     queryFn: async () => {
       try {
         // Use public endpoint to get feedback settings
@@ -321,7 +324,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
         return { feedback_enabled: false };
       }
     },
-    enabled: !!event.id,
+    enabled: !!slug,
   });
 
   // People in this gallery (#1074).
@@ -539,6 +542,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   });
   const visiblePhotos = useMemo(() => tabPhotos(filteredPhotos, url.tab), [filteredPhotos, url.tab]);
   const counts = useMemo(() => tabCounts(scopedPhotos), [scopedPhotos]);
+  const pickedTotal = useMemo(() => tabCounts(data?.photos ?? []).picked, [data?.photos]);
 
   // Deep link to a photo (`?photo=<id>`). A link shared from the liked tab, or
   // from inside a folder, must still open the photo for someone whose view
@@ -689,7 +693,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     event, slug,
     url, setSort, toggleDir, setView, setTab, openPhoto, closePhoto,
     visiblePhotos, scopedPhotos, counts,
-    pickLimit,
+    pickLimit, pickedTotal,
     feedbackSettings, identityMode,
     heroPhoto: staticHeroPhoto, heroLogoUrl, brandName,
     protection,
@@ -713,7 +717,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   }), [
     data, isLoading, error, refetch, photosQueryKey, event, slug,
     url, setSort, toggleDir, setView, setTab, openPhoto, closePhoto,
-    visiblePhotos, scopedPhotos, counts, pickLimit, feedbackSettings, identityMode,
+    visiblePhotos, scopedPhotos, counts, pickLimit, pickedTotal, feedbackSettings, identityMode,
     staticHeroPhoto, heroLogoUrl, brandName, protection, showOriginalFilename,
     allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
     selection, handleDownloadSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
