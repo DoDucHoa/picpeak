@@ -1978,6 +1978,17 @@
       "noGlobal": "No banner is set in Branding, so none shows.",
       "override": "Override for this event",
       "backToGlobal": "Use the Branding banner again"
+    },
+    "nextSteps": {
+      "title": "Next steps",
+      "uploadPhotos": "Upload photos",
+      "uploadAction": "Upload",
+      "chooseHero": "Choose a hero photo",
+      "chooseHeroAction": "Choose",
+      "publish": "Publish and send to the client",
+      "publishAction": "Publish",
+      "done": "done",
+      "needsPermission": "Needs the {{permission}} permission"
     }
   },
   "settings": {

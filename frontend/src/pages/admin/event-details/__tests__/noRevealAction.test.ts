@@ -15,6 +15,8 @@ describe.each([
   'src/pages/admin/EventDetailsPage.tsx',
   'src/services/events.service.ts',
   'src/pages/admin/CreateEventPage.tsx',
+  'src/pages/admin/create-event/CreateEventForm.tsx',
+  'src/pages/admin/create-event/createForm.ts',
 ])('%s', (rel) => {
   const src = fs.readFileSync(path.join(FRONTEND, rel), 'utf8');
   it('names no reveal action and no guest upload setting', () => {

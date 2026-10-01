@@ -294,4 +294,24 @@ describe('event Settings save model', () => {
     expect(await nameField()).toBeDisabled();
     expect(bar()).toBeNull();
   });
+
+  it('publishes a draft from the Next steps list (spec 5.6)', async () => {
+    getEvent.mockResolvedValue({ ...legacyEvent, is_draft: 1 });
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createMemoryRouter(
+      [{ path: '/admin/events/:id', element: <EventDetailsPage /> }],
+      { initialEntries: ['/admin/events/7'] },
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ConfirmDialogProvider>
+          <RouterProvider router={router} />
+        </ConfirmDialogProvider>
+      </QueryClientProvider>,
+    );
+    const steps = within(await screen.findByRole('region', { name: 'Next steps' }));
+    fireEvent.click(steps.getByRole('button', { name: 'Publish' }));
+    // PublishGalleryDialog carries no dialog role; its heading proves it opened.
+    expect(await screen.findByRole('heading', { name: 'Publish gallery' })).toBeInTheDocument();
+  });
 });

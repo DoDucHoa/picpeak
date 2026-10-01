@@ -1976,6 +1976,17 @@
       "noGlobal": "Branding chưa đặt banner nên không có banner nào hiện.",
       "override": "Ghi đè cho sự kiện này",
       "backToGlobal": "Dùng lại banner trong Branding"
+    },
+    "nextSteps": {
+      "title": "Các bước tiếp theo",
+      "uploadPhotos": "Tải ảnh lên",
+      "uploadAction": "Tải lên",
+      "chooseHero": "Chọn ảnh bìa",
+      "chooseHeroAction": "Chọn",
+      "publish": "Xuất bản và gửi cho khách hàng",
+      "publishAction": "Xuất bản",
+      "done": "đã xong",
+      "needsPermission": "Cần quyền {{permission}}"
     }
   },
   "settings": {

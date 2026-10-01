@@ -12,6 +12,7 @@ import { ClientAccessCard } from './ClientAccessCard';
 import { EventActionsCard } from './EventActionsCard';
 import { PhotoStatisticsCard } from './PhotoStatisticsCard';
 import { ArchiveStatusCard } from './ArchiveStatusCard';
+import { NextStepsChecklist } from './NextStepsChecklist';
 import { toBoolean } from '../../../utils/parsers';
 
 interface OverviewTabProps {
@@ -58,87 +59,96 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   isDuplicating,
 }) => {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {/* Left Column - Main Details */}
-      <div className="space-y-6">
-        {/* Event Information */}
-        <EventInformationCard
-          event={event}
-          phoneFieldEnabled={phoneFieldEnabled}
-          daysUntilExpiration={daysUntilExpiration}
-        />
-
-        {/* Share Link */}
-        <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
-
-        {/* Branded short URLs (#699). Sits between the canonical share-link
-            card and the Client Access card — same "things you share with
-            the customer" cluster. */}
-        <ShortUrlsCard eventId={event.id} />
-
-        {/* Client Access (#172) */}
-        <ClientAccessCard event={event} refetchEvent={refetchEvent} />
-
-        {/* Download allowance (migration 214). Always mounted: the card owns
-            its own on-off switch, and the ledger it reports on survives the
-            feature being switched off, so hiding it would hide history. */}
-        <PermissionGate permissions={['events.view', 'events.edit']}>
-          <DownloadQuotaCard eventId={event.id} part="status" downloadsDisabled={!event.allow_downloads} />
-        </PermissionGate>
-
-        {/* Actions */}
-        {!event.is_archived && (
-          <PermissionGate permissions={['events.edit', 'events.archive', 'events.create']}>
-            <EventActionsCard
-              event={event}
-              onArchive={onArchive}
-              isArchiving={isArchiving}
-              setShowPublishDialog={setShowPublishDialog}
-              isPublishing={isPublishing}
-              setShowDuplicateDialog={setShowDuplicateDialog}
-              isDuplicating={isDuplicating}
-              onSendGalleryEmail={onSendGalleryEmail}
-              isSendingGalleryEmail={isSendingGalleryEmail}
-              assignedCustomerCount={
-                ((event as {
-                  customer_accounts?: Array<{
-                    id: number; email?: string; is_active?: unknown; can_sign_in?: unknown
-                  }>
-                }).customer_accounts || [])
-                  // Only accounts the endpoint would actually mail count, or
-                  // the button appears and then 400s. Mirrors
-                  // canReceiveGalleryNotice in crud.js: active, holding an
-                  // address, and able to sign in — a PASSIVE customer
-                  // (never invited, so no password) would get a portal link
-                  // to a door that will not open. toBoolean rather than
-                  // `!== false` because SQLite returns 0/1.
-                  .filter((c) => toBoolean(c.is_active, true)
-                    && toBoolean(c.can_sign_in, true)
-                    && !!c.email).length
-              }
-            />
-          </PermissionGate>
-        )}
-      </div>
-
-      {/* Right Column - Statistics, Theme, and Actions */}
-      <div className="space-y-6">
-        {/* Photo Statistics */}
-        <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
-
-        {/* Feedback Moderation Panel */}
-        {!event.is_archived && feedbackSettings?.feedback_enabled && (
-          <FeedbackModerationPanel
-            eventId={parseInt(id!)}
-            compact={true}
-            maxItems={3}
+    <div className="space-y-6">
+      {/* Spec 5.6: shown only while the event is a draft. */}
+      <NextStepsChecklist
+        event={event}
+        onUploadPhotos={() => setActiveTab('photos')}
+        onChooseHero={() => openSettings('appearance')}
+        onPublish={() => setShowPublishDialog(true)}
+      />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Left Column - Main Details */}
+        <div className="space-y-6">
+          {/* Event Information */}
+          <EventInformationCard
+            event={event}
+            phoneFieldEnabled={phoneFieldEnabled}
+            daysUntilExpiration={daysUntilExpiration}
           />
-        )}
 
-        {/* Archive Status */}
-        {event.is_archived ? (
-          <ArchiveStatusCard event={event} id={id} />
-        ) : null}
+          {/* Share Link */}
+          <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
+
+          {/* Branded short URLs (#699). Sits between the canonical share-link
+              card and the Client Access card — same "things you share with
+              the customer" cluster. */}
+          <ShortUrlsCard eventId={event.id} />
+
+          {/* Client Access (#172) */}
+          <ClientAccessCard event={event} refetchEvent={refetchEvent} />
+
+          {/* Download allowance (migration 214). Always mounted: the card owns
+              its own on-off switch, and the ledger it reports on survives the
+              feature being switched off, so hiding it would hide history. */}
+          <PermissionGate permissions={['events.view', 'events.edit']}>
+            <DownloadQuotaCard eventId={event.id} part="status" downloadsDisabled={!event.allow_downloads} />
+          </PermissionGate>
+
+          {/* Actions */}
+          {!event.is_archived && (
+            <PermissionGate permissions={['events.edit', 'events.archive', 'events.create']}>
+              <EventActionsCard
+                event={event}
+                onArchive={onArchive}
+                isArchiving={isArchiving}
+                setShowPublishDialog={setShowPublishDialog}
+                isPublishing={isPublishing}
+                setShowDuplicateDialog={setShowDuplicateDialog}
+                isDuplicating={isDuplicating}
+                onSendGalleryEmail={onSendGalleryEmail}
+                isSendingGalleryEmail={isSendingGalleryEmail}
+                assignedCustomerCount={
+                  ((event as {
+                    customer_accounts?: Array<{
+                      id: number; email?: string; is_active?: unknown; can_sign_in?: unknown
+                    }>
+                  }).customer_accounts || [])
+                    // Only accounts the endpoint would actually mail count, or
+                    // the button appears and then 400s. Mirrors
+                    // canReceiveGalleryNotice in crud.js: active, holding an
+                    // address, and able to sign in — a PASSIVE customer
+                    // (never invited, so no password) would get a portal link
+                    // to a door that will not open. toBoolean rather than
+                    // `!== false` because SQLite returns 0/1.
+                    .filter((c) => toBoolean(c.is_active, true)
+                      && toBoolean(c.can_sign_in, true)
+                      && !!c.email).length
+                }
+              />
+            </PermissionGate>
+          )}
+        </div>
+
+        {/* Right Column - Statistics, Theme, and Actions */}
+        <div className="space-y-6">
+          {/* Photo Statistics */}
+          <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
+
+          {/* Feedback Moderation Panel */}
+          {!event.is_archived && feedbackSettings?.feedback_enabled && (
+            <FeedbackModerationPanel
+              eventId={parseInt(id!)}
+              compact={true}
+              maxItems={3}
+            />
+          )}
+
+          {/* Archive Status */}
+          {event.is_archived ? (
+            <ArchiveStatusCard event={event} id={id} />
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ describe('public gallery warning', () => {
 
   it.each([
     'src/pages/admin/event-details/settings/AccessSection.tsx',
-    'src/pages/admin/CreateEventPage.tsx',
+    'src/pages/admin/create-event/CreateEventForm.tsx',
   ])('%s falls back to the English copy', (rel) => {
     const src = fs.readFileSync(path.join(FRONTEND, rel), 'utf8');
     expect(src).toContain(`t('events.publicGalleryWarning', '${en.events.publicGalleryWarning}')`);
