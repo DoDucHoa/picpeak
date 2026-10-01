@@ -1,25 +1,12 @@
 import React, { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { format, parseISO, isValid } from 'date-fns';
-import { de, enUS, fr, ptBR, vi } from 'date-fns/locale';
+import { getDateFnsLocale } from '../../../utils/dateLocale';
 import { CloseIcon, InfoIcon } from '../icons';
 
 interface ExpiryToastProps {
   slug: string;
   expiresAt: string | null;
-}
-
-// Same language to locale mapping as hooks/useLocalizedDate, which cannot be
-// used here: it reads the public settings through React Query.
-function localeFor(language: string) {
-  switch (language) {
-    case 'de': return de;
-    case 'pt':
-    case 'pt-BR': return ptBR;
-    case 'fr': return fr;
-    case 'vi': return vi;
-    default: return enUS;
-  }
 }
 
 const storageKey = (slug: string) => `cg_expiry_dismissed_${slug}`;
@@ -35,7 +22,7 @@ export function ExpiryToast({ slug, expiresAt }: ExpiryToastProps) {
   if (!expiresAt || dismissed) return null;
   const parsed = parseISO(expiresAt);
   if (!isValid(parsed)) return null;
-  const date = format(parsed, 'dd MMM yyyy', { locale: localeFor(i18n.language) });
+  const date = format(parsed, 'dd MMM yyyy', { locale: getDateFnsLocale(i18n.language) });
 
   const close = () => {
     try { sessionStorage.setItem(storageKey(slug), '1'); } catch { /* storage blocked: dismiss for this view only */ }

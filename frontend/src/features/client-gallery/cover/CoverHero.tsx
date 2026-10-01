@@ -14,7 +14,14 @@ interface CoverHeroProps {
   languagePicker: React.ReactNode;
 }
 
-const ANCHORS = ['center', 'top', 'bottom', 'left', 'right'];
+// The values the backend stores for hero_image_anchor (eventSettings validator):
+// top, center, bottom, or a focal point "X% Y%" with both numbers 0 to 100.
+function objectPositionFor(anchor: string): string {
+  if (['top', 'center', 'bottom'].includes(anchor)) return anchor;
+  const match = /^(\d{1,3})%\s+(\d{1,3})%$/.exec(anchor);
+  if (match && Number(match[1]) <= 100 && Number(match[2]) <= 100) return anchor;
+  return 'center';
+}
 
 /** The full-screen cover: photo, title and photographer bottom left, "View Album" bottom right. */
 export function CoverHero({ photo, slug, title, subtitle, logoUrl, anchor, onViewAlbum, languagePicker }: CoverHeroProps) {
@@ -30,7 +37,7 @@ export function CoverHero({ photo, slug, title, subtitle, logoUrl, anchor, onVie
           isGallery
           queuePriority="high"
           className="cg-cover-img"
-          style={{ objectPosition: ANCHORS.includes(anchor) ? anchor : 'center' }}
+          style={{ objectPosition: objectPositionFor(anchor) }}
         />
       )}
       <div className="cg-cover-shade" />
