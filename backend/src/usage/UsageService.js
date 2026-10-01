@@ -24,8 +24,7 @@ const {
   schemaForConsent,
   schemaRank,
   featureKeysFor,
-  observesUse,
-  LAYOUTS
+  observesUse
 } = require('./protocol.cjs');
 
 // The collector this installation reports to. Declared once rather than
@@ -59,46 +58,11 @@ const SETTING_KEYS = [
   'database_backup_enabled',
   'backup_destination_type',
   'backup_s3_bucket',
-  'theme_config',
   'general_custom_css',
   'general_public_site_custom_css'
 ];
 const truth = (value) => value === true || value === 1 || value === '1';
 
-// `events.color_theme` holds either a theme object or the NAME of a preset —
-// the admin theme picker stores names, and eventTypeService seeds them too
-// (`theme_preset: 'corporateTimeline'`). Reading only `value.galleryLayout`
-// therefore reported `grid` for every preset-themed install.
-//
-// Only the layout each name maps to is duplicated here, not the presets
-// themselves; frontend/src/types/theme.types.ts stays the source of truth. A
-// name this map does not know reports `other` rather than a confident `grid`,
-// so a preset added on the frontend degrades to "something else" instead of
-// quietly inflating the grid count.
-const PRESET_LAYOUTS = {
-  default: 'grid',
-  elegantWedding: 'grid',
-  modernMasonry: 'masonry',
-  birthdayFun: 'carousel',
-  corporateTimeline: 'timeline',
-  artisticMosaic: 'mosaic',
-  darkClassic: 'grid',
-  darkElegant: 'grid',
-  darkModern: 'masonry',
-  galleryPremium: 'gallery-premium',
-  galleryStory: 'gallery-story'
-};
-
-function resolveLayout(value) {
-  const named =
-    typeof value === 'string'
-      ? PRESET_LAYOUTS[value]
-      : value && typeof value === 'object'
-        ? value.galleryLayout
-        : null;
-  if (!named) return typeof value === 'string' ? 'other' : 'grid';
-  return LAYOUTS.includes(named) ? named : 'other';
-}
 const parse = (value) => {
   try {
     return JSON.parse(value);
@@ -925,45 +889,22 @@ class UsageService {
           .select('id')
           .first()
       );
-    const theme = settings.theme_config || {};
-    // An enabled template applied to an event is gallery styling by the same
-    // definition as the settings fields — the Custom CSS tab is where both are
-    // authored. Existence only; template contents are never read.
-    const appliedTemplate = await this.db('css_templates')
-      .where('is_enabled', formatBoolean(true))
-      .whereIn(
-        'id',
-        this.db('events').whereNotNull('css_template_id').select('css_template_id')
-      )
-      .select('id')
-      .first();
+    // Gallery themes and CSS templates are gone (migration 263), so custom CSS
+    // can only be configured globally now. The signal itself stays: it is part
+    // of every consented wire version, which never changes once published.
     features.custom_css.configured = Boolean(
-      settings.general_custom_css ||
-        settings.general_public_site_custom_css ||
-        theme.customCss ||
-        appliedTemplate
+      settings.general_custom_css || settings.general_public_site_custom_css
     );
-    // Read only the theme field, never event names, IDs, sizes, counts, or photos.
-    const themes = await this.db('events').distinct('color_theme');
-    const layouts = new Set();
-    // An event with no theme of its own renders with the global one.
-    const inheritedLayout = resolveLayout(theme);
-    for (const row of themes) {
-      const value = parse(row.color_theme);
-      if (row.color_theme === null || row.color_theme === '') {
-        layouts.add(inheritedLayout);
-      } else {
-        layouts.add(resolveLayout(value));
-      }
-      if (value && typeof value === 'object' && value.customCss)
-        features.custom_css.configured = true;
-    }
     // Applied CSS is already a capability in use; no visitor observation is
     // needed. Remember its presence as a coarse lifetime marker after consent.
     if (features.custom_css.configured) {
       if (persist) await this.markUsed(['custom_css']);
       features.custom_css.used = true;
     }
+    // Every gallery renders the one fixed design, which none of the legacy
+    // layout names describe. Presence only: no event row is read.
+    const hasGallery = Boolean(await this.db('events').select(this.db.raw('1 as present')).first());
+    const layouts = hasGallery ? ['other'] : [];
     const now = new Date(this.now()).toISOString();
     const expanded = version !== 'usage.v1'
       ? await require('./expandedSnapshot').expandSnapshot(this.db, { features, flags, used, now: this.now(), version })
@@ -973,7 +914,7 @@ class UsageService {
       report_date: now.slice(0, 10),
       generated_at: now,
       features: expanded,
-      gallery_layouts: [...layouts].sort(),
+      gallery_layouts: layouts,
       ...(['usage.v3', 'usage.v4', 'usage.v5'].includes(version) ? { inventory: await require('./inventorySnapshot').inventorySnapshot(this.db) } : {})
     };
   }

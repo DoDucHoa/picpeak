@@ -212,7 +212,6 @@ router.get('/:id', adminAuth, requirePermission('archives.view'), requireEventOw
       hostEmail: archive.host_email,
       adminEmail: archive.admin_email,
       welcomeMessage: archive.welcome_message,
-      colorTheme: archive.color_theme,
       createdAt: archive.created_at,
       expiresAt: archive.expires_at,
       archivedAt: archive.archived_at,

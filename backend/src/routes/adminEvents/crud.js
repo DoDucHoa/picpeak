@@ -243,7 +243,6 @@ module.exports = (router) => {
     }),
     body('expiration_days').isInt({ min: 1, max: 365 }).optional(),
     body('welcome_message').optional().trim(),
-    body('color_theme').optional().trim(),
     body('allow_user_uploads').optional().isBoolean().toBoolean(),
     body('upload_category_id').optional({ nullable: true, checkFalsy: true }).isInt(),
     // Uploader names (#1561).
@@ -271,14 +270,10 @@ module.exports = (router) => {
     body('allow_reactions').optional().isBoolean(),
     body('allow_color_labels').optional().isBoolean(),
     body('keybind_mode').optional().isIn(KEYBIND_MODES),
-    body('css_template_id').optional({ nullable: true, checkFalsy: true }).isInt(),
     // Hero logo settings
     body('hero_logo_visible').optional({ nullable: true }).isBoolean(),
     body('hero_logo_size').optional({ nullable: true }).isIn(['small', 'medium', 'large', 'xlarge']),
     body('hero_logo_position').optional().isIn(['top', 'center', 'bottom']),
-    // Header style settings (decoupled from layout)
-    body('header_style').optional().isIn(['hero', 'standard', 'banner', 'minimal', 'none']),
-    body('hero_divider_style').optional().isIn(['wave', 'straight', 'angle', 'curve', 'none']),
     // Hero image anchor position (#162) – accepts legacy keywords or "X% Y%" focal point
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
@@ -959,7 +954,6 @@ module.exports = (router) => {
         admin_email: (await require('../../services/notificationEmail').getNotificationEmail()) || source.admin_email || null,
         password_hash,
         welcome_message: source.welcome_message || '',
-        color_theme: source.color_theme,
         share_link: shareLinkToStore,
         share_token: shareToken,
         expires_at: newExpiresAt ? newExpiresAt.toISOString() : null,
@@ -983,7 +977,6 @@ module.exports = (router) => {
         watermark_downloads: source.watermark_downloads,
         watermark_text: source.watermark_text,
         require_password: source.require_password,
-        css_template_id: source.css_template_id || null,
         hero_logo_visible: source.hero_logo_visible,
         hero_logo_size: source.hero_logo_size,
         hero_logo_position: source.hero_logo_position,
@@ -1000,8 +993,6 @@ module.exports = (router) => {
         info_mode: source.info_mode || 'inherit',
         info_markdown: source.info_mode === 'custom' ? (source.info_markdown || null) : null,
         login_logo_visible: source.login_logo_visible,
-        header_style: source.header_style || 'standard',
-        hero_divider_style: source.hero_divider_style || 'wave',
         hero_image_anchor: source.hero_image_anchor || 'center',
         photo_cap: source.photo_cap || null,
         is_draft: formatBoolean(true),
@@ -1109,7 +1100,6 @@ module.exports = (router) => {
     body('is_active').optional().isBoolean(),
     body('expires_at').optional({ nullable: true, checkFalsy: true }).isISO8601(),
     body('welcome_message').optional({ nullable: true, checkFalsy: true }).trim(),
-    body('color_theme').optional({ nullable: true }),
     body('allow_user_uploads').optional().isBoolean(),
     // Uploader names (#1561).
     body('guest_name_mode').optional().isIn(GUEST_NAME_MODES),
@@ -1168,16 +1158,12 @@ module.exports = (router) => {
       }
       return true;
     }),
-    body('css_template_id').optional({ nullable: true, checkFalsy: true }).isInt(),
     // Hero logo settings
     body('hero_logo_visible').optional({ nullable: true }).isBoolean(),
     body('hero_logo_size').optional({ nullable: true }).isIn(['small', 'medium', 'large', 'xlarge']),
     body('hero_logo_position').optional().isIn(['top', 'center', 'bottom']),
     // Password-page logo toggle (#894). null = default (show).
     body('login_logo_visible').optional({ nullable: true }).isBoolean(),
-    // Header style settings (decoupled from layout)
-    body('header_style').optional().isIn(['hero', 'standard', 'banner', 'minimal', 'none']),
-    body('hero_divider_style').optional().isIn(['wave', 'straight', 'angle', 'curve', 'none']),
     // Hero image anchor position (#162) – accepts legacy keywords or "X% Y%" focal point
     body('hero_image_anchor').optional().custom(validateHeroImageAnchor),
     // Client access settings (#172)
@@ -1286,6 +1272,10 @@ module.exports = (router) => {
         // accepts the fields and ignores them, so old clients keep working and
         // the columns keep their values.
         'reveal_mode', 'reveal_at', 'allow_user_uploads', 'upload_category_id',
+        // Gallery theming is removed and migration 263 dropped these columns.
+        // An older admin client still posts them, so they are ignored here
+        // rather than reaching the UPDATE as unknown columns.
+        'color_theme', 'css_template_id', 'header_style', 'hero_divider_style',
       ];
       // Only canonical keys reach the UPDATE. SQLite resolves quoted
       // identifiers case-insensitively, so `{ "Event_Name": ... }` lands on
@@ -1501,8 +1491,6 @@ module.exports = (router) => {
       logger.debug('Update event request', {
         id,
         updates: sanitizeForLog(updates),
-        color_theme_length: updates.color_theme ? updates.color_theme.length : 0,
-        color_theme_type: typeof updates.color_theme,
         hero_photo_id: updates.hero_photo_id,
         hero_photo_id_type: typeof updates.hero_photo_id
       });
@@ -1618,27 +1606,6 @@ module.exports = (router) => {
         } else if (Object.prototype.hasOwnProperty.call(updates, mdKey)) {
           const md = typeof updates[mdKey] === 'string' ? updates[mdKey].trim() : '';
           updates[mdKey] = md || null;
-        }
-      }
-
-      // Sync header_style / hero_divider_style from color_theme JSON when not
-      // explicitly provided in the request body (#158).  This ensures the
-      // database columns stay in sync even if the frontend only sends the
-      // serialised theme object.
-      if (updates.color_theme && !Object.prototype.hasOwnProperty.call(updates, 'header_style')) {
-        try {
-          const themeStr = typeof updates.color_theme === 'string' ? updates.color_theme : '';
-          if (themeStr.startsWith('{')) {
-            const parsed = JSON.parse(themeStr);
-            if (parsed.headerStyle) {
-              updates.header_style = parsed.headerStyle;
-            }
-            if (parsed.heroDividerStyle && !Object.prototype.hasOwnProperty.call(updates, 'hero_divider_style')) {
-              updates.hero_divider_style = parsed.heroDividerStyle;
-            }
-          }
-        } catch (_) {
-        // color_theme is not JSON (e.g. preset name) – nothing to extract
         }
       }
 

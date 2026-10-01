@@ -16,7 +16,6 @@ const schema = Joi.object({
   password: Joi.string().max(1024).allow('', null),
   // Six-character floor, the same as the admin route's; '' still means none.
   client_password: Joi.string().min(6).max(1024).allow('', null),
-  color_theme: optionalText,
   welcome_message: optionalText,
   photo_cap: Joi.number().integer().min(1).allow(null),
   guest_name_mode: Joi.string().valid('off', 'optional', 'required'),

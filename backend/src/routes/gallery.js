@@ -8,5 +8,4 @@ router.use(require('./gallery/quota'));
 router.use(require('./gallery/media'));
 router.use(require('./gallery/stats'));
 router.use(require('./gallery/uploads'));
-router.use(require('./gallery/styles'));
 module.exports = router;

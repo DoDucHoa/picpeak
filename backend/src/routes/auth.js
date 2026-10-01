@@ -549,7 +549,6 @@ router.post('/gallery/verify', [
         event_type: event.event_type,
         event_date: event.event_date,
         welcome_message: event.welcome_message,
-        color_theme: event.color_theme,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.
         allow_user_uploads: false,
@@ -628,7 +627,6 @@ router.post('/gallery/:slug/client-login', [
         event_type: event.event_type,
         event_date: event.event_date,
         welcome_message: event.welcome_message,
-        color_theme: event.color_theme,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.
         allow_user_uploads: false,
@@ -728,7 +726,6 @@ router.post('/gallery/share-login', [
         event_type: event.event_type,
         event_date: event.event_date,
         welcome_message: event.welcome_message,
-        color_theme: event.color_theme,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.
         allow_user_uploads: false,

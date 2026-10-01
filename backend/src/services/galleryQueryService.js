@@ -417,7 +417,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       event_type: event.event_type,
       event_date: event.event_date,
       welcome_message: event.welcome_message,
-      color_theme: event.color_theme,
       expires_at: event.expires_at,
       hero_photo_id: event.hero_photo_id,
       // Defaults match /info: downloads on unless explicitly disabled,
@@ -453,8 +452,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       hero_logo_size: heroLogo.hero_logo_size,
       hero_logo_position: heroLogo.hero_logo_position,
       hero_logo_url: event.hero_logo_url || null,
-      header_style: event.header_style || 'standard',
-      hero_divider_style: event.hero_divider_style || 'wave',
       hero_image_anchor: event.hero_image_anchor || 'center',
       default_photo_sort: event.default_photo_sort || 'upload_date_desc',
       // Promo banner override (#440). GalleryView has always read

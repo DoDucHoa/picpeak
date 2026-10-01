@@ -141,25 +141,5 @@ describe('gallery cache headers, and guest uploads removed', () => {
         .set('If-None-Match', first.headers.etag);
       expect(second.status).toBe(304);
     });
-
-    it('leaves the cacheable routes alone', async () => {
-      // noStoreCache is mounted per route, not on the router, precisely so the
-      // media/asset routes keep their own long-lived caching.
-      await db('events').where({ id: eventA }).update({ css_template_id: null });
-      const css = await request(app).get(`/api/gallery/${SLUG_A}/css-template`);
-      expect(css.headers['cache-control']).toBeUndefined();
-
-      const [tpl] = await db('css_templates').insert({
-        name: 'Upload Status Test',
-        slot_number: 99,
-        css_content: 'body { color: red; }',
-        is_enabled: 1,
-      }).returning('id');
-      await db('events').where({ id: eventA }).update({ css_template_id: tpl?.id ?? tpl });
-
-      const cached = await request(app).get(`/api/gallery/${SLUG_A}/css-template`);
-      expect(cached.status).toBe(200);
-      expect(cached.headers['cache-control']).toBe('public, max-age=3600');
-    });
   });
 });

@@ -24,7 +24,6 @@ const SEEDED_BUT_NOT_SEED_ONLY = new Set([
   'cms_pages',                    // db.js base schema
   'photo_categories',             // db.js base schema
   'email_templates',              // db.js / 059
-  'css_templates',                // 052
   'roles',                        // 054; _permissionsBoot.js re-seeds
   'permissions',                  // 055; _permissionsBoot.js re-seeds
   'role_permissions',             // 056; _permissionsBoot.js re-seeds

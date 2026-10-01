@@ -437,20 +437,6 @@
         "GET /:id/preview"
       ]
     },
-    "adminCssTemplates.js": {
-      "decision": "configuration",
-      "signals": [
-        "custom_css"
-      ],
-      "reason": "Only existence of enabled applied CSS and locally observed application, not editing/viewing templates or any CSS text.",
-      "route_signatures": [
-        "GET /",
-        "GET /enabled",
-        "GET /:slotNumber",
-        "PUT /:slotNumber",
-        "POST /:slotNumber/reset"
-      ]
-    },
     "adminCustomers.js": {
       "decision": "partial",
       "signals": [
@@ -1725,14 +1711,6 @@
       "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
       "route_signatures": [
         "GET /:slug/stats"
-      ]
-    },
-    "gallery/styles.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/css-template"
       ]
     },
     "gallery/uploads.js": {

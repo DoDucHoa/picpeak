@@ -34,6 +34,25 @@ const { resetSecurityConfigCache } = require('../utils/authSecurity');
 const { errorResponse, safeValidationErrors } = require('../utils/routeHelpers');
 const { measureLocalStorageUsage } = require('../services/localStorageUsage');
 const logger = require('../utils/logger');
+
+// Gallery theming is gone; theme_config now carries brand styling only,
+// which the admin, the customer portal and the public site still read.
+// Must match BRAND_KEYS in migration 263 exactly.
+const BRAND_THEME_KEYS = [
+  'primaryColor', 'accentColor', 'accentDarkColor', 'backgroundColor',
+  'surfaceColor', 'elevatedColor', 'surfaceBorderColor', 'textColor',
+  'mutedTextColor', 'colorMode', 'forceColorMode',
+  'fontFamily', 'headingFontFamily', 'fontSize',
+  'borderRadius', 'buttonStyle', 'shadowStyle', 'logoUrl',
+];
+function brandThemeOnly(body) {
+  const kept = {};
+  for (const key of BRAND_THEME_KEYS) {
+    if (body && body[key] !== undefined) kept[key] = body[key];
+  }
+  return kept;
+}
+
 const router = express.Router();
 
 // What a stored secret looks like on GET; a save that carries it back means
@@ -1644,7 +1663,7 @@ router.post('/branding/watermark-logo', adminAuth, requirePermission('settings.e
 // Update theme settings
 router.put('/theme', adminAuth, requirePermission('settings.edit'), async (req, res) => {
   try {
-    const themeSettings = req.body;
+    const themeSettings = brandThemeOnly(req.body);
     const themeChanged = await settingsChanged(db, { theme_config: themeSettings }, ['theme_config']);
 
     // Save theme settings
@@ -1667,7 +1686,7 @@ router.put('/theme', adminAuth, requirePermission('settings.edit'), async (req, 
       actor_type: 'admin',
       actor_id: req.admin.id,
       actor_name: req.admin.username,
-      metadata: JSON.stringify({ theme_name: themeSettings.name || 'custom' })
+      metadata: JSON.stringify({ theme_name: req.body.name || 'custom' })
     });
 
     clearPublicSiteCache();

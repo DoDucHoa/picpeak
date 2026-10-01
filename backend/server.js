@@ -843,7 +843,6 @@ app.use('/api/admin/thumbnails', require('./src/routes/adminThumbnails'));
 app.use('/api/admin/photos', require('./src/routes/adminPhotoDimensions'));
 app.use('/api/admin/photos', require('./src/routes/adminPhotos'));
 app.use('/api/admin/photo-export', require('./src/routes/adminPhotoExport'));
-app.use('/api/admin/css-templates', require('./src/routes/adminCssTemplates'));
 app.use('/api/admin/events', require('./src/routes/adminEventRename'));
 app.use('/api/admin/users', require('./src/routes/adminUsers'));
 app.use('/api/admin/roles', require('./src/routes/adminRoles'));
