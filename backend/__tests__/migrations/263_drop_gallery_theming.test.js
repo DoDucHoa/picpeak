@@ -30,33 +30,62 @@ it('drops the css_templates table', async () => {
   expect(await db.schema.hasTable('css_templates')).toBe(false);
 });
 
+const BRAND = {
+  primaryColor: '#123456', accentColor: '#abcdef', accentDarkColor: '#0a0a0a',
+  backgroundColor: '#ffffff', surfaceColor: '#f5f5f5', elevatedColor: '#eeeeee',
+  surfaceBorderColor: '#dddddd', textColor: '#111111', mutedTextColor: '#666666',
+  colorMode: 'auto', forceColorMode: 'light', fontFamily: 'Inter',
+  headingFontFamily: 'Lora', fontSize: 'normal', borderRadius: 'md',
+  buttonStyle: 'pill', shadowStyle: 'subtle', logoUrl: '/uploads/logo.png',
+};
+const GALLERY = {
+  galleryLayout: 'masonry', gallerySettings: { spacing: 'tight' },
+  headerStyle: 'hero', heroDividerStyle: 'wave', controlsStyle: 'sidebar',
+  customCss: '.x{}', backgroundPattern: 'dots', legacyHeaderStyle: 'standard',
+  footerStyle: 'minimal', showEventInfo: true, showBranding: false, name: 'Elegant',
+};
+
 it('keeps brand keys and strips gallery keys from theme_config', async () => {
-  const stored = {
-    primaryColor: '#123456', accentColor: '#abcdef', backgroundColor: '#ffffff',
-    textColor: '#111111', fontFamily: 'Inter', headingFontFamily: 'Lora',
-    borderRadius: 'md', fontSize: 'normal', shadowStyle: 'subtle',
-    forceColorMode: 'light', logoUrl: '/uploads/logo.png',
-    galleryLayout: 'masonry', gallerySettings: { spacing: 'tight' },
-    headerStyle: 'hero', heroDividerStyle: 'wave', controlsStyle: 'sidebar',
-    customCss: '.x{}', backgroundPattern: 'dots', name: 'Elegant',
-  };
   await db('app_settings').insert({
-    setting_key: 'theme_config', setting_value: JSON.stringify(stored), setting_type: 'theme',
+    setting_key: 'theme_config', setting_value: JSON.stringify({ ...BRAND, ...GALLERY }), setting_type: 'theme',
   }).onConflict('setting_key').merge();
 
   await migration.up(db);
 
-  const kept = JSON.parse((await themeRow()).setting_value);
-  expect(kept).toEqual({
-    primaryColor: '#123456', accentColor: '#abcdef', backgroundColor: '#ffffff',
-    textColor: '#111111', fontFamily: 'Inter', headingFontFamily: 'Lora',
-    borderRadius: 'md', fontSize: 'normal', shadowStyle: 'subtle',
-    forceColorMode: 'light', logoUrl: '/uploads/logo.png',
-  });
+  expect(JSON.parse((await themeRow()).setting_value)).toEqual(BRAND);
 });
 
 it('converges when run again', async () => {
+  const before = (await themeRow()).setting_value;
   await expect(migration.up(db)).resolves.not.toThrow();
+  expect((await themeRow()).setting_value).toBe(before);
+});
+
+it('handles a setting_value that is already a parsed object', async () => {
+  const update = jest.fn().mockResolvedValue(1);
+  const knex = jest.fn(() => ({
+    where: () => ({ first: async () => ({ setting_value: { ...BRAND, ...GALLERY } }), update }),
+  }));
+  knex.schema = { hasTable: async () => true };
+
+  await migration.stripThemeConfig(knex);
+
+  expect(update).toHaveBeenCalledWith({ setting_value: JSON.stringify(BRAND) });
+});
+
+it('leaves an unparseable theme_config untouched and warns', async () => {
+  const update = jest.fn();
+  const knex = jest.fn(() => ({
+    where: () => ({ first: async () => ({ setting_value: '{not json' }), update }),
+  }));
+  knex.schema = { hasTable: async () => true };
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+  await migration.stripThemeConfig(knex);
+
+  expect(update).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledTimes(1);
+  warn.mockRestore();
 });
 
 it('down recreates empty columns and the table', async () => {

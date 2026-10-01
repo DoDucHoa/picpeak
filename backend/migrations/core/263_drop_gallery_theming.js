@@ -12,9 +12,11 @@
  * database backup.
  */
 const BRAND_KEYS = [
-  'primaryColor', 'accentColor', 'backgroundColor', 'textColor',
-  'fontFamily', 'headingFontFamily', 'borderRadius', 'fontSize',
-  'shadowStyle', 'forceColorMode', 'logoUrl',
+  'primaryColor', 'accentColor', 'accentDarkColor', 'backgroundColor',
+  'surfaceColor', 'elevatedColor', 'surfaceBorderColor', 'textColor',
+  'mutedTextColor', 'colorMode', 'forceColorMode', 'fontFamily',
+  'headingFontFamily', 'fontSize', 'borderRadius', 'buttonStyle',
+  'shadowStyle', 'logoUrl',
 ];
 
 const EVENT_COLUMNS = ['color_theme', 'css_template_id', 'header_style', 'hero_divider_style'];
@@ -30,12 +32,14 @@ async function dropColumns(knex, table, columns) {
 }
 
 async function stripThemeConfig(knex) {
+  if (!(await knex.schema.hasTable('app_settings'))) return;
   const row = await knex('app_settings').where({ setting_key: 'theme_config' }).first();
   if (!row || !row.setting_value) return;
   let parsed;
   try {
     parsed = typeof row.setting_value === 'string' ? JSON.parse(row.setting_value) : row.setting_value;
-  } catch {
+  } catch (err) {
+    console.warn(`[Migration 263] Could not parse app_settings.theme_config, left as is: ${err.message}`);
     return;
   }
   if (!parsed || typeof parsed !== 'object') return;
@@ -46,6 +50,8 @@ async function stripThemeConfig(knex) {
   await knex('app_settings').where({ setting_key: 'theme_config' })
     .update({ setting_value: JSON.stringify(kept) });
 }
+
+exports.stripThemeConfig = stripThemeConfig;
 
 exports.up = async function up(knex) {
   // The foreign key column goes before the table it points at.
