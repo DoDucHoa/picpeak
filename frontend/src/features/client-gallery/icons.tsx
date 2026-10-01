@@ -162,3 +162,29 @@ export function CartIcon() {
     </Svg>
   );
 }
+
+export function SortIcon() {
+  return (
+    <Svg>
+      <path d="M4.5 7h15M7 12h10M9.5 17h5" />
+    </Svg>
+  );
+}
+
+export function PhotosIcon() {
+  return (
+    <Svg>
+      <rect x={3.5} y={5} width={17} height={14} rx={1.5} />
+      <circle cx={8.75} cy={9.75} r={1.5} />
+      <path d="m3.5 16.5 4.75-4.25 3.5 3 3.25-3.25 5.5 5" />
+    </Svg>
+  );
+}
+
+export function CheckIcon() {
+  return (
+    <Svg>
+      <path d="m5.5 12.5 4 4 9-9.5" />
+    </Svg>
+  );
+}

@@ -116,3 +116,58 @@
 }
 .client-gallery .cg-expiry svg { width: 16px; height: 16px; flex: none; }
 .client-gallery .cg-expiry button { display: flex; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; margin-left: 4px; }
+
+/* Toolbar. Two rows over a grid template; compact (cover scrolled past) puts
+   row two between the tabs and the share icon, as icons only. Labels are
+   hidden with CSS rather than unmounted, and every icon-only control carries
+   an aria-label, so the accessible names never change with the layout. */
+.client-gallery .cg-toolbar-sentinel { height: 0; }
+.client-gallery .cg-toolbar {
+  position: sticky; top: 0; z-index: 30; background: var(--cg-bg);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tabs end" "row2 row2";
+  align-items: center; column-gap: 24px; row-gap: 16px;
+  padding: 24px 60px 16px;
+}
+.client-gallery .cg-toolbar-compact { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tabs row2 end"; padding-top: 16px; padding-bottom: 12px; }
+.client-gallery .cg-tabs { grid-area: tabs; display: flex; align-items: center; gap: 24px; }
+.client-gallery .cg-tab { position: relative; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-text); font-size: 15px; cursor: pointer; white-space: nowrap; }
+.client-gallery .cg-tab-count { font-weight: 600; }
+.client-gallery .cg-tab-active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; background: var(--cg-accent); }
+.client-gallery .cg-tab-icon { display: inline-flex; }
+.client-gallery .cg-tab-icon svg { width: 20px; height: 20px; }
+.client-gallery .cg-tab-icon-mobile { display: none; }
+.client-gallery .cg-tb-row2 { grid-area: row2; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 20px; min-width: 0; }
+.client-gallery .cg-tb-end { grid-area: end; display: flex; align-items: center; gap: 16px; }
+.client-gallery .cg-tb-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-text); font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.client-gallery .cg-tb-btn:disabled { color: var(--cg-muted); cursor: default; }
+.client-gallery .cg-tb-btn svg { width: 22px; height: 22px; }
+.client-gallery .cg-tb-dir { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: var(--cg-placeholder); color: var(--cg-text); cursor: pointer; }
+.client-gallery .cg-tb-dir svg { width: 18px; height: 18px; }
+.client-gallery .cg-tab:focus-visible, .client-gallery .cg-tb-btn:focus-visible, .client-gallery .cg-tb-dir:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+.client-gallery .cg-tb-icon-compact { display: none; }
+.client-gallery .cg-tb-dot { position: absolute; top: 0; right: -8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--cg-accent); color: #fff; font-size: 11px; line-height: 16px; text-align: center; }
+.client-gallery .cg-tb-crumb { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-tb-crumb-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cg-text); font-weight: 600; }
+.client-gallery .cg-tb-count { color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-menu { position: relative; display: inline-flex; }
+.client-gallery .cg-menu-list {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 31;
+  display: flex; flex-direction: column; min-width: 180px; padding: 6px 0;
+  background: var(--cg-bg); border: 1px solid var(--cg-divider); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.client-gallery .cg-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; padding: 10px 16px; border: 0; background: none; color: var(--cg-text); font-size: 14px; text-align: left; white-space: nowrap; cursor: pointer; }
+.client-gallery .cg-menu-item:hover, .client-gallery .cg-menu-item:focus-visible { background: var(--cg-placeholder); outline: none; }
+.client-gallery .cg-menu-item svg { width: 16px; height: 16px; color: var(--cg-accent); }
+.client-gallery .cg-toolbar-compact .cg-tb-label { display: none; }
+.client-gallery .cg-toolbar-compact .cg-tb-icon-compact { display: inline-flex; }
+@media (max-width: 767px) {
+  .client-gallery .cg-toolbar { padding: 12px; column-gap: 12px; row-gap: 12px; }
+  .client-gallery .cg-tabs { gap: 14px; }
+  .client-gallery .cg-tab-label, .client-gallery .cg-tb-label { display: none; }
+  .client-gallery .cg-tab-icon-mobile, .client-gallery .cg-tb-icon-compact { display: inline-flex; }
+  .client-gallery .cg-tb-row2 { gap: 12px; }
+  .client-gallery .cg-tb-crumb-name { max-width: 96px; }
+  /* One row at phone width has no room for the allowance pill. */
+  .client-gallery .cg-toolbar-compact .cg-tb-quota { display: none; }
+}

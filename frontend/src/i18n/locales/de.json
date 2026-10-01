@@ -10030,6 +10030,28 @@
     },
     "list": {
       "action": "Aktion"
-    }
+    },
+    "tabs": {
+      "total": "Gesamt",
+      "like": "Gefällt mir",
+      "pick": "Auswahl"
+    },
+    "sort": {
+      "captureDate": "Aufnahmezeit",
+      "fileName": "Dateiname",
+      "lastUpload": "Zuletzt hochgeladen"
+    },
+    "download": "Herunterladen",
+    "downloadAll": "Alle",
+    "multiSelect": "Mehrfachauswahl",
+    "downloadSelected": "Auswahl herunterladen",
+    "selectedCount": "{{count}} ausgewählt",
+    "cancel": "Abbrechen",
+    "changeSortDirection": "Sortierrichtung ändern",
+    "changeViewMode": "Ansicht wechseln",
+    "share": "Teilen",
+    "linkCopied": "Link kopiert",
+    "logout": "Abmelden",
+    "people": "Personen"
   }
 }

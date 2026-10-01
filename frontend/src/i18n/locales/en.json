@@ -10064,6 +10064,28 @@
     },
     "list": {
       "action": "Action"
-    }
+    },
+    "tabs": {
+      "total": "Total",
+      "like": "Like",
+      "pick": "Pick"
+    },
+    "sort": {
+      "captureDate": "Creation Time",
+      "fileName": "File Name",
+      "lastUpload": "Last Upload"
+    },
+    "download": "Download",
+    "downloadAll": "All",
+    "multiSelect": "Multi-select",
+    "downloadSelected": "Download selected",
+    "selectedCount": "{{count}} selected",
+    "cancel": "Cancel",
+    "changeSortDirection": "Change Sort Direction",
+    "changeViewMode": "Change View Mode",
+    "share": "Share",
+    "linkCopied": "Link copied",
+    "logout": "Log out",
+    "people": "People"
   }
 }

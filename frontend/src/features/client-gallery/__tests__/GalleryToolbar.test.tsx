@@ -1,0 +1,231 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import en from '../../../i18n/locales/en.json';
+import { GalleryToolbar } from '../toolbar/GalleryToolbar';
+import { fakeController } from './fakeController';
+import type { PhotoCategory } from '../../../types';
+
+// A real instance, so counts interpolate and the labels come from en.json.
+i18n.use(initReactI18next).init({ lng: 'en', resources: { en: { translation: en } } });
+
+const folder: PhotoCategory = { id: 7, name: 'Ceremony', slug: 'ceremony', is_global: false, is_folder: true };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('GalleryToolbar', () => {
+  it('shows the three tabs with counts and the pick limit', () => {
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /total 205/i })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /like 0/i })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /pick 9 \/ 205/i })).toBeTruthy();
+  });
+
+  it('hides like and pick when feedback switches them off', () => {
+    render(<GalleryToolbar c={fakeController({ feedbackSettings: { allow_likes: false, allow_favorites: false } })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('tab', { name: /like/i })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /pick/i })).toBeNull();
+  });
+
+  it('hides like and pick when feedback itself is off, whatever the allow flags say', () => {
+    render(<GalleryToolbar c={fakeController({ feedbackSettings: { feedback_enabled: false, allow_likes: true, allow_favorites: true } })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('tab', { name: /like/i })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /pick/i })).toBeNull();
+    expect(screen.getByRole('tab', { name: /total 205/i })).toBeTruthy();
+  });
+
+  it('shows Pick N without a limit', () => {
+    render(<GalleryToolbar c={fakeController({ pickLimit: null })} onShare={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /^pick 9$/i })).toBeTruthy();
+  });
+
+  it('treats a pick limit of 0 as no limit', () => {
+    render(<GalleryToolbar c={fakeController({ pickLimit: 0 })} onShare={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /^pick 9$/i })).toBeTruthy();
+  });
+
+  it('marks the active tab', () => {
+    const c = fakeController({ url: { sort: 'capture_date', dir: 'desc', view: 'grid', tab: 'picked', photo: null } });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /pick 9/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: /total 205/i }).getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('changes tab, sort field, sort direction and view', () => {
+    const c = fakeController();
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('tab', { name: /like 0/i }));
+    expect(c.setTab).toHaveBeenCalledWith('liked');
+    fireEvent.click(screen.getByRole('button', { name: /change sort direction/i }));
+    expect(c.toggleDir).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /creation time/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /file name/i }));
+    expect(c.setSort).toHaveBeenCalledWith('name');
+    fireEvent.click(screen.getByRole('button', { name: /change view mode/i }));
+    expect(c.setView).toHaveBeenCalledWith('list');
+  });
+
+  it('switches back to the grid from the list', () => {
+    const c = fakeController({ url: { sort: 'name', dir: 'asc', view: 'list', tab: 'all', photo: null } });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /file name/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /change view mode/i }));
+    expect(c.setView).toHaveBeenCalledWith('grid');
+  });
+
+  it('offers download all and multi-select', () => {
+    const c = fakeController();
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^all$/i }));
+    expect(c.handleDownloadAll).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /multi-select/i }));
+    expect(c.selection.setActive).toHaveBeenCalledWith(true);
+  });
+
+  it('offers the open folder and the picked people as downloads through the controller', () => {
+    const c = fakeController({
+      folders: { ...fakeController().folders, open: folder, downloadIds: [1, 2, 3], downloadTotal: 3 },
+      people: { ...fakeController().people, enabled: true, selectedIds: [4], downloadableIds: [1, 2] },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /download folder \(3\)/i }));
+    expect(c.folders.downloadFolder).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /download these/i }));
+    expect(c.people.downloadFiltered).toHaveBeenCalled();
+  });
+
+  it('closes a menu on Escape and returns focus to its trigger', () => {
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: /^download$/i });
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('closes a menu on a pointerdown outside it', () => {
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /creation time/i }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.pointerDown(screen.getByRole('menuitem', { name: /file name/i }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('swaps the download menu for the order offer when the album no longer fits', () => {
+    const c = fakeController({ offerFullPackage: true });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /get all photos/i }));
+    expect(c.setQuotaOffer).toHaveBeenCalledWith({ exceeded: null });
+  });
+
+  it('hides downloads entirely when they are off', () => {
+    render(<GalleryToolbar c={fakeController({ allowDownloads: false, offerFullPackage: true })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /get all photos/i })).toBeNull();
+  });
+
+  it('shares, logs out and opens the people sheet', () => {
+    const onShare = vi.fn();
+    const c = fakeController({ showLogout: true, people: { ...fakeController().people, enabled: true } });
+    render(<GalleryToolbar c={c} onShare={onShare} />);
+    fireEvent.click(screen.getByRole('button', { name: /share/i }));
+    expect(onShare).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /log out/i }));
+    expect(c.logout).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /people/i }));
+    expect(c.people.setSheetOpen).toHaveBeenCalledWith(true);
+  });
+
+  it('hides logout and people when they do not apply', () => {
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /log out/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /people/i })).toBeNull();
+  });
+
+  it('shows the folder breadcrumb and walks back to the root', () => {
+    const c = fakeController({ folders: { ...fakeController().folders, open: folder } });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByText('Ceremony')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /all photos/i }));
+    expect(c.folders.openBySlug).toHaveBeenCalledWith(null);
+  });
+
+  it('shows the quota badge to clients only', () => {
+    const quota = {
+      enabled: true, unlimited: false, freeLimit: 10, pricePerPhoto: 1, total: 10, used: 3, remaining: 7,
+      enabledAt: null, autoApprove: false,
+    };
+    const { rerender } = render(<GalleryToolbar c={fakeController({ quota })} onShare={vi.fn()} />);
+    expect(screen.queryByTestId('download-quota-badge')).toBeNull();
+    rerender(<GalleryToolbar c={fakeController({ quota, client: { ...fakeController().client, isClient: true } })} onShare={vi.fn()} />);
+    expect(screen.getByTestId('download-quota-badge').textContent).toMatch(/7 of 10/);
+  });
+
+  it('replaces row two with the selection bar while multi-selecting', () => {
+    const c = fakeController({
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1, 2]), setIds: vi.fn() },
+      client: { ...fakeController().client, isClient: true },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByText(/2 selected/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /download selected/i }));
+    expect(c.handleDownloadSelected).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /hide selected/i }));
+    expect(c.client.bulkVisibility).toHaveBeenCalledWith('hidden');
+    fireEvent.click(screen.getByRole('button', { name: /show selected/i }));
+    expect(c.client.bulkVisibility).toHaveBeenCalledWith('visible');
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(c.selection.setIds).toHaveBeenCalledWith(new Set());
+    expect(c.selection.setActive).toHaveBeenCalledWith(false);
+  });
+
+  it('disables download selected at zero and hides visibility controls from guests', () => {
+    const c = fakeController({ selection: { active: true, setActive: vi.fn(), ids: new Set(), setIds: vi.fn() } });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect((screen.getByRole('button', { name: /download selected/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: /hide selected/i })).toBeNull();
+  });
+
+  it('stays non-compact without IntersectionObserver', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    expect(screen.getByTestId('gallery-toolbar').className).not.toMatch(/cg-toolbar-compact/);
+  });
+
+  it('turns compact once the sentinel has scrolled above the viewport', () => {
+    let callback: IntersectionObserverCallback = () => {};
+    class FakeObserver {
+      constructor(cb: IntersectionObserverCallback) { callback = cb; }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return []; }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    const bar = screen.getByTestId('gallery-toolbar');
+    const fire = (isIntersecting: boolean, top: number) => React.act(() => {
+      callback([{ isIntersecting, boundingClientRect: { top } } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+    fire(false, 900);
+    expect(bar.className).not.toMatch(/cg-toolbar-compact/);
+    fire(false, -1);
+    expect(bar.className).toMatch(/cg-toolbar-compact/);
+    fire(true, 10);
+    expect(bar.className).not.toMatch(/cg-toolbar-compact/);
+  });
+});

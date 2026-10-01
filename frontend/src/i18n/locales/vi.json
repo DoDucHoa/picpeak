@@ -10056,6 +10056,28 @@
     },
     "list": {
       "action": "Thao tác"
-    }
+    },
+    "tabs": {
+      "total": "Tất cả",
+      "like": "Thích",
+      "pick": "Chọn"
+    },
+    "sort": {
+      "captureDate": "Thời gian chụp",
+      "fileName": "Tên file",
+      "lastUpload": "Tải lên gần nhất"
+    },
+    "download": "Tải về",
+    "downloadAll": "Tất cả",
+    "multiSelect": "Chọn nhiều",
+    "downloadSelected": "Tải ảnh đã chọn",
+    "selectedCount": "Đã chọn {{count}}",
+    "cancel": "Huỷ",
+    "changeSortDirection": "Đổi chiều sắp xếp",
+    "changeViewMode": "Đổi kiểu xem",
+    "share": "Chia sẻ",
+    "linkCopied": "Đã chép link",
+    "logout": "Đăng xuất",
+    "people": "Người trong ảnh"
   }
 }
