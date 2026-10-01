@@ -189,6 +189,15 @@ export function CheckIcon() {
   );
 }
 
+export function DeliveredIcon() {
+  return (
+    <Svg>
+      <circle cx={12} cy={12} r={8.25} />
+      <path d="m8.5 12.25 2.5 2.5 4.5-5" />
+    </Svg>
+  );
+}
+
 export function ShieldIcon() {
   return (
     <Svg>

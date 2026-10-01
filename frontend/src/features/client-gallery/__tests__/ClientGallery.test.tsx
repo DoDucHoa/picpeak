@@ -1,6 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+
+// Renders the English default with its interpolations, so an assertion reads
+// the sentence the viewer sees rather than a key.
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, second?: unknown, third?: unknown) => {
+      const fallback = typeof second === 'string' ? second : key;
+      const vars = (typeof second === 'object' && second !== null ? second : third) as Record<string, unknown> | undefined;
+      return fallback.replace(/\{\{(\w+)\}\}/g, (_m, name: string) => String(vars?.[name] ?? ''));
+    },
+    i18n: { language: 'en' },
+  }),
+  Trans: ({ defaults }: { defaults?: string }) => <>{defaults}</>,
+}));
+
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+vi.mock('react-toastify', () => ({ toast: { success: (m: string) => toastSuccess(m), error: (m: string) => toastError(m) } }));
 import { ClientGallery } from '../ClientGallery';
 import { fakeController } from './fakeController';
 import type { GalleryController } from '../state/useGalleryController';
@@ -158,6 +176,79 @@ describe('ClientGallery', () => {
       client: { ...fakeController().client, isClient: true, visibleCount: 28, totalCount: 30 },
     });
     render(<ClientGallery slug="s" event={seed} />);
-    expect(screen.getByTestId('client-banner')).toBeTruthy();
+    expect(screen.getByTestId('client-banner').textContent).toContain('28 of 30 photos visible to guests');
+  });
+
+  it('says so when the album or an open folder has no photos', () => {
+    controller = fakeController({ data });
+    render(<ClientGallery slug="s" event={seed} />);
+    expect(screen.getByText('No photos yet')).toBeTruthy();
+  });
+
+  it('leaves the empty line out when the folder tiles are the whole root', () => {
+    const base = fakeController();
+    controller = fakeController({ data, folders: { ...base.folders, rootIsFoldersOnly: true } });
+    render(<ClientGallery slug="s" event={seed} />);
+    expect(screen.queryByText('No photos yet')).toBeNull();
+  });
+
+  it('moves the album to the grid when a selection starts in the list', () => {
+    controller = withUrl({ view: 'list' });
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    expect(controller.setView).not.toHaveBeenCalled();
+    controller = { ...controller, selection: { ...controller.selection, active: true } };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.setView).toHaveBeenCalledWith('grid');
+  });
+});
+
+describe('ClientGallery share', () => {
+  const nav = navigator as Navigator & { share?: unknown; clipboard?: unknown };
+  const share = () => fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+
+  beforeEach(() => {
+    toastSuccess.mockClear();
+    toastError.mockClear();
+    Object.defineProperty(nav, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, origin: 'https://photos.example', pathname: '/gallery/s', search: '?photo=3' },
+    });
+    document.execCommand = vi.fn(() => true);
+  });
+
+  it('copies the bare gallery address with the clipboard API', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(nav, 'clipboard', { configurable: true, value: { writeText } });
+    render(<ClientGallery slug="s" event={seed} />);
+    share();
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Link copied'));
+    expect(writeText).toHaveBeenCalledWith('https://photos.example/gallery/s');
+    expect(document.execCommand).not.toHaveBeenCalled();
+  });
+
+  it('falls back to execCommand when the clipboard API refuses', async () => {
+    Object.defineProperty(nav, 'clipboard', { configurable: true, value: { writeText: vi.fn(async () => { throw new Error('denied'); }) } });
+    render(<ClientGallery slug="s" event={seed} />);
+    share();
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Link copied'));
+    expect(document.execCommand).toHaveBeenCalledWith('copy');
+  });
+
+  it('falls back to execCommand when there is no clipboard API at all', async () => {
+    Object.defineProperty(nav, 'clipboard', { configurable: true, value: undefined });
+    render(<ClientGallery slug="s" event={seed} />);
+    share();
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Link copied'));
+    expect(document.execCommand).toHaveBeenCalledWith('copy');
+  });
+
+  it('says so when every way to copy fails', async () => {
+    Object.defineProperty(nav, 'clipboard', { configurable: true, value: undefined });
+    document.execCommand = vi.fn(() => false);
+    render(<ClientGallery slug="s" event={seed} />);
+    share();
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Could not copy the link'));
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 });

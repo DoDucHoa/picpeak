@@ -16,6 +16,7 @@ import { PasswordChangeRequiredNotice } from '../components/gallery/PasswordChan
 import { analyticsService } from '../services/analytics.service';
 import { galleryService } from '../services';
 import { buildResourceUrl } from '../utils/url';
+import { copyText } from '../utils/copyText';
 import { isGalleryPublic, normalizeRequirePassword } from '../utils/accessControl';
 import { detectInAppBrowser } from '../utils/inAppBrowser';
 import { isAdminSessionExpired, isPasswordChangeRequired } from '../utils/passwordChangeRequired';
@@ -258,31 +259,10 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleCopyLink = async () => {
-    const url = window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
+    // Only report "copied" when it actually worked; otherwise leave the label
+    // unchanged and the user can still long-press the address bar.
+    if (await copyText(window.location.href)) {
       setLinkCopied(true);
-    } catch {
-      // The async clipboard API is often unavailable inside in-app webviews —
-      // fall back to the legacy textarea + execCommand path.
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        // execCommand signals failure via its return value, not by throwing —
-        // only report "copied" when it actually worked; otherwise leave the
-        // label unchanged and the user can still long-press the address bar.
-        if (document.execCommand('copy')) {
-          setLinkCopied(true);
-        }
-      } catch {
-        // Same as a false return: keep the label unchanged.
-      }
-      document.body.removeChild(textarea);
     }
   };
 

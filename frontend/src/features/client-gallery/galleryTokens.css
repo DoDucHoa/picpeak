@@ -51,6 +51,9 @@
 .client-gallery .cg-badges-always .cg-badge-like::before { left: -6px; }
 .client-gallery .cg-badges-always .cg-badge-pick::before { right: -6px; }
 .client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
+/* Already downloaded: a quiet corner mark, never a control, so it takes no taps. */
+.client-gallery .cg-delivered { position: absolute; left: 8px; bottom: 8px; display: flex; color: #fff; opacity: .8; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-delivered svg { width: 18px; height: 18px; }
 .client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
 @media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
 

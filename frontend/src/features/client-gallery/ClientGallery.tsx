@@ -17,6 +17,7 @@ import { GuestIdentityProvider } from '../../contexts/GuestIdentityContext';
 import { DownloadedPhotosProvider } from '../../contexts/DownloadedPhotosContext';
 import { DownloadGateProvider } from '../../contexts/DownloadGateContext';
 import { isAdminSessionExpired, isPasswordChangeRequired } from '../../utils/passwordChangeRequired';
+import { copyText } from '../../utils/copyText';
 import { useGalleryController } from './state/useGalleryController';
 import type { GalleryController, GalleryEventSeed } from './state/useGalleryController';
 import { useFeedbackToggle } from './state/useFeedbackToggle';
@@ -137,6 +138,15 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
     if (quotaOfferOpen && latestViewer.current.photo !== null) latestViewer.current.closePhoto();
   }, [quotaOfferOpen]);
 
+  // Only the grid can tick photos, so starting a selection in the list moves
+  // the album to the grid rather than leaving rows nobody can select.
+  const { setView } = c;
+  const selecting = c.selection.active;
+  const view = c.url.view;
+  useEffect(() => {
+    if (selecting && view === 'list') setView('grid');
+  }, [selecting, view, setView]);
+
   // Stable handlers: the grid, the list and the viewer memoise on them.
   const { openPhoto } = c;
   const openFromAlbum = useCallback((id: number) => openPhoto(id), [openPhoto]);
@@ -163,20 +173,20 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
       navigator.share({ url }).catch(() => {});
       return;
     }
-    navigator.clipboard?.writeText(url).then(
-      () => toast.success(t('clientGallery.linkCopied', 'Link copied')),
-      () => {},
-    );
+    void copyText(url).then((copied) => {
+      if (copied) toast.success(t('clientGallery.linkCopied', 'Link copied'));
+      else toast.error(t('clientGallery.copyFailed', 'Could not copy the link'));
+    });
   }, [t]);
 
   const showBackToTop = useScrolledPastFirstScreen();
 
   const showFolderTiles = !c.folders.open && c.folders.tiles.length > 0;
-  const emptyTabText = c.url.tab === 'liked'
+  const emptyText = c.url.tab === 'liked'
     ? t('clientGallery.emptyLiked', 'No liked photos yet')
     : c.url.tab === 'picked'
       ? t('clientGallery.emptyPicked', 'No picked photos yet')
-      : null;
+      : t('clientGallery.emptyAll', 'No photos yet');
 
   return (
     <div className="client-gallery">
@@ -203,8 +213,8 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
       {c.client.isClient && (
         <p className="cg-client-banner" data-testid="client-banner">
           <ShieldIcon />
-          <span>{t('clientAccess.banner')}</span>
-          <span>{t('clientAccess.visibleCount', { visible: c.client.visibleCount, total: c.client.totalCount })}</span>
+          <span>{t('clientAccess.banner', 'Client Mode')}</span>
+          <span>{t('clientAccess.visibleCount', '{{visible}} of {{total}} photos visible to guests', { visible: c.client.visibleCount, total: c.client.totalCount })}</span>
         </p>
       )}
 
@@ -222,8 +232,8 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
       )}
 
       {!c.folders.rootIsFoldersOnly && (
-        c.visiblePhotos.length === 0 && emptyTabText ? (
-          <p className="cg-empty">{emptyTabText}</p>
+        c.visiblePhotos.length === 0 ? (
+          <p className="cg-empty">{emptyText}</p>
         ) : c.url.view === 'list' ? (
           <PhotoList
             photos={c.visiblePhotos}

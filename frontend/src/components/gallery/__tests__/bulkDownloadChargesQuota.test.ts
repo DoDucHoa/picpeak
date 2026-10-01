@@ -3,7 +3,8 @@
  *
  * `galleryService.downloadSelectedPhotos` is called straight out of several
  * handlers, with no React Query mutation behind any of them, so refreshing the
- * badge and the "Already downloaded" marks (`useRefreshDownloadQuota`, see
+ * allowance badge and the "Already downloaded" marks on the grid tiles and
+ * list rows (`useRefreshDownloadQuota`, see
  * `useDownloadQuota.ts`) is something each call site has to remember on its
  * own. It was remembered in none of them: a client who took five photos in one
  * click saw the allowance stand still until they reloaded the page by hand.

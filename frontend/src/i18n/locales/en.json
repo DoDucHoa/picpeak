@@ -10094,6 +10094,8 @@
     "people": "People",
     "emptyLiked": "No liked photos yet",
     "emptyPicked": "No picked photos yet",
-    "backToTop": "Back to top"
+    "backToTop": "Back to top",
+    "emptyAll": "No photos yet",
+    "copyFailed": "Could not copy the link"
   }
 }

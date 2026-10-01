@@ -2,8 +2,9 @@ import { memo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthenticatedImage } from '../../../components/common';
 import { thumbnailUrlForTile } from '../../../components/gallery/imageTiers';
+import { useIsPhotoDelivered } from '../../../contexts/DownloadedPhotosContext';
 import type { Photo } from '../../../types';
-import { HeartIcon, PickIcon } from '../icons';
+import { DeliveredIcon, HeartIcon, PickIcon } from '../icons';
 
 interface ListRowProps {
   photo: Photo; y: number; height: number; slug: string;
@@ -34,6 +35,7 @@ export function formatDimensions(w?: number | null, h?: number | null): string {
 function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks }: ListRowProps) {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
+  const delivered = useIsPhotoDelivered(photo.id);
   const onLoad = useCallback(() => setLoaded(true), []);
   const name = showOriginalFilename && photo.original_filename ? photo.original_filename : photo.filename;
   const thumbSrc = thumbnailUrlForTile(photo.thumbnail_url, photo, 80);
@@ -67,6 +69,11 @@ function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onT
             draggable={false}
             className={`cg-tile-img${loaded ? ' loaded' : ''}`}
           />
+        )}
+        {delivered && (
+          <span data-testid="photo-delivered-mark" className="cg-delivered" role="img" aria-label={t('gallery.downloadQuota.delivered', 'Already downloaded')}>
+            <DeliveredIcon />
+          </span>
         )}
       </div>
       <div className="cg-row-name">{name}</div>

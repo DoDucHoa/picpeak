@@ -18,8 +18,8 @@ function walk(dir: string): string[] {
   });
 }
 
-// The client gallery, plus the old folder's barrel that still exports from it.
-const SOURCES = [...walk(CLIENT_GALLERY), path.join(GALLERY, 'index.ts')];
+// Every source file of the client gallery.
+const SOURCES = walk(CLIENT_GALLERY);
 const label = (file: string) => path.relative(path.resolve(__dirname, '../../..'), file).split(path.sep).join('/');
 
 describe('gallery without guest uploads or reveal', () => {

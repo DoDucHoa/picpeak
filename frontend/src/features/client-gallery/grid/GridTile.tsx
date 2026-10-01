@@ -2,9 +2,10 @@ import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthenticatedImage } from '../../../components/common';
 import { useInputMode } from '../../../hooks/useInputMode';
+import { useIsPhotoDelivered } from '../../../contexts/DownloadedPhotosContext';
 import type { Photo } from '../../../types';
 import { tilePreviewUrl } from '../layout/tileImage';
-import { HeartIcon, PickIcon } from '../icons';
+import { DeliveredIcon, HeartIcon, PickIcon } from '../icons';
 
 interface GridTileProps {
   photo: Photo; width: number; height: number; x: number; y: number; priority: 'high' | 'normal';
@@ -26,6 +27,7 @@ interface GridTileProps {
 function GridTileImpl({ photo, width, height, x, y, priority, slug, onOpen, onToggle, allowLikes, allowPicks, selecting, selected, onSelect }: GridTileProps) {
   const { t } = useTranslation();
   const coarse = useInputMode() === 'touch';
+  const delivered = useIsPhotoDelivered(photo.id);
   // AuthenticatedImage reports a finished load only through onLoad, so the
   // callback has to stay stable. Tiles never draw on a canvas, whatever the
   // event's protection says: hundreds of canvases exhaust iOS Safari's canvas
@@ -85,6 +87,12 @@ function GridTileImpl({ photo, width, height, x, y, priority, slug, onOpen, onTo
           <span aria-hidden className={`cg-select${selected ? ' cg-select-on' : ''}`} />
         )}
       </div>
+      {/* Already delivered, so downloading it again costs no allowance. */}
+      {delivered && (
+        <span data-testid="photo-delivered-mark" className="cg-delivered" role="img" aria-label={t('gallery.downloadQuota.delivered', 'Already downloaded')}>
+          <DeliveredIcon />
+        </span>
+      )}
     </div>
   );
 }

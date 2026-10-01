@@ -156,8 +156,8 @@ export function peopleInScope<T extends { id: number; face_count: number }>(
   });
 
   // Re-sorted, not just recounted: /people orders by the EVENT-wide count, and
-  // PeopleStrip only shows the first 12 inline. Keeping that order after
-  // rescoping can push the folder's most-photographed person behind "Show all".
+  // the people sheet lists people in this order. Keeping it after rescoping
+  // would bury the folder's most-photographed person further down the list.
   return list
     .map((person) => ({ ...person, face_count: counts.get(person.id) || 0 }))
     .filter((person) => person.face_count > 0)

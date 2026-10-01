@@ -10060,6 +10060,8 @@
     "people": "Personen",
     "emptyLiked": "Noch keine Fotos mit Gefällt mir",
     "emptyPicked": "Noch keine Fotos ausgewählt",
-    "backToTop": "Nach oben"
+    "backToTop": "Nach oben",
+    "emptyAll": "Noch keine Fotos",
+    "copyFailed": "Link konnte nicht kopiert werden"
   }
 }

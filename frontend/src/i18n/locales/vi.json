@@ -10086,6 +10086,8 @@
     "people": "Người trong ảnh",
     "emptyLiked": "Chưa thích ảnh nào",
     "emptyPicked": "Chưa chọn ảnh nào",
-    "backToTop": "Lên đầu trang"
+    "backToTop": "Lên đầu trang",
+    "emptyAll": "Chưa có ảnh nào",
+    "copyFailed": "Không chép được link"
   }
 }
