@@ -1,3 +1,10 @@
+/* Fonts are self-hosted on purpose: no third-party font requests, see index.css. */
+@import '@fontsource/red-hat-display/400.css';
+@import '@fontsource/red-hat-display/500.css';
+@import '@fontsource/red-hat-display/600.css';
+@import '@fontsource/red-hat-display/700.css';
+@import '@fontsource/dm-serif-display/400.css';
+
 /* Fixed client gallery look (spec 2026-10-01). Scoped so brand tokens on
    :root, which style the admin and the portal, never reach the gallery and
    the gallery never leaks into them. */
@@ -10,7 +17,7 @@
   --cg-like: #f0524f;
   --cg-pick: #3b5bdb;
   --cg-placeholder: #f2f2f2;
-  --cg-font: 'Red Hat Display', 'Noto Sans', sans-serif;
+  --cg-font: 'Red Hat Display', 'Inter', sans-serif;
   --cg-title-font: 'DM Serif Display', Georgia, serif;
   background: var(--cg-bg);
   color: var(--cg-text);
