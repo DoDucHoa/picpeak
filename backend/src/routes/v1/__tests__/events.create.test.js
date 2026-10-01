@@ -84,13 +84,19 @@ it.each(['admin', 'v1', 'legacy'])('%s stores the default hero logo position wha
   const row = await db('events').where({ id: created.id }).first();
   expect(row.hero_logo_position).toBe('top');
 });
-it('saves an admin PUT on an event row that has no gallery theme columns', async () => {
+it('strips the dropped gallery theme columns from an admin PUT and saves the real fields', async () => {
   const created = await create('admin', {});
+  const before = await db('events').where({ id: created.id }).first();
+  // A tab opened before the deploy still sends the theme of its old editor.
   const response = await request(app).put(`/admin/${created.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ welcome_message: 'Still saved' });
+    .send({ welcome_message: 'Still saved', color_theme: 'modernMasonry', header_style: 'hero' });
   expect(response.status).toBe(200);
   const row = await db('events').where({ id: created.id }).first();
-  expect(row.welcome_message).toBe('Still saved');
+  expect(row).not.toHaveProperty('color_theme');
   expect(row).not.toHaveProperty('header_style');
+  const { welcome_message: newMessage, updated_at: _after, ...rest } = row;
+  const { welcome_message: _old, updated_at: _before, ...restBefore } = before;
+  expect(newMessage).toBe('Still saved');
+  expect(rest).toEqual(restBefore);
 });

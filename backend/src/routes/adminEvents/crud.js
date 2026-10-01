@@ -34,6 +34,11 @@ const { credentialChangeColumns, sameAsStored } = require('../../utils/galleryCr
 const { getFrontendBaseUrl, getAbsoluteFrontendUrl } = require('../../utils/frontendUrl');
 const { KEYBIND_MODES } = require('../../services/feedbackDefaults');
 const { GUEST_NAME_MODES } = require('../../services/photoCredit');
+// Event columns migration 263 dropped with gallery theming. The update
+// handler strips them silently: admin tabs opened before the deploy and
+// external API clients may still send them.
+const DROPPED_EVENT_COLUMNS = new Set(['color_theme', 'css_template_id', 'header_style', 'hero_divider_style']);
+
 const { validateHeroImageAnchor, getEventFieldRequirements, getCustomerNameFromPayload, getCustomerEmailFromPayload, getCustomerPhoneFromPayload, isPhoneFieldEnabled, mapEventForApi, hasCustomerContactColumns, deleteEventCascade } = require('./helpers');
 
 // Client PIN floor. The PIN guards the client review page and used to accept
@@ -1289,6 +1294,9 @@ module.exports = (router) => {
       for (const key of Object.keys(updates)) {
         if (denied.has(key.toLowerCase())) delete updates[key];
       }
+      // Not part of the deny-set above: these are not server-managed
+      // columns, they no longer exist, and the UPDATE would fail on them.
+      for (const key of DROPPED_EVENT_COLUMNS) delete updates[key];
 
       const customerColumnsAvailable = await hasCustomerContactColumns();
 
