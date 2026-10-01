@@ -135,6 +135,10 @@ body:has(.client-gallery) { background: #ffffff; }
 }
 .client-gallery .cg-cover-logo { position: absolute; top: 40px; left: 40px; max-height: 40px; }
 .client-gallery .cg-cover-lang { position: absolute; top: 40px; right: 40px; }
+/* The cover's language switcher: the bare code in white, like the reference. */
+.client-gallery .cg-lang-trigger { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; margin: 0; padding: 0; border: 0; background: none; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-lang-trigger svg { width: 14px; height: 14px; }
+.client-gallery .cg-lang-trigger:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .client-gallery .cg-cover-text { position: absolute; left: 40px; bottom: 40px; right: 220px; }
 .client-gallery .cg-cover-text h1 { margin: 0; font-size: clamp(40px, 5vw, 72px); line-height: 1.05; color: #fff; font-weight: 400; }
 .client-gallery .cg-cover-text p { margin: 8px 0 0; font-size: 18px; font-weight: 400; }
@@ -159,6 +163,10 @@ body:has(.client-gallery) { background: #ffffff; }
 }
 .client-gallery .cg-expiry svg { width: 16px; height: 16px; flex: none; }
 .client-gallery .cg-expiry button { display: flex; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; margin-left: 4px; }
+/* One line, always: wrapped it grew to three and covered the toolbar. */
+.client-gallery .cg-expiry { white-space: nowrap; max-width: calc(100vw - 32px); box-sizing: border-box; }
+.client-gallery .cg-expiry > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 767px) { .client-gallery .cg-expiry { font-size: 12px; padding: 6px 12px; } }
 
 /* Toolbar. Two rows over a grid template; compact (cover scrolled past) puts
    row two between the tabs and the share icon, as icons only. Labels are

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import { ChevronDown, Globe } from 'lucide-react';
 
 // SVG Flag Components
 const GBFlag: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
@@ -51,7 +51,16 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'vi', name: 'Tiếng Việt', Flag: VNFlag },
 ];
 
-export const LanguageSelector: React.FC = () => {
+interface LanguageSelectorProps {
+  /**
+   * `cover` is the client gallery's: the bare language code in white with a
+   * chevron, sitting on the cover photo with no box around it. Styled by the
+   * gallery's own sheet (cg-lang-trigger). The default is everyone else's.
+   */
+  variant?: 'default' | 'cover';
+}
+
+export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'default' }) => {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -64,6 +73,19 @@ export const LanguageSelector: React.FC = () => {
 
   return (
     <div className="relative">
+      {variant === 'cover' ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="cg-lang-trigger"
+          aria-label={currentLanguage.name}
+          aria-expanded={isOpen}
+          title={currentLanguage.name}
+        >
+          <span>{currentLanguage.code.toUpperCase()}</span>
+          <ChevronDown aria-hidden="true" />
+        </button>
+      ) : (
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm font-medium text-body bg-panel border border-line-strong rounded-lg hover:bg-hover focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -78,6 +100,7 @@ export const LanguageSelector: React.FC = () => {
         <currentLanguage.Flag className="w-5 h-5" />
         <span className="hidden sm:inline">{currentLanguage.name}</span>
       </button>
+      )}
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-panel rounded-lg shadow-lg border border-line py-1 z-50">

@@ -1,7 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthenticatedImage } from '../../../components/common';
+import { previewUrlForViewport } from '../../../components/gallery/imageTiers';
 import type { Photo } from '../../../types';
+import { useViewportWidth } from '../layout/useViewportWidth';
 
 interface CoverHeroProps {
   photo: Photo | null;
@@ -23,10 +25,23 @@ function objectPositionFor(anchor: string): string {
   return 'center';
 }
 
+/**
+ * The rendition behind the cover. hero_url is a 16:9 crop made on the server,
+ * right for a landscape screen; stretched over a phone held upright it shows
+ * a sliver of the frame blown up. Portrait and narrow screens get the whole
+ * frame instead, sized for the device, and the anchor picks the part shown.
+ */
+function coverSrc(photo: Photo, viewportWidth: number): string {
+  const portrait = viewportWidth < 768 || viewportWidth < window.innerHeight;
+  if (portrait) return previewUrlForViewport(photo.slideshow_url, photo) || photo.hero_url || photo.url;
+  return photo.hero_url || photo.slideshow_url || photo.url;
+}
+
 /** The full-screen cover: photo, title and photographer bottom left, "View Album" bottom right. */
 export function CoverHero({ photo, slug, title, subtitle, logoUrl, anchor, onViewAlbum, languagePicker }: CoverHeroProps) {
   const { t } = useTranslation();
-  const src = photo ? photo.hero_url || photo.slideshow_url || photo.url : '';
+  const viewportWidth = useViewportWidth();
+  const src = photo ? coverSrc(photo, viewportWidth) : '';
   return (
     <section className="cg-cover">
       {photo && src && (

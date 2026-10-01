@@ -235,6 +235,9 @@ export function PhotoViewer({ photos, openId, onClose, onNavigate, c, onToggle }
         buttonPrev: touch || photos.length <= 1 ? () => null : undefined,
         buttonNext: touch || photos.length <= 1 ? () => null : undefined,
         slideFooter: undefined,
+        // Zoom adds its in and out buttons to the toolbar on its own; the
+        // design has none. Pinch, double tap and the wheel still zoom.
+        buttonZoom: () => null,
       }}
     />
   );

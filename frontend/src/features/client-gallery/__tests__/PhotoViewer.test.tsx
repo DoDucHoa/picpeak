@@ -113,6 +113,12 @@ describe('PhotoViewer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('offers no zoom buttons: pinch and the wheel zoom instead', () => {
+    renderViewer();
+    expect(screen.getByTestId('viewer-rail')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /zoom/i })).toBeNull();
+  });
+
   it('mounts no more than three slides', () => {
     renderViewer({ openId: 50 });
     expect(document.querySelectorAll('.yarl__slide').length).toBeLessThanOrEqual(3);

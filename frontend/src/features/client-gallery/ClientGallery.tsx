@@ -230,7 +230,7 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
         logoUrl={c.heroLogoUrl}
         anchor={c.data?.event?.hero_image_anchor || 'center'}
         onViewAlbum={scrollToAlbum}
-        languagePicker={<LanguageSelector />}
+        languagePicker={<LanguageSelector variant="cover" />}
       />
 
       <div ref={gridAnchorRef} aria-hidden="true" />
