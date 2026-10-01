@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const EXPERT_KEY = 'picpeak.eventSettings.expertMode';
@@ -20,6 +20,9 @@ export const AdvancedArea: React.FC<{ expert: boolean; children: React.ReactNode
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const id = useId();
+  // A forced opening (a validation error inside) leaves the area open, so
+  // fixing the error never folds it shut under the user.
+  useEffect(() => { if (forceOpen) setOpen(true); }, [forceOpen]);
   const shown = expert || open || forceOpen;
   return (
     <div className="mt-6 border-t border-line pt-4">

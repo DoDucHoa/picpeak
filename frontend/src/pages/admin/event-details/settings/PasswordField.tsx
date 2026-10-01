@@ -19,9 +19,29 @@ export const PasswordField: React.FC<{
 }> = ({ label, value, onChange, onRegenerate, regenerateLabel, placeholder, helperText, error }) => {
   const { t } = useTranslation();
   const id = useId();
-  const copy = () => {
-    void navigator.clipboard?.writeText(value);
-    toast.success(t('events.access.copied', 'Copied'));
+  // The clipboard API is missing over plain HTTP and can be refused, so the
+  // old copy command is the fallback, and "Copied" is said only when one of
+  // them actually copied: this is a password someone is about to send on.
+  const copy = async () => {
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+    if (!copied) {
+      const area = document.createElement('textarea');
+      area.value = value;
+      document.body.appendChild(area);
+      area.select();
+      try { copied = document.execCommand('copy'); } catch { copied = false; }
+      document.body.removeChild(area);
+    }
+    if (copied) toast.success(t('events.access.copied', 'Copied'));
+    else toast.error(t('common.copyFailed', 'Could not copy to clipboard'));
   };
   return (
     <div>
@@ -42,7 +62,7 @@ export const PasswordField: React.FC<{
       {error && <p id={`${id}-error`} className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
       <div className="flex gap-4 mt-2">
         <button type="button" className="text-sm font-medium text-accent" onClick={onRegenerate}>{regenerateLabel}</button>
-        <button type="button" className="text-sm font-medium text-accent disabled:opacity-50" disabled={!value} onClick={copy}>
+        <button type="button" className="text-sm font-medium text-accent disabled:opacity-50" disabled={!value} onClick={() => { void copy(); }}>
           {t('events.access.copy', 'Copy')}
         </button>
       </div>

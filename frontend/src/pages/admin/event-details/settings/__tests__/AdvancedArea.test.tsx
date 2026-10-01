@@ -35,3 +35,13 @@ it('survives a browser that refuses storage', () => {
   expect(result.current[0]).toBe(true);
   get.mockRestore(); set.mockRestore();
 });
+
+// Final review: an error opens the area; fixing the error must not fold it
+// shut while the user is still working in it.
+it('stays open after a forced opening ends', () => {
+  const { rerender } = render(<AdvancedArea expert={false} forceOpen><p>folder field</p></AdvancedArea>);
+  expect(screen.getByText('folder field')).toBeInTheDocument();
+  rerender(<AdvancedArea expert={false} forceOpen={false}><p>folder field</p></AdvancedArea>);
+  expect(screen.getByText('folder field')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Hide advanced options' })).toHaveAttribute('aria-expanded', 'true');
+});
