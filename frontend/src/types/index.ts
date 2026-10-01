@@ -233,6 +233,8 @@ export interface Photo {
   // (guest_id when a guest token is present, else IP+UA hash fallback).
   // Used to seed the lifted likedPhotoIds Set in grid layouts on mount.
   is_liked?: boolean;
+  // Per-viewer pick flag, the favorite counterpart of is_liked.
+  is_favorited?: boolean;
   favorite_count?: number;
   // Colour labels (#1044). `color_label_count` is aggregate data and follows
   // show_feedback_to_guests; `my_color_label` is the requesting viewer's own
