@@ -690,11 +690,8 @@
     "photoFilters": "Filtros de fotos",
     "noStatisticsAvailableYet": "No hay estadísticas disponibles aún",
     "addPlus": "Agregar+",
-    "galleryTheme": "Tema de la galería",
     "customizeTheme": "Personalizar tema",
-    "noThemeSet": "No hay tema configurado",
     "customizingTheme": "Personalizando el tema de la galería",
-    "customizingThemeFor": "Personalizando el tema para {{event}}",
     "customCssTemplate": "Plantilla CSS personalizada",
     "customCssTemplateDesc": "Aplica una plantilla CSS personalizada para estilizar la galería con efectos visuales únicos.",
     "noTemplate": "Sin plantilla",
@@ -1211,7 +1208,6 @@
     "titleFull": "Marca y personalización",
     "subtitle": "Personaliza la apariencia de tus galerías",
     "loadingBranding": "Cargando ajustes de firma...",
-    "themeAndStyle": "Tema y estilo",
     "companyInfo": "Información de la empresa",
     "companyName": "Nombre de la empresa",
     "companyNameHelp": "Se muestra en encabezados de galería y correos",
@@ -1246,8 +1242,6 @@
     "bottomRight": "Abajo derecha",
     "watermarkOpacity": "Opacidad de la marca de agua",
     "watermarkSize": "Tamaño de la marca de agua",
-    "theme": "Tema",
-    "galleryTheme": "Tema de la galería",
     "themeCustomization": "Personalización del tema",
     "selectPreset": "Seleccionar un tema predeterminado",
     "colors": "Colores",
@@ -1262,82 +1256,10 @@
     "colorModeAuto": "Auto",
     "colorModeHelp": "Auto sigue la preferencia del sistema del visitante.",
     "customCSS": "CSS personalizado",
-    "preview": "Vista previa",
     "previewInNewTab": "Vista previa en nueva pestaña",
     "reset": "Restablecer",
     "saveChanges": "Guardar cambios",
     "applyLivePreview": "Aplicar cambios inmediatamente (Vista previa en vivo)",
-    "eventSpecificThemes": "Temas específicos por evento",
-    "eventThemesInfo": "Puedes sobrescribir estos ajustes globales para eventos individuales al crearlos o editarlos.",
-    "themePresets": "Preajustes de tema",
-    "galleryLayout": "Diseño de galería",
-    "layoutDescriptions": {
-      "grid": "Diseño en cuadrícula clásico con tamaños uniformes",
-      "masonry": "Estilo Pinterest con alturas variables",
-      "carousel": "Presentación a pantalla completa con navegación",
-      "timeline": "Fotos organizadas por fecha",
-      "hero": "Imagen destacada con cuadrícula abajo",
-      "mosaic": "Diseño artístico con tamaños mixtos",
-      "justified": "Filas justificadas preservando proporciones",
-      "gallery-premium": "Tema claro elegante con hero y masonry (Beta)",
-      "gallery-story": "Tema oscuro cinematográfico con secciones (Beta)"
-    },
-    "layoutSettings": "Ajustes de diseño",
-    "photoSpacing": "Espaciado entre fotos",
-    "spacing": {
-      "tight": "Ajustado",
-      "normal": "Normal",
-      "relaxed": "Relajado"
-    },
-    "photoAnimation": "Animación de fotos",
-    "animation": {
-      "none": "Ninguna",
-      "fade": "Desvanecer",
-      "scale": "Escalar",
-      "slide": "Deslizar"
-    },
-    "columns": "Columnas",
-    "mobile": "Móvil",
-    "tablet": "Tableta",
-    "desktop": "Escritorio",
-    "enableAutoplay": "Habilitar reproducción automática",
-    "autoplayInterval": "Intervalo de reproducción (segundos)",
-    "groupPhotosBy": "Agrupar fotos por",
-    "grouping": {
-      "day": "Día",
-      "week": "Semana",
-      "month": "Mes"
-    },
-    "masonryMode": "Modo de layout",
-    "masonryModeOptions": {
-      "columns": "Columnas (estilo Pinterest)",
-      "rows": "Filas (justificado personalizado)",
-      "flickr": "Flickr (justificado probado)",
-      "justified": "Google Photos (algoritmo Knuth-Plass)"
-    },
-    "masonryModeHint": {
-      "columns": "Columnas verticales estilo Pinterest con alturas variables",
-      "rows": "Diseño justificado basado en filas",
-      "flickr": "Algoritmo justificado de Flickr",
-      "justified": "Filas estilo Google Photos usando Knuth-Plass para cortes óptimos"
-    },
-    "targetRowHeight": "Altura objetivo de fila",
-    "targetRowHeightHint": "Altura en píxeles (150-400). Las fotos se escalarán para ajustar las filas.",
-    "lastRowBehavior": "Alineación de la última fila",
-    "lastRowOptions": {
-      "left": "Alineada a la izquierda",
-      "center": "Centrada",
-      "justify": "Justificada (estirar)"
-    },
-    "thumbnailScale": "Escala de miniaturas",
-    "thumbnailScaleOptions": {
-      "xs": "XS — Más fotos",
-      "sm": "SM — Más fotos",
-      "md": "MD — Predeterminado",
-      "lg": "LG — Fotos más grandes",
-      "xl": "XL — Fotos más grandes"
-    },
-    "thumbnailScaleHint": "Ajusta el número de columnas relativo a la cuadrícula base",
     "showHeroSection": "Mostrar sección Hero",
     "showHeroSectionHint": "Mostrar imagen destacada encima de la galería justificada",
     "heroHeight": "Altura de la sección Hero",
@@ -1372,33 +1294,9 @@
       "normal": "Normal",
       "dramatic": "Dramática"
     },
-    "backgroundPattern": "Fondo",
-    "backgroundOptions": {
-      "none": "Ninguno",
-      "dots": "Puntos",
-      "grid": "Grid",
-      "waves": "Ondas"
-    },
-    "customCSSHelp": "Avanzado: Añade CSS personalizado para ajustar aún más la apariencia",
-    "cssInstructions": {
-      "title": "Cómo usar CSS personalizado",
-      "variables": "Variables CSS del tema",
-      "variablesDesc": "Usa estas variables CSS para coincidir con tus presets de tema:",
-      "layouts": "Layouts personalizados de galería",
-      "layoutsDesc": "Apunta a elementos de la galería con estos selectores:",
-      "glassEffect": "Efecto Glassmorphism",
-      "glassEffectDesc": "Crea efectos modernos de vidrio:",
-      "tip": "Consejo",
-      "tipText": "Usa Plantillas CSS desde Ajustes > Plantillas CSS para diseños preconstruidos como Apple Liquid Glass."
-    },
     "resetToDefault": "Restablecer a predeterminado",
-    "applyTheme": "Aplicar tema",
     "customTheme": "Tema personalizado",
     "customizeTheme": "Personalizar tema",
-    "saveTheme": "Guardar tema",
-    "previewLayout": "Vista previa del diseño",
-    "livePreview": "Vista previa en vivo",
-    "heroPlaceholderText": "La foto hero de tu evento aparecerá aquí",
     "whiteLabel": "Etiqueta blanca",
     "hidePoweredBy": "Ocultar la marca \"Powered by PicPeak\"",
     "hidePoweredByHelp": "Eliminar la atribución de PicPeak del pie de las galerías para una experiencia totalmente white-label",
@@ -1422,46 +1320,7 @@
     "showLogoInHeader": "Mostrar logo en el encabezado de la galería",
     "showLogoInHeaderHelp": "Mostrar el logo en la barra de encabezado principal",
     "showLogoInHero": "Mostrar logo en la sección hero",
-    "showLogoInHeroHelp": "Mostrar el logo en secciones hero (para layouts no grid)",
-    "headerStyle": "Estilo del encabezado",
-    "headerStyleDescription": "Elige cómo aparece el encabezado. El estilo del encabezado es independiente del diseño de fotos.",
-    "headerStyleOptions": {
-      "hero": "Hero",
-      "standard": "Estándar",
-      "banner": "Banner",
-      "minimal": "Minimal",
-      "none": "Sin encabezado"
-    },
-    "headerStyleDescriptions": {
-      "hero": "Imagen de altura completa con información del evento",
-      "standard": "Encabezado compacto con detalles del evento",
-      "banner": "Encabezado estándar con banner de color arriba",
-      "minimal": "Encabezado compacto con info esencial",
-      "none": "Ocultar encabezado por completo"
-    },
-    "heroDividerStyle": "Estilo del divisor",
-    "heroDividerDescription": "Elige la transición entre la imagen hero y el contenido de la galería.",
-    "dividerOptions": {
-      "wave": "Onda",
-      "straight": "Recto",
-      "angle": "Ángulo",
-      "curve": "Curva",
-      "none": "Ninguno"
-    },
-    "controlsStyle": "Estilo de controles",
-    "controlsStyleDescription": "Elige cómo se muestran filtros y controles de la galería.",
-    "controlsStyleOptions": {
-      "classic": "Clásico",
-      "sidebar": "Barra lateral"
-    },
-    "controlsStyleDescriptions": {
-      "classic": "Barra de filtros inline bajo el encabezado",
-      "sidebar": "Botón de menú abre barra lateral con filtros"
-    },
-    "controlsStyleHeroWarning": "Se recomienda la barra lateral para encabezados hero para evitar controles sobre la imagen.",
-    "betaThumbnailWarningTitle": "Resolución de miniaturas baja detectada",
-    "betaThumbnailWarningText": "Tus miniaturas son {{width}}×{{height}}px. Los temas beta muestran fotos más grandes y requieren al menos {{recommended}}×{{recommended}}px para buena calidad. Aumenta las dimensiones en Ajustes > Miniaturas y regenera.",
-    "betaThumbnailWarningLink": "Ir a ajustes de miniaturas"
+    "showLogoInHeroHelp": "Mostrar el logo en secciones hero (para layouts no grid)"
   },
   "admin": {
     "title": "Panel de administración",
@@ -2420,26 +2279,6 @@
       "testEmailSent": "¡Prueba de conexión exitosa!",
       "testEmailFailed": "Falló la prueba de conexión"
     }
-  },
-  "cssTemplates": {
-    "template": "Plantilla",
-    "templateName": "Nombre de la plantilla",
-    "enableTemplate": "Habilitar esta plantilla",
-    "enableHint": "Las plantillas habilitadas pueden seleccionarse al crear eventos",
-    "cssContent": "Contenido CSS",
-    "cssHint": "Usa .gallery-page para aplicar estilos a la galería. Variables disponibles: --gallery-bg, --gallery-text, --gallery-accent",
-    "securityNotice": "Aviso de seguridad",
-    "securityText": "El CSS se sanea para evitar código malicioso. URLs externas, @import y expresiones JavaScript se bloquean.",
-    "resetToDefault": "Restablecer a predeterminado",
-    "resetConfirm": "¿Restablecer esta plantilla al predeterminado? Se perderán los cambios.",
-    "unsavedChanges": "Cambios sin guardar",
-    "saveTemplate": "Guardar plantilla",
-    "lastUpdated": "Última actualización",
-    "saved": "Plantilla guardada con éxito",
-    "saveFailed": "Error al guardar la plantilla",
-    "sanitizationWarning": "Algunos patrones CSS fueron bloqueados por seguridad",
-    "reset": "Plantilla restablecida al predeterminado",
-    "resetFailed": "Error al restablecer la plantilla"
   },
   "maintenance": {
     "title": "Mantenimiento del sistema",
