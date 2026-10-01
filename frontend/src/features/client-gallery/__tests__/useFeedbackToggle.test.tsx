@@ -48,3 +48,33 @@ it('rolls back and shows the limit modal when the pick limit is reached', async 
   expect(cached().is_favorited).toBe(false);
   expect(cached().favorite_count).toBe(0);
 });
+
+it('sends one request for two fast toggles of the same photo and kind', async () => {
+  submit.mockReturnValue(new Promise(() => {}));
+  const { result } = renderHook(() => useFeedbackToggle('s', KEY, false), { wrapper });
+  act(() => {
+    result.current.toggle(photo, 'favorite');
+    result.current.toggle(photo, 'favorite');
+  });
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(cached().is_favorited).toBe(true);
+  expect(cached().favorite_count).toBe(1);
+});
+
+it('reads the current state from the cache, not from a stale photo object', async () => {
+  client.setQueryData(KEY, { photos: [{ ...(photo as object), is_favorited: true, favorite_count: 1 }] });
+  submit.mockResolvedValue({ removed: true });
+  const { result } = renderHook(() => useFeedbackToggle('s', KEY, false), { wrapper });
+  act(() => result.current.toggle(photo, 'favorite'));
+  await waitFor(() => expect(submit).toHaveBeenCalled());
+  expect(cached().is_favorited).toBe(false);
+  expect(cached().favorite_count).toBe(0);
+});
+
+it('follows the server when it answers removed to an optimistic on', async () => {
+  submit.mockResolvedValue({ removed: true });
+  const { result } = renderHook(() => useFeedbackToggle('s', KEY, false), { wrapper });
+  act(() => result.current.toggle(photo, 'favorite'));
+  await waitFor(() => expect(cached().is_favorited).toBe(false));
+  expect(cached().favorite_count).toBe(0);
+});
