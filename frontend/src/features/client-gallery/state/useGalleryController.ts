@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 
 import { useGalleryAuth } from '../../../contexts';
-import { useGalleryPhotos, useDownloadAllPhotos } from '../../../hooks/useGallery';
-import { useDownloadQuota, useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
+import { useGalleryPhotos } from '../../../hooks/useGallery';
 import { useDevToolsProtection } from '../../../hooks/useDevToolsProtection';
 import { useWatermarkSettings } from '../../../hooks/useWatermarkSettings';
 import { usePublicSettings } from '../../../hooks/usePublicSettings';
@@ -18,11 +15,9 @@ import {
   folderTiles,
   peopleInScope,
   photosInScope,
-  SELECTED_DOWNLOAD_LIMIT,
   readFolderParam,
   writeFolderParam,
 } from '../../../components/gallery/folders';
-import { shouldOfferFullPackage, classifyDownloadRefusal } from '../../../components/gallery/downloadQuotaOffer';
 import type { FeedbackFilterType } from '../../../components/gallery/GalleryFilter';
 import type { DownloadGate } from '../../../contexts/DownloadGateContext';
 import type {
@@ -38,6 +33,8 @@ import type {
 import { readUrlState, writeUrlState } from './urlState';
 import type { GalleryTab, SortField, UrlState, ViewMode } from './urlState';
 import { tabCounts, tabPhotos } from './tabs';
+import { useGalleryDownloads } from './useGalleryDownloads';
+import type { GalleryDownloads } from './useGalleryDownloads';
 
 /**
  * The event as the gallery page already knows it from /gallery/:slug/info,
@@ -78,6 +75,8 @@ export interface GalleryController {
   url: UrlState; setSort: (s: SortField) => void; toggleDir: () => void;
   setView: (v: ViewMode) => void; setTab: (t: GalleryTab) => void;
   openPhoto: (id: number | null, mode?: 'push' | 'replace') => void;
+  /** Closes the viewer: Back when the app pushed its entry, else a replace. */
+  closePhoto: () => void;
   visiblePhotos: Photo[]; scopedPhotos: Photo[]; counts: { all: number; liked: number; picked: number };
   pickLimit: number | null;
   feedbackSettings: Partial<FeedbackSettings> | undefined; identityMode: 'simple' | 'guest';
@@ -88,7 +87,7 @@ export interface GalleryController {
   isDownloadingAll: boolean; handleDownloadAll: () => void;
   selection: { active: boolean; setActive: (v: boolean) => void; ids: Set<number>; setIds: (s: Set<number>) => void };
   handleDownloadSelected: () => Promise<void>;
-  quota: ReturnType<typeof useDownloadQuota>['quota']; offerFullPackage: boolean;
+  quota: GalleryDownloads['quota']; offerFullPackage: boolean;
   quotaOffer: { exceeded: QuotaExceededPayload | null } | null; setQuotaOffer: (v: { exceeded: QuotaExceededPayload | null } | null) => void;
   downloadGate: DownloadGate; deliveredPhotoIds: Set<number>;
   downloadPackages: DownloadPackage[]; downloadCurrency: string; pendingDownloadOrder: DownloadOrder | null;
@@ -132,6 +131,7 @@ const parseDefaultPhotoSort = (defaultSort?: string): { sort: SortField; dir: 'a
 // them. Built once so useGalleryFiltering's memo is not invalidated by a fresh
 // object on every render.
 const NO_FEEDBACK_FILTERS: FeedbackFilterType[] = [];
+const NO_COLOR_FILTERS: never[] = [];
 const NO_FEEDBACK_IDS: Record<FeedbackFilterType, Set<number>> = {
   liked: new Set<number>(),
   favorited: new Set<number>(),
@@ -174,9 +174,11 @@ function readGuestId(): string {
  * URL state, downloads and the quota, people, folders, client visibility and
  * the image protections. Lifted out of the old GalleryView so the new design
  * renders from one object.
+ *
+ * Every function on the result is stable across renders unless its inputs
+ * changed, and so is the result itself, so memoised tiles can depend on them.
  */
 export function useGalleryController(slug: string, event: GalleryEventSeed, requiresPassword: boolean): GalleryController {
-  const { t } = useTranslation();
   const { logout, isClient, viaCustomer } = useGalleryAuth();
   const queryClient = useQueryClient();
   // Open folder (#1160), mirrored to `?folder=<slug>` so it is linkable and the
@@ -184,10 +186,6 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   const [openFolderSlug, setOpenFolderSlug] = useState<string | null>(() => readFolderParam());
   const openFolderSlugRef = useRef(openFolderSlug);
   openFolderSlugRef.current = openFolderSlug;
-  // Download size picker (#858). `showResolutionPicker` covers "download all";
-  // `resolutionPickerIds` covers a selection.
-  const [showResolutionPicker, setShowResolutionPicker] = useState(false);
-  const [resolutionPickerIds, setResolutionPickerIds] = useState<number[] | null>(null);
 
   // Sort, direction, view, tab and the open photo live in the address bar. The
   // fallback is the event's default sort once /photos has said what it is.
@@ -229,7 +227,8 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   // Fetch photos WITHOUT filter (always get all photos, filter on frontend)
   // This ensures counts are always calculated from the full dataset
   const photosQueryKey = useMemo(() => ['gallery-photos', slug, 'all', guestId], [slug, guestId]);
-  const { data, isLoading, error, refetch } = useGalleryPhotos(slug, 'all', guestId);
+  const { data, isLoading, error, refetch: refetchPhotos } = useGalleryPhotos(slug, 'all', guestId);
+  const refetch = useCallback(() => { void refetchPhotos(); }, [refetchPhotos]);
   const { isSelectionMode, setIsSelectionMode, selectedPhotos, setSelectedPhotos } = useGallerySelection(data?.photos);
 
   // Set protection level when data is available
@@ -270,13 +269,15 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
       console.warn('DevTools detected in gallery view');
 
       // Track analytics
-      const umami = (window as Window & { umami?: { track: (name: string, data: Record<string, unknown>) => void } }).umami;
-      if (typeof window !== 'undefined' && umami) {
-        umami.track('gallery_devtools_detected', {
-          gallery: slug,
-          protectionLevel,
-          eventId: data?.event?.id
-        });
+      if (typeof window !== 'undefined') {
+        const umami = (window as Window & { umami?: { track: (name: string, data: Record<string, unknown>) => void } }).umami;
+        if (umami) {
+          umami.track('gallery_devtools_detected', {
+            gallery: slug,
+            protectionLevel,
+            eventId: data?.event?.id
+          });
+        }
       }
 
       // For maximum protection, redirect away from gallery
@@ -304,102 +305,6 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
       document.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [disableRightClick]);
-
-  // Data updates are handled by React Query
-  const downloadAllMutation = useDownloadAllPhotos();
-  const refreshDownloadQuota = useRefreshDownloadQuota();
-
-  // Download allowance (#download-quota). One query feeds the header badge,
-  // the delivered marks on the grid and the package offer below.
-  const {
-    quota: downloadQuota,
-    downloadedIds: deliveredPhotoIds,
-    packages: downloadPackages,
-    pendingOrder: pendingDownloadOrder,
-    currency: downloadCurrency,
-    refetch: refetchDownloadQuota,
-  } = useDownloadQuota(slug);
-
-  // Open with the 402 body when a download was refused, and with null when the
-  // guest opened the offer themselves from the header.
-  const [quotaOffer, setQuotaOffer] = useState<{ exceeded: QuotaExceededPayload | null } | null>(
-    null,
-  );
-
-  const notifyGuestBlocked = useCallback(() => {
-    toast.error(
-      t(
-        'gallery.downloadQuota.guestBlocked',
-        'Only registered clients can download photos from this gallery.',
-      ),
-    );
-  }, [t]);
-
-  /**
-   * Turns a refused download into the package offer, or a "clients only"
-   * notice for a guest the server caught. Returns false for any other
-   * failure so the caller can keep its existing error path: a network error
-   * must never be dressed up as a sales pitch.
-   */
-  const handleDownloadFailure = useCallback(async (error: unknown): Promise<boolean> => {
-    const refusal = await classifyDownloadRefusal(error);
-    if (!refusal) return false;
-    if (refusal.kind === 'guest') {
-      notifyGuestBlocked();
-      return true;
-    }
-    // The allowance could not be read, so nothing was refused on its merits and
-    // no purchase would help. Say so plainly instead of opening a sales dialog
-    // for a problem the client cannot buy their way out of.
-    if (refusal.kind === 'unavailable') {
-      toast.error(
-        t(
-          'gallery.downloadQuota.unavailable',
-          'Downloads are briefly unavailable. Please try again in a moment.',
-        ),
-      );
-      return true;
-    }
-    setQuotaOffer({ exceeded: refusal.payload });
-    // The refusal carries the server's current counters, so the badge behind
-    // the dialog agrees with the dialog in front of it.
-    refetchDownloadQuota();
-    return true;
-  }, [refetchDownloadQuota, notifyGuestBlocked, t]);
-
-  const offerForBlockedDownload = useCallback(() => {
-    // A single not-yet-delivered photo against an exhausted allowance always
-    // costs exactly one slot: the same arithmetic the server's quota gate
-    // would have done, just without the round trip.
-    setQuotaOffer({
-      exceeded: {
-        code: 'DOWNLOAD_QUOTA_EXCEEDED',
-        quota: {
-          total: downloadQuota?.total ?? null,
-          used: downloadQuota?.used ?? 0,
-          remaining: downloadQuota?.remaining ?? 0,
-        },
-        requested_new: 1,
-        missing_slots: 1,
-      },
-    });
-  }, [downloadQuota?.total, downloadQuota?.used, downloadQuota?.remaining]);
-
-  // Fed to every per-photo download button (grid, list, viewer) through
-  // context so none of them need quota state threaded in as props.
-  const downloadGate = useMemo<DownloadGate>(() => ({
-    quotaEnabled: Boolean(downloadQuota?.enabled),
-    isClient,
-    remaining: downloadQuota?.remaining ?? null,
-    downloadedIds: deliveredPhotoIds,
-    openQuotaOffer: (exceeded: QuotaExceededPayload | null) => setQuotaOffer({ exceeded }),
-    offerForBlockedDownload,
-    notifyGuestBlocked,
-    reportDownloadFailure: handleDownloadFailure,
-  }), [
-    downloadQuota?.enabled, downloadQuota?.remaining, isClient, deliveredPhotoIds,
-    offerForBlockedDownload, notifyGuestBlocked, handleDownloadFailure,
-  ]);
 
   const { data: settingsData } = usePublicSettings();
 
@@ -503,7 +408,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   }, [data?.photos, data?.event?.hero_photo_id, staticHeroPhoto]);
 
   // Client visibility toggle handler (#172)
-  const handleToggleVisibility = async (photoId: number, currentVisibility: string) => {
+  const handleToggleVisibility = useCallback(async (photoId: number, currentVisibility: string) => {
     const newVisibility = currentVisibility === 'hidden' ? 'visible' : 'hidden';
     try {
       await galleryService.togglePhotoVisibility(slug, photoId, newVisibility);
@@ -511,9 +416,9 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     } catch (error) {
       console.error('Failed to toggle visibility:', error);
     }
-  };
+  }, [slug, queryClient]);
 
-  const handleBulkVisibility = async (visibility: 'visible' | 'hidden') => {
+  const handleBulkVisibility = useCallback(async (visibility: 'visible' | 'hidden') => {
     if (selectedPhotos.size === 0) return;
     try {
       await galleryService.bulkToggleVisibility(slug, Array.from(selectedPhotos), visibility);
@@ -523,7 +428,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     } catch (error) {
       console.error('Failed to bulk toggle visibility:', error);
     }
-  };
+  }, [selectedPhotos, slug, setSelectedPhotos, setIsSelectionMode, queryClient]);
 
   // Client visibility stats
   const visibleCount = useMemo(() => {
@@ -540,9 +445,11 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   const showUrgentWarning = daysUntilExpiration !== null && daysUntilExpiration <= 7;
   const isExpired = daysUntilExpiration !== null && daysUntilExpiration < 0;
 
-  const openFolderBySlug = useCallback((key: string | null) => {
+  // `replace` is for the deep link only: it enters the photo's folder in
+  // place, so Back never lands on the folder-less entry and re-resolves it.
+  const enterFolder = useCallback((key: string | null, history: 'push' | 'replace') => {
     setOpenFolderSlug(key);
-    writeFolderParam(key);
+    writeFolderParam(key, history);
     // Without this a selection made outside the folder survives into it, and
     // the toolbar would offer to download (or a client to hide) photos that
     // are no longer on screen.
@@ -554,6 +461,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     setPeopleMatchAny(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [setSelectedPhotos]);
+  const openFolderBySlug = useCallback((key: string | null) => enterFolder(key, 'push'), [enterFolder]);
 
   // URL state writers. `openPhoto` pushes, so Back closes the viewer; the rest
   // replace, so changing the sort five times does not cost five Back presses.
@@ -573,10 +481,26 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   );
   const setView = useCallback((view: ViewMode) => updateUrl({ view }, 'replace'), [updateUrl]);
   const setTab = useCallback((tab: GalleryTab) => updateUrl({ tab }, 'replace'), [updateUrl]);
-  const openPhoto = useCallback(
-    (photo: number | null, mode: 'push' | 'replace' = 'push') => updateUrl({ photo }, mode),
-    [updateUrl]
-  );
+
+  // True while the viewer sits on a history entry this session pushed. Only
+  // then may closing it step Back: a viewer reached by a deep link has the
+  // gallery's previous page (or nothing) behind it, and Back would leave.
+  // Stepping between photos with a replace keeps the entry, so it keeps the flag.
+  const viewerEntryPushed = useRef(false);
+  const openPhoto = useCallback((photo: number | null, mode: 'push' | 'replace' = 'push') => {
+    if (photo === null) viewerEntryPushed.current = false;
+    else if (mode === 'push') viewerEntryPushed.current = true;
+    updateUrl({ photo }, mode);
+  }, [updateUrl]);
+  const closePhoto = useCallback(() => {
+    if (viewerEntryPushed.current) {
+      viewerEntryPushed.current = false;
+      // The popstate listener below reads the closed state back from the URL.
+      window.history.back();
+      return;
+    }
+    openPhoto(null, 'replace');
+  }, [openPhoto]);
 
   // Set when a deep link has been checked against the loaded photos, so a
   // photo that later leaves the current tab (an unlike in the liked tab) does
@@ -588,6 +512,9 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   useEffect(() => {
     const onPop = () => {
       setUrl(readUrlState(window.location.search, sortFallbackRef.current));
+      // Whatever entry Back or Forward reached, this session can no longer
+      // vouch for what sits behind it.
+      viewerEntryPushed.current = false;
       deepLinkResolved.current = false;
       const nextFolder = readFolderParam();
       // Only a folder change resets the scoped state: closing the viewer with
@@ -606,7 +533,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   const filteredPhotos = useGalleryFiltering({
     sourcePhotos: data?.photos, categories: data?.categories, folderId: openFolder?.id ?? null,
     selectedCategoryId: null, searchTerm: '', sortBy: url.sort, sortDesc: url.dir === 'desc',
-    watermarkEnabled, slug, activeFilters: NO_FEEDBACK_FILTERS, activeColorFilters: [], mediaFilter: 'all',
+    watermarkEnabled, slug, activeFilters: NO_FEEDBACK_FILTERS, activeColorFilters: NO_COLOR_FILTERS, mediaFilter: 'all',
     isGuestIdentityMode: identityMode === 'guest', myFeedbackPhotoIds: NO_FEEDBACK_IDS,
     selectedPersonIds, peopleMatchAny,
   });
@@ -617,6 +544,11 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   // from inside a folder, must still open the photo for someone whose view
   // would hide it: switch to the all tab and into the photo's folder. An id
   // the gallery does not have is dropped instead of opening an empty viewer.
+  //
+  // Folder and tab are the only scopes that can hide a photo at first load:
+  // people start empty and nothing else filters. A filter that ever gets a
+  // non-empty default has to be cleared here as well, or its deep links will
+  // resolve to a photo the grid does not show.
   useEffect(() => {
     if (deepLinkResolved.current || !data) return;
     deepLinkResolved.current = true;
@@ -630,189 +562,14 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     const tile = tiles.find((candidate) => candidate.category.id === target.category_id);
     const targetFolderKey = tile ? folderKey(tile.category) : null;
     const currentFolderKey = openFolder ? folderKey(openFolder) : null;
-    if (targetFolderKey !== currentFolderKey) openFolderBySlug(targetFolderKey);
+    if (targetFolderKey !== currentFolderKey) enterFolder(targetFolderKey, 'replace');
     if (url.tab !== 'all') setTab('all');
-  }, [data, url.photo, url.tab, visiblePhotos, tiles, openFolder, openFolderBySlug, openPhoto, setTab]);
+  }, [data, url.photo, url.tab, visiblePhotos, tiles, openFolder, enterFolder, openPhoto, setTab]);
 
-  // Check if downloads are allowed (both event setting and not expired)
-  const allowDownloads = !isExpired && (data?.event?.allow_downloads === true);
-
-  // Resolution picker choices (#858). More than one option means there is an
-  // actual choice to make; a single option is just the standard size, so skip
-  // the modal and download straight away.
-  const downloadChoices = data?.event?.download_resolution?.picker_enabled
-    ? (data.event.download_resolution.choices || [])
-    : [];
-
-  // Photos the gallery has not delivered yet. This, not the gallery size, is
-  // what a "download all" would actually spend: a photo already handed over
-  // costs nothing to take again.
-  const notDeliveredCount = useMemo(() => {
-    if (!data?.photos) return 0;
-    return data.photos.filter((photo) => !deliveredPhotoIds.has(photo.id)).length;
-  }, [data?.photos, deliveredPhotoIds]);
-
-  // Swap the download button for the package offer only when the whole
-  // gallery genuinely no longer fits. Comparing the gallery against the FREE
-  // limit instead would keep selling to a client who already bought more.
-  const offerFullPackage =
-    Boolean(downloadQuota?.enabled) &&
-    shouldOfferFullPackage(notDeliveredCount, downloadQuota?.remaining ?? null);
-
-  const handleDownloadAll = () => {
-    // Prevent downloads if gallery is expired or downloads disabled
-    if (!allowDownloads) {
-      return;
-    }
-
-    // Hand off to the picker; it builds the archive as a job and downloads it.
-    if (downloadChoices.length > 1) {
-      setShowResolutionPicker(true);
-      return;
-    }
-
-    downloadAllMutation.mutate(
-      { slug, zipReady: data?.event?.download_zip_ready },
-      { onError: (error) => { void handleDownloadFailure(error); } },
-    );
-
-    // Track download all action
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: data?.photos.length || 0,
-      is_download_all: true
-    });
-  };
-
-  const handleDownloadSelected = async () => {
-    if (selectedPhotos.size === 0) return;
-
-    // Prevent downloads if gallery is expired or downloads disabled
-    if (!allowDownloads) {
-      return;
-    }
-
-    // Resolution picker (#858): a selection gets the same choice as the
-    // single-photo control, rather than silently downloading at the gallery
-    // standard.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(Array.from(selectedPhotos));
-      return;
-    }
-
-    const selectedPhotosList = filteredPhotos.filter(p => selectedPhotos.has(p.id));
-
-    // Track bulk download
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: selectedPhotos.size
-    });
-
-    // Download each selected photo
-    try {
-      for (const photo of selectedPhotosList) {
-        await galleryService.downloadPhoto(slug, photo.id, photo.filename);
-      }
-      // Each photo claimed its slot before streaming, so re-read the allowance.
-      refreshDownloadQuota(slug);
-    } catch (error) {
-      // The selection is deliberately left standing on a quota refusal: the
-      // dialog asks the guest to drop photos themselves, which it cannot do
-      // if the selection has already been cleared out from under them.
-      if (await handleDownloadFailure(error)) return;
-      throw error;
-    }
-
-    // Clear selection after download
-    setSelectedPhotos(new Set());
-    setIsSelectionMode(false);
-  };
-
-  // "Download these N" (#1074): the payoff of the people filter.
-  //
-  // Deliberately NO new endpoint or person_id selector: the filtered photo
-  // ids go through the same path as a manual selection, and the server
-  // re-applies the access level and per-category permissions on the way
-  // through. One less thing to authorize.
-  //
-  // Photos in a category with downloads disabled (#640) are excluded HERE as
-  // well as server-side, so the number on the button is the number the guest
-  // actually receives rather than an optimistic one.
-  const peopleDownloadableIds = useMemo(() => {
-    if (selectedPersonIds.length === 0) return [];
-    return filteredPhotos
-      .filter((photo) => photo.category_allow_downloads !== false)
-      .map((photo) => photo.id);
-  }, [filteredPhotos, selectedPersonIds]);
-
-  const handleDownloadPeopleFiltered = async () => {
-    if (!allowDownloads || peopleDownloadableIds.length === 0) return;
-
-    // Same resolution-picker behaviour as every other multi-photo download.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(peopleDownloadableIds);
-      return;
-    }
-
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: peopleDownloadableIds.length,
-    });
-
-    try {
-      await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
-      refreshDownloadQuota(slug);
-    } catch (error) {
-      if (await handleDownloadFailure(error)) return;
-      throw error;
-    }
-  };
-
-  // Download just the open folder (#1160). The event-wide "download all" still
-  // zips the whole gallery including foldered photos; this is the "only this
-  // folder, once" case. Honours the per-category opt-out (#640), so a folder
-  // with allow_downloads = false offers no button at all.
-  const folderDownloadableIds = useMemo(() => {
-    if (!openFolder) return [];
-    if (openFolder.allow_downloads === false) return [];
-    // scopedPhotos, not filteredPhotos: a button that says "Download folder"
-    // must not quietly hand over a filtered subset of it.
-    return scopedPhotos
-      .filter((photo) => photo.category_allow_downloads !== false)
-      .map((photo) => photo.id);
-  }, [openFolder, scopedPhotos]);
-
-  // /download-selected caps the id list server-side, so a folder bigger than the
-  // cap would deliver a truncated archive under a button promising the whole
-  // thing. Send only what the server will honour, and say so on the label.
-  const folderDownloadIds = useMemo(
-    () => folderDownloadableIds.slice(0, SELECTED_DOWNLOAD_LIMIT),
-    [folderDownloadableIds]
-  );
-  const folderDownloadCapped = folderDownloadableIds.length > SELECTED_DOWNLOAD_LIMIT;
-
-  const handleDownloadFolder = async () => {
-    if (!allowDownloads || folderDownloadableIds.length === 0) return;
-
-    // Same resolution-picker behaviour as every other multi-photo download.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(folderDownloadIds);
-      return;
-    }
-
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: folderDownloadIds.length,
-    });
-
-    try {
-      await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
-      refreshDownloadQuota(slug);
-    } catch (error) {
-      if (await handleDownloadFailure(error)) return;
-      throw error;
-    }
-  };
+  const downloads = useGalleryDownloads({
+    slug, data, isClient, isExpired, filteredPhotos, scopedPhotos, openFolder,
+    selectedPhotos, setSelectedPhotos, setIsSelectionMode, selectedPersonIds,
+  });
 
   // Track expiration warning views
   useEffect(() => {
@@ -853,75 +610,115 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   const heroLogoUrl = data?.event?.hero_logo_visible !== false
     ? (data?.event?.hero_logo_url || settingsData?.branding_logo_url || null)
     : null;
+  const brandName = settingsData?.branding_company_name || '';
+  const pickLimit = feedbackSettings?.max_favorites_per_guest ?? null;
 
-  return {
-    data, isLoading, error, refetch: () => { void refetch(); },
+  const protection = useMemo(() => ({
+    level: protectionLevel,
+    disableRightClick,
+    devtools: enableDevtoolsProtection,
+    canvas: useCanvasRendering,
+  }), [protectionLevel, disableRightClick, enableDevtoolsProtection, useCanvasRendering]);
+
+  const selection = useMemo(() => ({
+    active: isSelectionMode, setActive: setIsSelectionMode, ids: selectedPhotos, setIds: setSelectedPhotos,
+  }), [isSelectionMode, setIsSelectionMode, selectedPhotos, setSelectedPhotos]);
+
+  const peopleScan = peopleData?.scan;
+  const {
+    peopleDownloadableIds, handleDownloadPeopleFiltered,
+    folderDownloadIds, folderDownloadTotal, folderDownloadCapped, handleDownloadFolder,
+  } = downloads;
+  const peopleGroup = useMemo(() => ({
+    enabled: peopleEnabled,
+    list: people,
+    selectedIds: selectedPersonIds,
+    toggle: togglePerson,
+    matchAny: peopleMatchAny,
+    setMatchAny: setPeopleMatchAny,
+    clear: clearPeople,
+    downloadableIds: peopleDownloadableIds,
+    downloadFiltered: handleDownloadPeopleFiltered,
+    sheetOpen: showPeopleSheet,
+    setSheetOpen: setShowPeopleSheet,
+    scan: peopleScan,
+  }), [
+    peopleEnabled, people, selectedPersonIds, togglePerson, peopleMatchAny, clearPeople,
+    peopleDownloadableIds, handleDownloadPeopleFiltered, showPeopleSheet, peopleScan,
+  ]);
+
+  const foldersGroup = useMemo(() => ({
+    tiles,
+    open: openFolder,
+    openBySlug: openFolderBySlug,
+    downloadIds: folderDownloadIds,
+    // The full count for the "Download first N of M" label when capped.
+    downloadTotal: folderDownloadTotal,
+    downloadCapped: folderDownloadCapped,
+    downloadFolder: handleDownloadFolder,
+    rootIsFoldersOnly,
+  }), [
+    tiles, openFolder, openFolderBySlug, folderDownloadIds, folderDownloadTotal,
+    folderDownloadCapped, handleDownloadFolder, rootIsFoldersOnly,
+  ]);
+
+  const clientGroup = useMemo(() => ({
+    isClient,
+    visibleCount,
+    totalCount,
+    toggleVisibility: handleToggleVisibility,
+    bulkVisibility: handleBulkVisibility,
+  }), [isClient, visibleCount, totalCount, handleToggleVisibility, handleBulkVisibility]);
+
+  const expiresAt = event.expires_at;
+  const expiry = useMemo(
+    () => ({ expiresAt, daysLeft: daysUntilExpiration }),
+    [expiresAt, daysUntilExpiration]
+  );
+
+  const {
+    allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
+    handleDownloadSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
+    downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
+    resolutionPicker,
+  } = downloads;
+
+  return useMemo<GalleryController>(() => ({
+    data, isLoading, error, refetch,
     photosQueryKey,
     event, slug,
-    url, setSort, toggleDir, setView, setTab, openPhoto,
+    url, setSort, toggleDir, setView, setTab, openPhoto, closePhoto,
     visiblePhotos, scopedPhotos, counts,
-    pickLimit: feedbackSettings?.max_favorites_per_guest ?? null,
+    pickLimit,
     feedbackSettings, identityMode,
-    heroPhoto: staticHeroPhoto, heroLogoUrl,
-    brandName: settingsData?.branding_company_name || '',
-    protection: {
-      level: protectionLevel,
-      disableRightClick,
-      devtools: enableDevtoolsProtection,
-      canvas: useCanvasRendering,
-    },
+    heroPhoto: staticHeroPhoto, heroLogoUrl, brandName,
+    protection,
     showOriginalFilename,
-    allowDownloads, downloadChoices, downloadStandard: data?.event?.download_resolution?.standard,
-    isDownloadingAll: downloadAllMutation.isPending, handleDownloadAll,
-    selection: { active: isSelectionMode, setActive: setIsSelectionMode, ids: selectedPhotos, setIds: setSelectedPhotos },
+    allowDownloads, downloadChoices, downloadStandard,
+    isDownloadingAll, handleDownloadAll,
+    selection,
     handleDownloadSelected,
-    quota: downloadQuota, offerFullPackage,
+    quota, offerFullPackage,
     quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds,
     downloadPackages, downloadCurrency, pendingDownloadOrder,
-    resolutionPicker: {
-      open: showResolutionPicker || resolutionPickerIds !== null,
-      ids: resolutionPickerIds,
-      close: () => {
-        setShowResolutionPicker(false);
-        setResolutionPickerIds(null);
-      },
-    },
-    people: {
-      enabled: peopleEnabled,
-      list: people,
-      selectedIds: selectedPersonIds,
-      toggle: togglePerson,
-      matchAny: peopleMatchAny,
-      setMatchAny: setPeopleMatchAny,
-      clear: clearPeople,
-      downloadableIds: peopleDownloadableIds,
-      downloadFiltered: handleDownloadPeopleFiltered,
-      sheetOpen: showPeopleSheet,
-      setSheetOpen: setShowPeopleSheet,
-      scan: peopleData?.scan,
-    },
-    folders: {
-      tiles,
-      open: openFolder,
-      openBySlug: openFolderBySlug,
-      downloadIds: folderDownloadIds,
-      // The full count for the "Download first N of M" label when capped.
-      downloadTotal: folderDownloadableIds.length,
-      downloadCapped: folderDownloadCapped,
-      downloadFolder: handleDownloadFolder,
-      rootIsFoldersOnly,
-    },
-    client: {
-      isClient,
-      visibleCount,
-      totalCount,
-      toggleVisibility: handleToggleVisibility,
-      bulkVisibility: handleBulkVisibility,
-    },
-    expiry: { expiresAt: event.expires_at, daysLeft: daysUntilExpiration },
+    resolutionPicker,
+    people: peopleGroup,
+    folders: foldersGroup,
+    client: clientGroup,
+    expiry,
     showLogout: showLogoutControl,
     logout,
     promoMarkdown, infoMarkdown,
-  };
+  }), [
+    data, isLoading, error, refetch, photosQueryKey, event, slug,
+    url, setSort, toggleDir, setView, setTab, openPhoto, closePhoto,
+    visiblePhotos, scopedPhotos, counts, pickLimit, feedbackSettings, identityMode,
+    staticHeroPhoto, heroLogoUrl, brandName, protection, showOriginalFilename,
+    allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
+    selection, handleDownloadSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
+    downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
+    resolutionPicker, peopleGroup, foldersGroup, clientGroup, expiry,
+    showLogoutControl, logout, promoMarkdown, infoMarkdown,
+  ]);
 }

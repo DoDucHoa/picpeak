@@ -25,7 +25,7 @@ const BULK_DOWNLOAD_FILES = [
   'components/gallery/PhotoGridWithLayouts.tsx',
   'components/gallery/layouts/GalleryPremiumLayout.tsx',
   'components/gallery/layouts/GalleryStoryLayout.tsx',
-  'features/client-gallery/state/useGalleryController.ts',
+  'features/client-gallery/state/useGalleryDownloads.ts',
 ];
 
 // Every folder that may hold a bulk download call site. The new client gallery

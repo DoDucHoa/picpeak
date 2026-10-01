@@ -179,8 +179,12 @@ export function readFolderParam(): string | null {
  * Reflect the open folder in the address bar so a folder is linkable and the
  * back button leaves it. Preserves every other param — `token` and
  * `admin_preview` (#868) both ride on gallery URLs.
+ *
+ * `replace` rewrites the current entry instead of adding one: a deep link that
+ * has to enter a folder must not leave a folder-less entry behind it, or Back
+ * would land there and resolve the link into the folder all over again.
  */
-export function writeFolderParam(slug: string | null): void {
+export function writeFolderParam(slug: string | null, mode: 'push' | 'replace' = 'push'): void {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   if (slug) {
@@ -188,5 +192,9 @@ export function writeFolderParam(slug: string | null): void {
   } else {
     url.searchParams.delete(FOLDER_QUERY_PARAM);
   }
-  window.history.pushState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  if (mode === 'replace') {
+    window.history.replaceState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  } else {
+    window.history.pushState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  }
 }

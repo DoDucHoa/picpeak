@@ -252,4 +252,13 @@ describe('URL round-trip', () => {
     expect(readFolderParam()).toBeNull();
     expect(new URLSearchParams(window.location.search).get('token')).toBe('abc');
   });
+
+  it('adds a history entry by default and none in replace mode', () => {
+    const before = window.history.length;
+    writeFolderParam('selects');
+    expect(window.history.length).toBe(before + 1);
+    writeFolderParam('ceremony', 'replace');
+    expect(window.history.length).toBe(before + 1);
+    expect(readFolderParam()).toBe('ceremony');
+  });
 });
