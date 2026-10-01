@@ -77,7 +77,7 @@ export const IdentityModeField: React.FC<{ value: IdentityMode | undefined; onCh
         {/* Shared colour tag (#1197). Deliberately worded around what
             it changes and what it does not: it drops the identity from
             the COLOUR TAG only, and it is the one mode where a guest
-            can overwrite someone else's mark — both of which an
+            can overwrite someone else's mark, both of which an
             operator has to know before picking it. */}
         <label
           className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition ${

@@ -81,7 +81,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
 
           {/* Branded short URLs (#699). Sits between the canonical share-link
-              card and the Client Access card — same "things you share with
+              card and the Client Access card, same "things you share with
               the customer" cluster. */}
           <ShortUrlsCard eventId={event.id} />
 
@@ -117,7 +117,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     // Only accounts the endpoint would actually mail count, or
                     // the button appears and then 400s. Mirrors
                     // canReceiveGalleryNotice in crud.js: active, holding an
-                    // address, and able to sign in — a PASSIVE customer
+                    // address, and able to sign in, a PASSIVE customer
                     // (never invited, so no password) would get a portal link
                     // to a door that will not open. toBoolean rather than
                     // `!== false` because SQLite returns 0/1.
