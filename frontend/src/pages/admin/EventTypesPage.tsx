@@ -176,7 +176,7 @@ export const EventTypesPage: React.FC = () => {
             <tbody className="bg-panel divide-y divide-line">
               {filteredTypes.length === 0 ? (
                 <tr>
-                  <td colSpan={5}className="px-4 py-8 text-center text-muted">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted">
                     {searchTerm
                       ? t('eventTypes.noResults', 'No event types found')
                       : t('eventTypes.empty', 'No event types yet')}

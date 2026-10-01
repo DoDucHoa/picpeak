@@ -115,22 +115,20 @@ export const TypographyStyleCard: React.FC<TypographyStyleCardProps> = ({
         </div>
 
         {/* Row 2: Shadow Style */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-body mb-2">
-              {t('branding.shadowStyle')}
-            </label>
-            <select
-              value={localTheme.shadowStyle || 'normal'}
-              onChange={(e) => handleChange('shadowStyle', e.target.value)}
-              className="w-full px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading"
-            >
-              <option value="none">{t('branding.shadowOptions.none')}</option>
-              <option value="subtle">{t('branding.shadowOptions.subtle')}</option>
-              <option value="normal">{t('branding.shadowOptions.normal')}</option>
-              <option value="dramatic">{t('branding.shadowOptions.dramatic')}</option>
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-body mb-2">
+            {t('branding.shadowStyle')}
+          </label>
+          <select
+            value={localTheme.shadowStyle || 'normal'}
+            onChange={(e) => handleChange('shadowStyle', e.target.value)}
+            className="w-full px-3 py-2 border border-line-strong rounded-lg bg-panel text-heading"
+          >
+            <option value="none">{t('branding.shadowOptions.none')}</option>
+            <option value="subtle">{t('branding.shadowOptions.subtle')}</option>
+            <option value="normal">{t('branding.shadowOptions.normal')}</option>
+            <option value="dramatic">{t('branding.shadowOptions.dramatic')}</option>
+          </select>
         </div>
       </div>
     </Card>

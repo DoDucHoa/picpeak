@@ -37,7 +37,7 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
       <div className="mb-6">
         {forcedColorActive && (
           <div className="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-            {t('branding.forcedModeBrandingHint', 'Light/dark is locked site-wide by the Force control below — the per-theme mode picker is hidden because it would have no effect.')}
+            {t('branding.forcedModeBrandingHint', 'Light/dark is locked site-wide by the Force control below, so the colour mode picker is hidden: it would have no effect.')}
           </div>
         )}
         {!forcedColorActive && (<>
@@ -80,7 +80,7 @@ export const ColorCustomizationCard: React.FC<ColorCustomizationCardProps> = ({
           <p className="text-xs text-muted mb-3">
             {t(
               'branding.forceColorModeHelp',
-              'Lock the entire admin and public site to dark or light. The user-facing dark/light toggle is hidden whenever a lock is active. Per-event themes that try to override the colour mode are also forced to follow.'
+              'Lock the entire admin and public site to dark or light. The user-facing dark/light toggle is hidden whenever a lock is active.'
             )}
           </p>
           <div className="flex flex-wrap gap-2">
