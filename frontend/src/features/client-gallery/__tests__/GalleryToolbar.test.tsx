@@ -97,6 +97,17 @@ describe('GalleryToolbar', () => {
     expect(c.selection.setActive).toHaveBeenCalledWith(true);
   });
 
+  it('disables download all and says it is preparing while the archive builds', () => {
+    const c = fakeController({ isDownloadingAll: true });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    expect(screen.queryByRole('menuitem', { name: /^all$/i })).toBeNull();
+    const busy = screen.getByRole('menuitem', { name: /preparing your download/i });
+    expect(busy).toBeDisabled();
+    fireEvent.click(busy);
+    expect(c.handleDownloadAll).not.toHaveBeenCalled();
+  });
+
   it('offers the open folder and the picked people as downloads through the controller', () => {
     const c = fakeController({
       folders: { ...fakeController().folders, open: folder, downloadIds: [1, 2, 3], downloadTotal: 3 },

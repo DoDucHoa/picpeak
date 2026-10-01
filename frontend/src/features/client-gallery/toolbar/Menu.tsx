@@ -7,6 +7,8 @@ export interface MenuItem {
   onSelect: () => void;
   /** Marks the option currently in force, such as the active sort field. */
   current?: boolean;
+  /** Shown but not selectable, such as an action already under way. */
+  disabled?: boolean;
 }
 
 interface MenuProps {
@@ -90,6 +92,7 @@ export function Menu({ label, trigger, items, triggerClassName = 'cg-tb-btn' }: 
               role="menuitem"
               className="cg-menu-item"
               aria-current={item.current ? 'true' : undefined}
+              disabled={item.disabled}
               onClick={() => {
                 close(true);
                 item.onSelect();

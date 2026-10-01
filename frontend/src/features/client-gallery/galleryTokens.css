@@ -193,6 +193,7 @@ body:has(.client-gallery) { background: #ffffff; }
 .client-gallery .cg-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; padding: 10px 16px; border: 0; background: none; color: var(--cg-text); font-size: 14px; text-align: left; white-space: nowrap; cursor: pointer; }
 .client-gallery .cg-menu-item:hover, .client-gallery .cg-menu-item:focus-visible { background: var(--cg-placeholder); outline: none; }
 .client-gallery .cg-menu-item svg { width: 16px; height: 16px; color: var(--cg-accent); }
+.client-gallery .cg-menu-item:disabled { color: var(--cg-muted); cursor: default; background: none; }
 .client-gallery .cg-toolbar-compact .cg-tb-label { display: none; }
 .client-gallery .cg-toolbar-compact .cg-tb-icon-compact { display: inline-flex; }
 @media (max-width: 767px) {

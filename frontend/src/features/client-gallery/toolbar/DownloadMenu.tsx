@@ -17,9 +17,18 @@ export function DownloadMenu({ c }: { c: GalleryController }) {
   const { t } = useTranslation();
   // With the order offer showing, the whole album no longer fits the
   // allowance, so "All" gives way to the offer button beside the menu.
+  // While the archive is being built, "All" says so and cannot be pressed
+  // again, so a second tap never starts a second archive.
   const items: MenuItem[] = c.offerFullPackage
     ? []
-    : [{ key: 'all', label: t('clientGallery.downloadAll', 'All'), onSelect: c.handleDownloadAll }];
+    : [{
+        key: 'all',
+        label: c.isDownloadingAll
+          ? t('gallery.preparingDownload', 'Preparing your download…')
+          : t('clientGallery.downloadAll', 'All'),
+        onSelect: c.handleDownloadAll,
+        disabled: c.isDownloadingAll,
+      }];
   if (c.folders.open && c.folders.downloadIds.length > 0) {
     items.push({
       key: 'folder',

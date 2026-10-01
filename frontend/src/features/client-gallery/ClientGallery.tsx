@@ -63,25 +63,30 @@ export function ClientGallery({ slug, event, requiresPassword = false }: ClientG
   const { t } = useTranslation();
   const c = useGalleryController(slug, event, requiresPassword);
 
+  // Authentication failed: log out and let the parent ask again. In an effect,
+  // since logging out updates the auth context and a render must not. An
+  // admin preview whose admin session idled out is handled below instead:
+  // logging a guest session out would leave the preview blank.
+  const sessionRejected = !c.isLoading
+    && (c.error as { response?: { status?: number } } | null)?.response?.status === 401
+    && !isAdminSessionExpired(c.error);
+  const { logout } = c;
+  useEffect(() => {
+    if (sessionRejected) logout();
+  }, [sessionRejected, logout]);
+
   if (c.isLoading) {
     return <GallerySkeleton />;
   }
 
   if (c.error || !c.data) {
-    // Check if it's an authentication error (401)
-    const is401Error = (c.error as { response?: { status?: number } } | null)?.response?.status === 401;
-
     // An admin preview whose admin session idled out: offer to sign in again.
     // Logging a guest session out would leave the preview blank.
     if (isAdminSessionExpired(c.error)) {
       return <PasswordChangeRequiredNotice reason="session" />;
     }
 
-    if (is401Error) {
-      // Authentication failed - logout and let the parent component handle re-authentication
-      c.logout();
-      return null;
-    }
+    if (sessionRejected) return null;
 
     if (isPasswordChangeRequired(c.error)) {
       return <PasswordChangeRequiredNotice />;

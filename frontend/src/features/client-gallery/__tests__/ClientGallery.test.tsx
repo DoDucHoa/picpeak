@@ -214,6 +214,15 @@ describe('ClientGallery', () => {
     expect(controller.closePhoto).toHaveBeenCalledTimes(1);
   });
 
+  it('logs out once on a 401, from an effect rather than on every render', () => {
+    controller = fakeController({ error: { response: { status: 401 } } });
+    const { container, rerender } = render(<ClientGallery slug="s" event={seed} />);
+    rerender(<ClientGallery slug="s" event={seed} />);
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.logout).toHaveBeenCalledTimes(1);
+    expect(container.innerHTML).toBe('');
+  });
+
   it('says so when the liked tab is empty', () => {
     controller = fakeController({ data, url: { ...fakeController().url, tab: 'liked' } });
     render(<ClientGallery slug="s" event={seed} />);
