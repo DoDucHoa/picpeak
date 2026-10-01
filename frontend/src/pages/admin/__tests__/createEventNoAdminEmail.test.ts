@@ -5,11 +5,12 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, it } from 'vitest';
+import { createSources } from './createSources';
 
 const read = (rel: string) => fs.readFileSync(path.resolve(__dirname, '..', rel), 'utf8');
 
 it('the create page has no admin email field, picker or requirement', () => {
-  expect(read('CreateEventPage.tsx')).not.toMatch(/admin_email|adminEmail|requireAdminEmail|admin-email-picker/);
+  expect(createSources()).not.toMatch(/admin_email|adminEmail|requireAdminEmail|admin-email-picker/);
 });
 
 it('the event Overview shows no admin email', () => {

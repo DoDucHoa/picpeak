@@ -16,11 +16,11 @@ export function useExpertMode(): [boolean, (on: boolean) => void] {
 }
 
 /** A section's "Show advanced options" row (spec 5.3). */
-export const AdvancedArea: React.FC<{ expert: boolean; children: React.ReactNode }> = ({ expert, children }) => {
+export const AdvancedArea: React.FC<{ expert: boolean; children: React.ReactNode; forceOpen?: boolean }> = ({ expert, children, forceOpen = false }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const id = useId();
-  const shown = expert || open;
+  const shown = expert || open || forceOpen;
   return (
     <div className="mt-6 border-t border-line pt-4">
       {!expert && (

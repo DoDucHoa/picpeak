@@ -7,7 +7,8 @@
 import React, { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { ConfirmDialogProvider } from '../../../components/common/ConfirmDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const navigate = vi.fn();
@@ -96,9 +97,9 @@ function renderUnderStrictMode() {
   return render(
     <StrictMode>
       <QueryClientProvider client={qc}>
-        <MemoryRouter>
-          <CreateEventPage />
-        </MemoryRouter>
+        <ConfirmDialogProvider>
+          <RouterProvider router={createMemoryRouter([{ path: '/admin/events/new', element: <CreateEventPage /> }], { initialEntries: ['/admin/events/new'] })} />
+        </ConfirmDialogProvider>
       </QueryClientProvider>
     </StrictMode>,
   );
@@ -115,7 +116,7 @@ describe('CreateEventPage Strict Mode mount guard (A6 / #1563)', () => {
   it('still toasts and redirects after a successful create under StrictMode', async () => {
     renderUnderStrictMode();
 
-    fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
+    fireEvent.change(await screen.findByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST strict mount' },
     });
 

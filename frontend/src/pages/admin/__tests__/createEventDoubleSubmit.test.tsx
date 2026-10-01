@@ -10,7 +10,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { ConfirmDialogProvider } from '../../../components/common/ConfirmDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('react-i18next', async () => {
@@ -90,11 +91,12 @@ import { CreateEventPage } from '../CreateEventPage';
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter([{ path: '/admin/events/new', element: <CreateEventPage /> }], { initialEntries: ['/admin/events/new'] });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <CreateEventPage />
-      </MemoryRouter>
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>
     </QueryClientProvider>
   );
 }
@@ -108,6 +110,7 @@ describe('CreateEventPage double-submit guard (QA 7.03)', () => {
 
   it('fires exactly one POST when the form is submitted twice in a row', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST double submit' },
@@ -123,6 +126,7 @@ describe('CreateEventPage double-submit guard (QA 7.03)', () => {
 
   it('disables the submit button while the request is in flight', async () => {
     renderPage();
+    await screen.findByPlaceholderText('events.eventNamePlaceholder');
 
     fireEvent.change(screen.getByPlaceholderText('events.eventNamePlaceholder'), {
       target: { value: 'ZZTEST in flight' },
