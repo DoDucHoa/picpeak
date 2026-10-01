@@ -15,9 +15,11 @@ import type { MenuItem } from './Menu';
  */
 export function DownloadMenu({ c }: { c: GalleryController }) {
   const { t } = useTranslation();
-  const items: MenuItem[] = [
-    { key: 'all', label: t('clientGallery.downloadAll', 'All'), onSelect: c.handleDownloadAll },
-  ];
+  // With the order offer showing, the whole album no longer fits the
+  // allowance, so "All" gives way to the offer button beside the menu.
+  const items: MenuItem[] = c.offerFullPackage
+    ? []
+    : [{ key: 'all', label: t('clientGallery.downloadAll', 'All'), onSelect: c.handleDownloadAll }];
   if (c.folders.open && c.folders.downloadIds.length > 0) {
     items.push({
       key: 'folder',

@@ -123,12 +123,16 @@ describe('GalleryToolbar', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('swaps the download menu for the order offer when the album no longer fits', () => {
+  it('adds the order offer and drops download all when the album no longer fits', () => {
     const c = fakeController({ offerFullPackage: true });
     render(<GalleryToolbar c={c} onShare={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /get all photos/i }));
     expect(c.setQuotaOffer).toHaveBeenCalledWith({ exceeded: null });
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+    expect(screen.queryByRole('menuitem', { name: /^all$/i })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: /multi-select/i }));
+    expect(c.selection.setActive).toHaveBeenCalledWith(true);
+    expect(c.handleDownloadAll).not.toHaveBeenCalled();
   });
 
   it('hides downloads entirely when they are off', () => {

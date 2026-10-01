@@ -128,13 +128,12 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
         </span>
       )}
       {c.quota?.enabled && c.client.isClient && <span className="cg-tb-quota"><DownloadQuotaBadge quota={c.quota} /></span>}
-      {c.allowDownloads && (c.offerFullPackage ? (
+      {c.allowDownloads && c.offerFullPackage && (
         <button type="button" className="cg-tb-btn" aria-label={getAllLabel} onClick={() => c.setQuotaOffer({ exceeded: null })}>
           <CartIcon /><span className="cg-tb-label">{getAllLabel}</span>
         </button>
-      ) : (
-        <DownloadMenu c={c} />
-      ))}
+      )}
+      {c.allowDownloads && <DownloadMenu c={c} />}
       <button
         type="button"
         className="cg-tb-dir"
