@@ -25,9 +25,14 @@ export async function passGalleryPasswordPrompt(page: Page, password: string): P
 }
 
 // sharp is a backend dependency; the root package only carries Playwright.
-const backendRequire = createRequire(path.join(process.cwd(), 'backend', 'package.json'));
+// Loaded on first use, so specs that only import the password helper run
+// without backend/node_modules.
 type Sharp = (input: Buffer, options?: object) => { jpeg(options: object): { toBuffer(): Promise<Buffer> } };
-const sharp = backendRequire('sharp') as Sharp;
+let sharpModule: Sharp | null = null;
+function sharp(input: Buffer, options?: object) {
+  sharpModule ??= createRequire(path.join(process.cwd(), 'backend', 'package.json'))('sharp') as Sharp;
+  return sharpModule(input, options);
+}
 
 export interface SeedPhoto { name: string; width: number; height: number }
 
