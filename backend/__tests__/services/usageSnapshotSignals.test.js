@@ -73,14 +73,14 @@ describe('gallery_layouts after gallery theming was removed', () => {
     expect((await service(db).snapshot()).gallery_layouts).toEqual([]);
   });
 
-  it('reports the one fixed design as other, whatever the old theme said', async () => {
+  it('reports the one fixed design as masonry, whatever the old theme said', async () => {
     db = await bootDb();
     await db('app_settings').insert({
       setting_key: 'theme_config',
       setting_value: JSON.stringify({ galleryLayout: 'carousel' }),
     });
     await db('events').insert([{ external_path: null }, { external_path: null }]);
-    expect((await service(db).snapshot()).gallery_layouts).toEqual(['other']);
+    expect((await service(db).snapshot()).gallery_layouts).toEqual(['masonry']);
   });
 });
 

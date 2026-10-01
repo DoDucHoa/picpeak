@@ -901,10 +901,10 @@ class UsageService {
       if (persist) await this.markUsed(['custom_css']);
       features.custom_css.used = true;
     }
-    // Every gallery renders the one fixed design, which none of the legacy
-    // layout names describe. Presence only: no event row is read.
+    // Every gallery renders the one fixed masonry design, so the signal is
+    // presence only: no event row is read.
     const hasGallery = Boolean(await this.db('events').select(this.db.raw('1 as present')).first());
-    const layouts = hasGallery ? ['other'] : [];
+    const layouts = hasGallery ? ['masonry'] : [];
     const now = new Date(this.now()).toISOString();
     const expanded = version !== 'usage.v1'
       ? await require('./expandedSnapshot').expandSnapshot(this.db, { features, flags, used, now: this.now(), version })
