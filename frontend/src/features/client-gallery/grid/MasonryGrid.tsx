@@ -31,6 +31,32 @@ function useViewportWidth(): number {
   return width;
 }
 
+/**
+ * Where the grid starts in the document, which the window virtualiser needs as
+ * its scroll margin. Content above the grid (a cover, a banner, a folder bar)
+ * can change height without the window resizing, and every such change moves
+ * the grid. Observing document.body catches all of them in one place: any
+ * height change above the grid changes the body's height too. It also fires
+ * when the grid itself grows, which re-measures to the same value and renders
+ * nothing.
+ */
+function useDocumentTop(ref: React.RefObject<HTMLElement>): number {
+  const [top, setTop] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = ref.current;
+      if (el) setTop(Math.round(el.getBoundingClientRect().top + window.scrollY));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    // Absent in jsdom and in old webviews; resize alone still covers those.
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
+    observer?.observe(document.body);
+    return () => { window.removeEventListener('resize', measure); observer?.disconnect(); };
+  }, [ref]);
+  return top;
+}
+
 /** The first tile (in album order) whose bottom edge is below the top of the viewport. */
 function firstVisibleIndex(items: VirtualItem[], scrollTop: number): number | null {
   const visible = items.find((item) => item.end > scrollTop);
@@ -42,22 +68,26 @@ function firstVisibleIndex(items: VirtualItem[], scrollTop: number): number | nu
  * one screen of overscan exist in the DOM. Heights come from the photo's own
  * dimensions, so nothing reflows when images arrive.
  */
-export function MasonryGrid({ photos, ...tileProps }: MasonryGridProps) {
+export function MasonryGrid({ photos, selectedIds, ...tileProps }: MasonryGridProps) {
   const viewport = useViewportWidth();
   const { columns, gap, padding } = gridGeometry(viewport);
   const inner = Math.max(1, viewport - padding * 2);
   const colWidth = columnWidth(inner, columns, gap);
   const listRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
-  useLayoutEffect(() => { setOffset(listRef.current?.offsetTop ?? 0); }, [viewport]);
+  const offset = useDocumentTop(listRef);
+  const offsetRef = useRef(offset);
+  offsetRef.current = offset;
 
   const heights = useMemo(() => photos.map((p) => tileHeight(p, colWidth)), [photos, colWidth]);
 
-  // Both are read by the virtualiser's memoised measurement pass, and
-  // getItemKey is one of its dependencies: a fresh function every render
-  // would recompute the position of every photo in the album on every scroll.
+  // getItemKey is a dependency of the virtualiser's memoised measurement
+  // pass, so it must not change with the array's identity: a like toggle
+  // replaces the photo objects and would otherwise recompute the position of
+  // every photo in the album. Order changes are handled by the measure below.
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  const getItemKey = useCallback((i: number) => photosRef.current[i].id, []);
   const estimateSize = useCallback((i: number) => heights[i] + gap, [heights, gap]);
-  const getItemKey = useCallback((i: number) => photos[i].id, [photos]);
 
   const virtualizer = useWindowVirtualizer({
     count: photos.length,
@@ -68,6 +98,19 @@ export function MasonryGrid({ photos, ...tileProps }: MasonryGridProps) {
     initialRect: { width: viewport, height: window.innerHeight },
     getItemKey,
   });
+
+  // The virtualiser caches each index's lane and only forgets it on measure()
+  // or a lane-count change. A sort or a filter with the same lane count would
+  // otherwise keep the old photos' lanes and stack tiles on top of each other.
+  // Keyed on the id order, so replacing photo objects in place (a like) does
+  // not re-measure.
+  const idOrder = useMemo(() => photos.map((p) => p.id).join(','), [photos]);
+  const measuredOrder = useRef(idOrder);
+  useLayoutEffect(() => {
+    if (measuredOrder.current === idOrder) return;
+    measuredOrder.current = idOrder;
+    virtualizer.measure();
+  }, [idOrder, virtualizer]);
 
   const items = virtualizer.getVirtualItems();
 
@@ -84,7 +127,7 @@ export function MasonryGrid({ photos, ...tileProps }: MasonryGridProps) {
       // Sizes are cached per key, so new widths need an explicit re-measure.
       virtualizer.measure();
       virtualizer.getTotalSize();
-      if (state.anchor !== null && window.scrollY > offset) {
+      if (state.anchor !== null && window.scrollY > offsetRef.current) {
         virtualizer.scrollToIndex(state.anchor, { align: 'start' });
       }
       // Keep the old anchor: this render still shows the old scroll offset,
@@ -95,7 +138,7 @@ export function MasonryGrid({ photos, ...tileProps }: MasonryGridProps) {
   });
 
   return (
-    <div ref={listRef} style={{ paddingLeft: padding, paddingRight: padding }}>
+    <div ref={listRef} data-testid="masonry-grid" style={{ paddingLeft: padding, paddingRight: padding }}>
       <div data-testid="grid-body" style={{ position: 'relative', height: virtualizer.getTotalSize() }}>
         {items.map((item) => {
           const photo = photos[item.index];
@@ -110,6 +153,7 @@ export function MasonryGrid({ photos, ...tileProps }: MasonryGridProps) {
               x={x}
               y={y}
               priority={item.index < columns ? 'high' : 'normal'}
+              selected={selectedIds.has(photo.id)}
               {...tileProps}
             />
           );

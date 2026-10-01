@@ -41,9 +41,30 @@ const props = { slug: 's', canvas: false, onOpen: vi.fn(), onToggle: vi.fn(), al
 
 const renderedIds = () => screen.getAllByTestId('grid-tile').map((t) => t.getAttribute('data-photo-id'));
 
+// Where the grid starts in the document. jsdom reports every rect at 0, so
+// the grid's rect is stubbed the way a browser computes it: document top
+// minus the current scroll.
+let gridTop = 0;
+const resizeCallbacks = new Set<() => void>();
+class FakeResizeObserver {
+  private cb: () => void;
+  constructor(cb: () => void) { this.cb = cb; }
+  observe() { resizeCallbacks.add(this.cb); }
+  disconnect() { resizeCallbacks.delete(this.cb); }
+  unobserve() {}
+}
+
 beforeEach(() => {
   setViewport(1440);
   imageRenders.clear();
+  gridTop = 0;
+  resizeCallbacks.clear();
+  vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+  const realRect = Element.prototype.getBoundingClientRect;
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    if ((this as HTMLElement).dataset?.testid !== 'masonry-grid') return realRect.call(this);
+    return { top: gridTop - window.scrollY, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+  });
   // A tall document, so the virtualiser does not clamp a programmatic scroll to 0.
   Object.defineProperty(document.documentElement, 'scrollHeight', { configurable: true, value: 10_000_000 });
   Object.defineProperty(window, 'scrollY', { configurable: true, writable: true, value: 0 });
@@ -52,7 +73,10 @@ beforeEach(() => {
   }) as unknown as typeof window.scrollTo;
 });
 
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+/** Each rendered tile's position, by photo id. */
+const positions = () => new Map(screen.getAllByTestId('grid-tile').map((t) => [t.getAttribute('data-photo-id'), t.style.transform]));
 
 describe('MasonryGrid', () => {
   it('renders a small window of a 2000 photo album', () => {
@@ -118,5 +142,53 @@ describe('MasonryGrid', () => {
     expect(arrived.length).toBeGreaterThan(0);
     expect(stayed.length).toBeGreaterThan(0);
     stayed.forEach((src) => expect(imageRenders.get(src)).toBe(1));
+  });
+
+  it('re-flows the masonry when the order changes with the same lane count', () => {
+    const reversed = [...photos].reverse();
+    const fresh = render(<MasonryGrid photos={reversed} {...props} />);
+    const expected = positions();
+    fresh.unmount();
+
+    const { rerender } = render(<MasonryGrid photos={photos} {...props} />);
+    rerender(<MasonryGrid photos={reversed} {...props} />);
+    expect(positions()).toEqual(expected);
+  });
+
+  it('re-renders only the tile whose photo changed in place', () => {
+    const { rerender } = render(<MasonryGrid photos={photos} {...props} />);
+    const liked = photos.map((p, i) => (i === 1 ? { ...p, is_liked: true } : p));
+    rerender(<MasonryGrid photos={liked} {...props} />);
+    const srcs = screen.getAllByTestId('tile-img').map((i) => i.getAttribute('src')!);
+    const rerendered = srcs.filter((src) => imageRenders.get(src) !== 1);
+    expect(rerendered).toEqual([srcs[1]]);
+  });
+
+  it('re-renders only the tile whose selection changed', () => {
+    const { rerender } = render(<MasonryGrid photos={photos} {...props} selecting />);
+    rerender(<MasonryGrid photos={photos} {...props} selecting selectedIds={new Set([3])} />);
+    const tiles = screen.getAllByTestId('grid-tile');
+    const rerendered = tiles.filter((t) => imageRenders.get(t.querySelector('img')!.getAttribute('src')!) !== 1);
+    expect(rerendered.map((t) => t.getAttribute('data-photo-id'))).toEqual(['3']);
+  });
+
+  it('follows the grid down when content above it grows', () => {
+    render(<MasonryGrid photos={photos} {...props} />);
+    act(() => scrollWindowTo(20_000));
+    expect(renderedIds()).not.toContain('1');
+
+    // A banner above the grid grew by 20000px: the viewport is now at the
+    // top of the grid, without any window resize.
+    gridTop = 20_000;
+    act(() => resizeCallbacks.forEach((cb) => cb()));
+    expect(renderedIds()).toContain('1');
+  });
+
+  it('re-measures where the grid starts on a window resize', () => {
+    render(<MasonryGrid photos={photos} {...props} />);
+    act(() => scrollWindowTo(20_000));
+    gridTop = 20_000;
+    act(() => { window.dispatchEvent(new Event('resize')); });
+    expect(renderedIds()).toContain('1');
   });
 });

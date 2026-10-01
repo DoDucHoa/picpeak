@@ -33,13 +33,23 @@
 .client-gallery .cg-tile { background: var(--cg-placeholder); overflow: hidden; cursor: pointer; contain: strict; }
 .client-gallery .cg-tile-img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 200ms ease; }
 .client-gallery .cg-tile-img[data-loaded], .client-gallery .cg-tile-img.loaded { opacity: 1; }
+.client-gallery .cg-tile-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.client-gallery .cg-tile-open:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
 .client-gallery .cg-badges { position: absolute; inset: 0; pointer-events: none; }
-.client-gallery .cg-badge { position: absolute; top: 12px; display: inline-flex; align-items: center; gap: 4px; color: #fff; pointer-events: none; opacity: 0; transition: opacity 120ms ease; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-badge { position: absolute; top: 12px; display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 0; border: 0; background: none; color: #fff; pointer-events: none; opacity: 0; transition: opacity 120ms ease; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
 .client-gallery .cg-badge-like { left: 12px; }
 .client-gallery .cg-badge-pick { right: 12px; }
 .client-gallery .cg-tile:hover .cg-badge,
+.client-gallery .cg-tile:has(:focus-visible) .cg-badge,
 .client-gallery .cg-badges-always .cg-badge,
 .client-gallery .cg-badge-on { opacity: 1; pointer-events: auto; }
+/* A finger needs 44x44px. The extra hit area is an invisible ::before that
+   grows from the tile corner inwards, so the icon does not move and the area
+   is not clipped by the tile's own edge. It inherits pointer-events, so a
+   hidden badge stays untappable. */
+.client-gallery .cg-badges-always .cg-badge::before { content: ''; position: absolute; top: -6px; min-width: 44px; min-height: 44px; width: calc(100% + 12px); height: calc(100% + 12px); }
+.client-gallery .cg-badges-always .cg-badge-like::before { left: -6px; }
+.client-gallery .cg-badges-always .cg-badge-pick::before { right: -6px; }
 .client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
 .client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
 @media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
