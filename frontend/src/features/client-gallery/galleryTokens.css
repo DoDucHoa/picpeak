@@ -113,8 +113,11 @@ body:has(.client-gallery) { background: #ffffff; }
 .client-gallery .cg-row-btn.cg-badge-on { color: var(--cg-like); }
 .client-gallery .cg-row-btn.cg-badge-pick.cg-badge-on { color: var(--cg-pick); }
 .client-gallery .cg-row-btn:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+/* Three 44px buttons and two 16px gaps: like, pick and the visibility toggle. */
+.client-gallery .cg-list-client .cg-row-head, .client-gallery .cg-list-client .cg-row { grid-template-columns: 80px minmax(0, 1fr) 160px 120px 164px; }
 @media (max-width: 767px) {
   .client-gallery .cg-row-head, .client-gallery .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; column-gap: 12px; }
+  .client-gallery .cg-list-client .cg-row-head, .client-gallery .cg-list-client .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; }
   .client-gallery .cg-row-dim, .client-gallery .cg-row-size { display: none; }
 }
 

@@ -104,6 +104,11 @@ describe('GalleryToolbar', () => {
     expect(screen.queryByRole('menuitem', { name: /^all$/i })).toBeNull();
     const busy = screen.getByRole('menuitem', { name: /preparing your download/i });
     expect(busy).toBeDisabled();
+    // Focus skips the disabled item, and the arrows never land on it.
+    const multi = screen.getByRole('menuitem', { name: /multi-select/i });
+    expect(document.activeElement).toBe(multi);
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(multi);
     fireEvent.click(busy);
     expect(c.handleDownloadAll).not.toHaveBeenCalled();
   });

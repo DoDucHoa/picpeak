@@ -11,7 +11,7 @@ const make = (n: number, extra: Partial<Photo> = {}) => Array.from({ length: n }
   id: i + 1, filename: `p${i}.jpg`, url: '/o', type: 'individual', size: 1000, uploaded_at: '', ...extra,
 })) as Photo[];
 
-const base = { slug: 's', allowLikes: true, allowPicks: true, showOriginalFilename: false, isClient: false, onToggleVisibility: vi.fn() };
+const base = { slug: 's', allowLikes: true, allowPicks: true, showOriginalFilename: false, isClient: false, onToggleVisibility: vi.fn(), selecting: false };
 
 beforeEach(() => {
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
@@ -100,6 +100,18 @@ describe('PhotoList', () => {
     expect(onToggleVisibility).toHaveBeenNthCalledWith(1, 1, 'visible');
     expect(onToggleVisibility).toHaveBeenNthCalledWith(2, 2, 'hidden');
     expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('drops the visibility toggle while selecting', () => {
+    render(<PhotoList photos={make(2)} {...base} isClient selecting onOpen={vi.fn()} onToggle={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /guests/i })).toBeNull();
+  });
+
+  it('widens the action column for a client, header and rows alike', () => {
+    const { container, rerender } = render(<PhotoList photos={make(2)} {...base} onOpen={vi.fn()} onToggle={vi.fn()} />);
+    expect(container.querySelector('.cg-list-client')).toBeNull();
+    rerender(<PhotoList photos={make(2)} {...base} isClient onOpen={vi.fn()} onToggle={vi.fn()} />);
+    expect(screen.getByTestId('photo-list').className).toContain('cg-list-client');
   });
 
   it('offers guests no visibility toggle', () => {

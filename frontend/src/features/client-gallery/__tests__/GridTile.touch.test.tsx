@@ -125,6 +125,13 @@ describe('client visibility', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
+  it('drops the toggle while selecting, so a tap anywhere on the tile selects', () => {
+    const hidden = { ...(photo as object), visibility: 'hidden' } as never;
+    render(<GridTile {...base} photo={hidden} isClient selecting onOpen={vi.fn()} onToggle={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /guests/i })).toBeNull();
+    expect(screen.getByTestId('hidden-mark')).toBeTruthy();
+  });
+
   it('marks a hidden photo and lets the client show it again', () => {
     const onToggleVisibility = vi.fn();
     const hidden = { ...(photo as object), visibility: 'hidden' } as never;

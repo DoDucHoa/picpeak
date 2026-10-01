@@ -105,7 +105,8 @@ function GridTileImpl({
           <EyeOffIcon />
         </span>
       )}
-      {isClient && (
+      {/* Not while selecting: there a tap anywhere on the tile selects. */}
+      {isClient && !selecting && (
         <button
           type="button"
           className={`cg-visibility${hidden ? ' cg-visibility-hidden' : ''}`}

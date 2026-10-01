@@ -45,7 +45,7 @@ export function Menu({ label, trigger, items, triggerClassName = 'cg-tb-btn' }: 
     };
     document.addEventListener('pointerdown', onPointerDown);
     // Focus the first item so the keyboard lands inside the menu it opened.
-    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
@@ -57,7 +57,7 @@ export function Menu({ label, trigger, items, triggerClassName = 'cg-tb-btn' }: 
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
-    const buttons = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+    const buttons = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []);
     if (buttons.length === 0) return;
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
     const step = event.key === 'ArrowDown' ? 1 : -1;

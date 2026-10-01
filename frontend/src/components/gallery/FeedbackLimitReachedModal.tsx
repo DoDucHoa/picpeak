@@ -136,6 +136,7 @@ export const FeedbackLimitReachedModal: React.FC<FeedbackLimitReachedModalProps>
         <div className="px-5 sm:px-6 pb-5 sm:pb-6 flex justify-end">
           <button
             ref={okButtonRef}
+            data-initial-focus
             type="button"
             onClick={onClose}
             className="

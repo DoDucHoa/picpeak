@@ -13,6 +13,7 @@ interface ListRowProps {
   allowLikes: boolean; allowPicks: boolean;
   /** Client mode (#172): the row shows and toggles what guests may see. */
   isClient: boolean; onToggleVisibility: (id: number, current: string) => void;
+  selecting: boolean;
 }
 
 /** 24.3 MB style: one decimal, base 1024. */
@@ -34,7 +35,7 @@ export function formatDimensions(w?: number | null, h?: number | null): string {
  * sits inside another and each one gets Enter and Space natively. Text cells
  * let clicks fall through to the open button; only the buttons catch them.
  */
-function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks, isClient, onToggleVisibility }: ListRowProps) {
+function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onToggle, allowLikes, allowPicks, isClient, onToggleVisibility, selecting }: ListRowProps) {
   const { t } = useTranslation();
   const [loaded, setLoaded] = useState(false);
   const delivered = useIsPhotoDelivered(photo.id);
@@ -109,7 +110,7 @@ function ListRowImpl({ photo, y, height, slug, showOriginalFilename, onOpen, onT
             <PickIcon filled={Boolean(photo.is_favorited)} />
           </button>
         )}
-        {isClient && (
+        {isClient && !selecting && (
           <button
             type="button"
             aria-label={hidden ? t('clientAccess.showToGuests', 'Show to guests') : t('clientAccess.hideFromGuests', 'Hide from guests')}

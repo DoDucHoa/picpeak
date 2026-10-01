@@ -13,6 +13,7 @@ interface PhotoListProps {
   allowLikes: boolean; allowPicks: boolean;
   showOriginalFilename: boolean;
   isClient: boolean; onToggleVisibility: (id: number, current: string) => void;
+  selecting: boolean;
 }
 
 const ROW_HEIGHT = 150;
@@ -54,7 +55,8 @@ export function PhotoList({ photos, ...rowProps }: PhotoListProps) {
   }, [idOrder, virtualizer]);
 
   return (
-    <div ref={listRef} data-testid="photo-list" style={{ paddingLeft: padding, paddingRight: padding }}>
+    // A client's rows carry a third action, so the column widens, header too.
+    <div ref={listRef} data-testid="photo-list" className={rowProps.isClient ? 'cg-list-client' : undefined} style={{ paddingLeft: padding, paddingRight: padding }}>
       <div className="cg-row-head" role="presentation">
         <span className="cg-row-head-thumb" />
         <span>{t('clientGallery.viewer.fileName', 'File name')}</span>

@@ -42,6 +42,27 @@ function shareUrl(): string {
   return window.location.origin + window.location.pathname;
 }
 
+/**
+ * The dialog's own autofocus ran while the viewer still held the page inert,
+ * so it was lost. Wait (a second at most) until the closing viewer has lifted
+ * every inert mark, then focus what the dialog marks with data-initial-focus.
+ * Returns the cancel for an effect cleanup.
+ */
+function focusDialogOnceReleased(): () => void {
+  let frame = 0;
+  let tries = 0;
+  const attempt = () => {
+    tries += 1;
+    if (document.querySelector('[inert]') && tries < 60) {
+      frame = requestAnimationFrame(attempt);
+      return;
+    }
+    document.querySelector<HTMLElement>('[data-initial-focus]')?.focus();
+  };
+  frame = requestAnimationFrame(attempt);
+  return () => cancelAnimationFrame(frame);
+}
+
 /** Visible once the page has scrolled more than one screen down. */
 function useScrolledPastFirstScreen(): boolean {
   const [past, setPast] = useState(false);
@@ -145,7 +166,9 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
   latestViewer.current = { photo: c.url.photo, closePhoto: c.closePhoto };
   const dialogOpen = c.quotaOffer !== null || feedbackBlocking;
   useEffect(() => {
-    if (dialogOpen && latestViewer.current.photo !== null) latestViewer.current.closePhoto();
+    if (!dialogOpen || latestViewer.current.photo === null) return undefined;
+    latestViewer.current.closePhoto();
+    return focusDialogOnceReleased();
   }, [dialogOpen]);
 
   // The viewer holds the album order it opened on (see useViewerPhotos). A
@@ -271,6 +294,7 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
             showOriginalFilename={c.showOriginalFilename}
             isClient={c.client.isClient}
             onToggleVisibility={toggleVisibility}
+            selecting={c.selection.active}
           />
         ) : (
           <MasonryGrid

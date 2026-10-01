@@ -47,7 +47,7 @@ describe('the already downloaded mark', () => {
   it('marks only the delivered rows of the list', () => {
     render(
       <DownloadedPhotosProvider value={new Set([2])}>
-        <PhotoList photos={[photo(1), photo(2)]} slug="s" allowLikes allowPicks showOriginalFilename={false} isClient={false} onToggleVisibility={vi.fn()} onOpen={vi.fn()} onToggle={vi.fn()} />
+        <PhotoList photos={[photo(1), photo(2)]} slug="s" allowLikes allowPicks showOriginalFilename={false} isClient={false} onToggleVisibility={vi.fn()} selecting={false} onOpen={vi.fn()} onToggle={vi.fn()} />
       </DownloadedPhotosProvider>,
     );
     const rows = screen.getAllByTestId('list-row');

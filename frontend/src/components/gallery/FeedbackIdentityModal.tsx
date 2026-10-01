@@ -70,6 +70,7 @@ export const FeedbackIdentityModal: React.FC<FeedbackIdentityModalProps> = ({
             onChange={(e) => setName(e.target.value)}
             error={errors.name}
             placeholder={t('feedback.namePlaceholder', 'Enter your name')}
+            data-initial-focus
             required
           />
           <Input

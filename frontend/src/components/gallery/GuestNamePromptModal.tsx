@@ -104,6 +104,7 @@ export const GuestNamePromptModal: React.FC<GuestNamePromptModalProps> = ({
             error={errors.name}
             placeholder={t('gallery.guestPrompt.namePlaceholder', 'Enter your name')}
             autoFocus
+            data-initial-focus
             required
             maxLength={100}
           />

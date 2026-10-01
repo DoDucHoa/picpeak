@@ -31,9 +31,9 @@ vi.mock('../state/useGalleryController', () => ({
 
 const toggle = vi.fn();
 // Swapped per test: true while a feedback prompt or the limit modal is up.
-const feedback = { blocking: false };
+const feedback: { blocking: boolean; modals: React.ReactNode } = { blocking: false, modals: null };
 vi.mock('../state/useFeedbackToggle', () => ({
-  useFeedbackToggle: () => ({ toggle, modals: null, blocking: feedback.blocking }),
+  useFeedbackToggle: () => ({ toggle, modals: feedback.modals, blocking: feedback.blocking }),
 }));
 
 // The viewer is YARL, which portals and animates; a stand-in that shows what
@@ -84,6 +84,7 @@ beforeEach(() => {
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   viewerProps.mockClear();
   feedback.blocking = false;
+  feedback.modals = null;
   controller = withUrl({});
 });
 
@@ -175,6 +176,23 @@ describe('ClientGallery', () => {
     feedback.blocking = true;
     rerender(<ClientGallery slug="s" event={seed} />);
     expect(controller.closePhoto).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves focus into the dialog once the closing viewer has released the page', async () => {
+    controller = withUrl({ photo: 3 });
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    // YARL marks the page inert while it is open; closing it lifts that later.
+    const blocker = document.createElement('div');
+    blocker.setAttribute('inert', '');
+    document.body.appendChild(blocker);
+    controller = { ...controller, closePhoto: vi.fn(() => { setTimeout(() => blocker.removeAttribute('inert'), 30); }) };
+    feedback.blocking = true;
+    feedback.modals = <div role="dialog"><input aria-label="Your name" data-initial-focus /></div>;
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.closePhoto).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(screen.getByLabelText('Your name'));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Your name')));
+    blocker.remove();
   });
 
   it('leaves the album alone when a feedback prompt opens with no photo open', () => {
