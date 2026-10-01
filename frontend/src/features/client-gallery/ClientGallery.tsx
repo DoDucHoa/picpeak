@@ -21,6 +21,7 @@ import { copyText } from '../../utils/copyText';
 import { useGalleryController } from './state/useGalleryController';
 import type { GalleryController, GalleryEventSeed } from './state/useGalleryController';
 import { useFeedbackToggle } from './state/useFeedbackToggle';
+import { useViewerPhotos } from './state/useViewerPhotos';
 import { CoverHero } from './cover/CoverHero';
 import { ExpiryToast } from './cover/ExpiryToast';
 import { GalleryToolbar } from './toolbar/GalleryToolbar';
@@ -141,6 +142,15 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
   useEffect(() => {
     if (dialogOpen && latestViewer.current.photo !== null) latestViewer.current.closePhoto();
   }, [dialogOpen]);
+
+  // The viewer holds the album order it opened on (see useViewerPhotos). A
+  // photo deleted from the gallery altogether has nothing left to show, so
+  // the viewer closes rather than leaving ?photo= behind.
+  const viewerPhotos = useViewerPhotos(c.url.photo, c.visiblePhotos, c.data?.photos);
+  const openPhotoGone = c.url.photo !== null && !!c.data && !c.data.photos.some((p) => p.id === c.url.photo);
+  useEffect(() => {
+    if (openPhotoGone) latestViewer.current.closePhoto();
+  }, [openPhotoGone]);
 
   // Only the grid can tick photos, so starting a selection in the list moves
   // the album to the grid rather than leaving rows nobody can select.
@@ -282,7 +292,7 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
       )}
 
       <PhotoViewer
-        photos={c.visiblePhotos}
+        photos={viewerPhotos}
         openId={c.url.photo}
         onClose={c.closePhoto}
         onNavigate={stepInViewer}

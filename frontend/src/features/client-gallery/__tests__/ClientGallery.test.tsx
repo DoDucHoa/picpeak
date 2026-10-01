@@ -184,6 +184,36 @@ describe('ClientGallery', () => {
     expect(controller.closePhoto).not.toHaveBeenCalled();
   });
 
+  it('keeps an unliked photo in the viewer until it closes, showing it unliked', () => {
+    const liked = photos.map((p) => ({ ...p, is_liked: p.id <= 5 }));
+    const likedData = { ...data, photos: liked } as GalleryData;
+    controller = withUrl({ tab: 'liked', photo: 3 }, { data: likedData, visiblePhotos: liked.filter((p) => p.is_liked) });
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    // The guest unlikes photo 3: the liked tab no longer holds it.
+    const after = liked.map((p) => (p.id === 3 ? { ...p, is_liked: false } : p));
+    controller = { ...controller, data: { ...likedData, photos: after } as GalleryData, visiblePhotos: after.filter((p) => p.is_liked) };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    const shown = (viewerProps.mock.lastCall![0] as { photos: Photo[] }).photos;
+    expect(shown.map((p) => p.id)).toEqual([1, 2, 3, 4, 5]);
+    expect(shown.find((p) => p.id === 3)?.is_liked).toBe(false);
+    expect(controller.closePhoto).not.toHaveBeenCalled();
+    // Closed and reopened, the viewer follows the tab again.
+    controller = { ...controller, url: { ...controller.url, photo: null } };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    controller = { ...controller, url: { ...controller.url, photo: 4 } };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect((viewerProps.mock.lastCall![0] as { photos: Photo[] }).photos.map((p) => p.id)).toEqual([1, 2, 4, 5]);
+  });
+
+  it('closes the viewer when its photo is deleted from the gallery', () => {
+    controller = withUrl({ photo: 3 });
+    const { rerender } = render(<ClientGallery slug="s" event={seed} />);
+    const remaining = photos.filter((p) => p.id !== 3);
+    controller = { ...controller, data: { ...data, photos: remaining } as GalleryData, visiblePhotos: remaining };
+    rerender(<ClientGallery slug="s" event={seed} />);
+    expect(controller.closePhoto).toHaveBeenCalledTimes(1);
+  });
+
   it('says so when the liked tab is empty', () => {
     controller = fakeController({ data, url: { ...fakeController().url, tab: 'liked' } });
     render(<ClientGallery slug="s" event={seed} />);
