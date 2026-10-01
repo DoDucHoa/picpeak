@@ -4220,7 +4220,9 @@
     "required": "This field is required",
     "expirationRequired": "Expiration date is required.",
     "eventDateRequired": "Event date is required.",
-    "passwordTooSimple": "Password cannot be just numbers. Consider using a date format like \"04.07.2025\""
+    "passwordTooSimple": "Password cannot be just numbers. Consider using a date format like \"04.07.2025\"",
+    "expiryRequired": "Choose when the gallery expires.",
+    "externalFolderRequired": "Choose the external folder."
   },
   "legal": {
     "impressum": "Legal Notice",

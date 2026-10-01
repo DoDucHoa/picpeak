@@ -4218,7 +4218,9 @@
     "required": "Trường này là bắt buộc",
     "expirationRequired": "Ngày hết hạn là bắt buộc.",
     "eventDateRequired": "Ngày sự kiện là bắt buộc.",
-    "passwordTooSimple": "Mật khẩu không được chỉ gồm các chữ số. Hãy thử dùng định dạng ngày tháng như \"04.07.2025\""
+    "passwordTooSimple": "Mật khẩu không được chỉ gồm các chữ số. Hãy thử dùng định dạng ngày tháng như \"04.07.2025\"",
+    "expiryRequired": "Hãy chọn ngày hết hạn của thư viện ảnh.",
+    "externalFolderRequired": "Hãy chọn thư mục bên ngoài."
   },
   "legal": {
     "impressum": "Thông báo pháp lý",

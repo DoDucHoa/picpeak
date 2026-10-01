@@ -5077,7 +5077,9 @@
     "required": "Dieses Feld ist erforderlich",
     "expirationRequired": "Ablaufdatum ist erforderlich.",
     "eventDateRequired": "Veranstaltungsdatum ist erforderlich",
-    "passwordTooSimple": "Das Passwort darf nicht nur aus Zahlen bestehen. Verwenden Sie z.B. ein Datumsformat wie \"04.07.2025\""
+    "passwordTooSimple": "Das Passwort darf nicht nur aus Zahlen bestehen. Verwenden Sie z.B. ein Datumsformat wie \"04.07.2025\"",
+    "expiryRequired": "Wähle, wann die Galerie abläuft.",
+    "externalFolderRequired": "Wähle den externen Ordner."
   },
   "maintenance": {
     "title": "Systemwartung",
