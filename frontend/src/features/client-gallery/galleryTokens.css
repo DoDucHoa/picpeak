@@ -53,6 +53,13 @@
   font-family: var(--cg-font);
   font-size: var(--font-size-base);
   min-height: 100vh;
+  /* No scroll anchoring anywhere in the gallery. The sticky toolbar folds from
+     two rows to one as the cover leaves, and measuring the folded bar forces a
+     layout before its compensating margin is in place. Chrome anchors to that
+     intermediate layout and pulls a smooth scroll back by the height the fold
+     took, which unfolds the bar again: the page shakes and will not scroll past
+     the cover. Tiles have fixed geometry, so nothing here needs anchoring. */
+  overflow-anchor: none;
 }
 /* A dark brand on <body> must not show around the gallery, for instance
    during overscroll. */
