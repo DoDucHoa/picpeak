@@ -3241,6 +3241,7 @@
       "intro": "Schalten Sie Produktbereiche ein oder aus. Aktivierte Funktionen erscheinen in der linken Navigation und werden für Ihr Team verfügbar. Einige Funktionen sind noch im Beta-Status — schalten Sie sie ein, um sie auszuprobieren, oder aus, um sie zu verbergen.",
       "notYetAvailable": "Noch nicht verfügbar — dieser Schalter wird aktiv, sobald die Funktion ausgeliefert wird.",
       "sidebarHidden": "Kein Sidebar-Eintrag — läuft im Hintergrund",
+      "crmNotInSidebar": "Nicht in der Seitenleiste: unter /admin/clients erreichbar",
       "unsavedChanges": "Sie haben ungespeicherte Änderungen",
       "preview": {
         "title": "Sidebar-Vorschau",

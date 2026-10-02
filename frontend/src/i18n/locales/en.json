@@ -2703,6 +2703,7 @@
       "intro": "Turn product surfaces on or off. Enabled features appear in the left navigation and become available to your team. Some features are still in beta — flip them on to try them, off to hide them.",
       "notYetAvailable": "Not yet available — this toggle activates when the feature ships.",
       "sidebarHidden": "No sidebar item — runs in the background",
+      "crmNotInSidebar": "Not in the sidebar: open it under /admin/clients",
       "unsavedChanges": "You have unsaved changes",
       "preview": {
         "title": "Sidebar preview",

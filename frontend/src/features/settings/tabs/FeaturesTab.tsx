@@ -123,6 +123,13 @@ export const FeaturesTab: React.FC = () => {
     'No sidebar item — runs in the background',
   );
 
+  // The CRM pages are off the sidebar in this fork but still run and still
+  // open by URL, so "runs in the background" would be wrong for them.
+  const crmHiddenLabel = t(
+    'settings.features.crmNotInSidebar',
+    'Not in the sidebar: open it under /admin/clients',
+  );
+
   // "Coming soon" lock reason for unbuilt features. Keep wording neutral —
   // we don't promise a release date.
   const NOT_YET_AVAILABLE = t(
@@ -255,11 +262,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="beta"
             statusLabel={statusLabel('beta')}
-            // Sidebar hint mirrors the top-level "Clients" entry the
-            // admin clicks first, not the deeper "Accounts" sub-nav.
-            // Keeps the wording consistent with what's actually visible
-            // in the menu bar.
-            sidebarLabel={t('navigation.clients', 'CRM')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.customerPortal}
             onToggle={(next) => setFlag('customerPortal', next)}
           />
@@ -363,7 +367,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.calendar.sidebar', 'Calendar')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.calendar}
             onToggle={(next) => setFlag('calendar', next)}
           />
@@ -379,7 +384,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="roadmap"
             statusLabel={statusLabel('roadmap')}
-            sidebarLabel={t('settings.features.calendarBooking.sidebar', 'Booking')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.calendarBooking}
             onToggle={() => { /* locked */ }}
             disabled
@@ -402,7 +408,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.quotes.sidebar', 'Quotes')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.quotes}
             onToggle={(next) => setFlag('quotes', next)}
             configureHref={settingsTabLink('quotes', 'crm')}
@@ -418,7 +425,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.contracts.sidebar', 'Contracts')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.contracts}
             onToggle={(next) => setFlag('contracts', next)}
             configureHref={settingsTabLink('contracts', 'contracts')}
@@ -434,7 +442,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.bills.sidebar', 'Invoices')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.bills}
             onToggle={(next) => setFlag('bills', next)}
             configureHref={settingsTabLink('bills', 'crm')}
@@ -452,7 +461,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.newsletters.sidebar', 'Newsletters')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.newsletters}
             onToggle={(next) => setFlag('newsletters', next)}
           />
@@ -466,7 +476,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.hoursLogging.sidebar', 'Hours')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.hoursLogging}
             onToggle={(next) => setFlag('hoursLogging', next)}
           />
@@ -480,7 +491,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="new"
             statusLabel={statusLabel('new')}
-            sidebarLabel={t('settings.features.projects.sidebar', 'Overview')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.projects}
             onToggle={(next) => setFlag('projects', next)}
           />
@@ -619,7 +631,8 @@ export const FeaturesTab: React.FC = () => {
             )}
             status="experimental"
             statusLabel={statusLabel('experimental')}
-            sidebarLabel={t('settings.features.crmDevelopment.sidebar', 'Development')}
+            sidebarHidden
+            sidebarHiddenLabel={crmHiddenLabel}
             enabled={staged.crmDevelopment}
             onToggle={(next) => setFlag('crmDevelopment', next)}
           />
