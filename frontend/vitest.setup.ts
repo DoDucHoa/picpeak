@@ -6,6 +6,49 @@ expect.extend(matchers);
 // Provide Jest-compatible globals for existing tests that rely on jest.fn
 (globalThis as any).jest = vi;
 
+// vitest's jsdom environment replaces AbortController with jsdom's, but leaves
+// Request as Node's own, and Node's Request refuses any signal that is not a
+// Node AbortSignal: "RequestInit: Expected signal to be an instance of
+// AbortSignal". A data router builds a Request with a jsdom signal for every
+// navigation, so every test that navigated a memory router threw on the first
+// navigate() and sat red as if the page were broken.
+//
+// The request is never sent (a client-side router only reads it), so it is
+// built without the foreign signal and the signal is put back as an own
+// property. The router keeps reading `request.signal.aborted` and listening
+// for "abort" on the very signal it aborts, so an interrupted navigation is
+// still discarded the way it is in a browser.
+//
+// The refusal is probed rather than detected with instanceof: Node checks
+// against the AbortSignal it captured at startup, which no global still
+// names, so `instanceof AbortSignal` passes for a signal it then rejects.
+const refusesTestSignals = (() => {
+  if (typeof Request === 'undefined' || typeof AbortController === 'undefined') return false;
+  try {
+    new Request('http://localhost/', { signal: new AbortController().signal });
+    return false;
+  } catch {
+    return true;
+  }
+})();
+if (refusesTestSignals) {
+  const NativeRequest = Request;
+  class SignalBridgingRequest extends NativeRequest {
+    constructor(input: RequestInfo | URL, init?: RequestInit) {
+      const signal = init?.signal;
+      if (signal) {
+        const rest = { ...init };
+        delete rest.signal;
+        super(input, rest);
+        Object.defineProperty(this, 'signal', { value: signal, configurable: true });
+      } else {
+        super(input, init);
+      }
+    }
+  }
+  globalThis.Request = SignalBridgingRequest as typeof Request;
+}
+
 // jsdom's Blob only implements `.slice()` — unlike every real browser (and
 // Node's own Blob), it has no `.text()`/`.arrayBuffer()`. Code that reads a
 // blob-wrapped error body (axios `responseType: 'blob'` on a 402/403, used
