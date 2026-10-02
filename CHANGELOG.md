@@ -5,6 +5,14 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.0.1-beta.0...v1.1.0-beta.0) (2026-10-02)
+
+
+### Features
+
+* **download-quota:** add a reset button for an event's download limit ([3ef46f6](https://github.com/DoDucHoa/picpeak/commit/3ef46f655998cf0359cc9baa401152162e2d0997))
+* **download-quota:** add a reset button for an event's download limit ([25ff94e](https://github.com/DoDucHoa/picpeak/commit/25ff94ef79f6820b285863ce0ef3455791acf063))
+
 ## [1.0.1-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.0.0-beta.0...v1.0.1-beta.0) (2026-10-02)
 
 
