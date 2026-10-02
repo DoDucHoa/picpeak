@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PhotoViewer } from '../viewer/PhotoViewer';
 import { fakeController } from './fakeController';
 import type { Photo } from '../../../types';
+import { resetPhotoDownloads } from '../state/photoDownloadProgress';
 
 vi.mock('../../../components/common', () => ({
   AuthenticatedImage: ({ useCanvasRendering }: { useCanvasRendering?: boolean }) => (
@@ -12,8 +13,18 @@ vi.mock('../../../components/common', () => ({
   ),
 }));
 
-const mutate = vi.fn();
-vi.mock('../../../hooks/useGallery', () => ({ useDownloadPhoto: () => ({ mutate }) }));
+// The photo download, held open so a test can report progress and settle it.
+type Pending = { onProgress: (f: number | null) => void; resolve: () => void; reject: (e: unknown) => void };
+const downloads: Pending[] = [];
+const downloadPhoto = vi.fn((_slug: string, _id: number, _name: string, onProgress: (f: number | null) => void) => (
+  new Promise<void>((resolve, reject) => { downloads.push({ onProgress, resolve, reject }); })
+));
+vi.mock('../../../services/gallery.service', () => ({
+  galleryService: { downloadPhoto: (...a: Parameters<typeof downloadPhoto>) => downloadPhoto(...a) },
+}));
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+vi.mock('react-toastify', () => ({ toast: { success: (m: string) => toastSuccess(m), error: (m: string) => toastError(m) } }));
 
 const refreshDownloadQuota = vi.fn();
 vi.mock('../../../hooks/useDownloadQuota', () => ({ useRefreshDownloadQuota: () => refreshDownloadQuota }));
@@ -53,7 +64,11 @@ function renderViewer(props: Partial<React.ComponentProps<typeof PhotoViewer>> =
 }
 
 beforeEach(() => {
-  mutate.mockReset();
+  downloadPhoto.mockClear();
+  downloads.length = 0;
+  resetPhotoDownloads();
+  toastSuccess.mockReset();
+  toastError.mockReset();
   refreshDownloadQuota.mockReset();
   getPhotoFeedback.mockReset();
   // jsdom does not implement scrolling; the filmstrip virtualiser calls it.
@@ -191,26 +206,68 @@ describe('PhotoViewer', () => {
     expect(getPhotoFeedback).toHaveBeenCalledWith('s', '2');
   });
 
-  it('downloads the current photo and re-reads the allowance afterwards', () => {
+  it('downloads the current photo and re-reads the allowance afterwards', async () => {
     renderViewer();
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
-    expect(mutate).toHaveBeenCalledWith(
-      { slug: 's', photoId: 2, filename: 'p2.jpg' },
-      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
-    );
-    const [, handlers] = mutate.mock.calls[0];
-    handlers.onSuccess();
+    expect(downloadPhoto).toHaveBeenCalledWith('s', 2, 'p2.jpg', expect.any(Function));
+    await act(async () => { downloads[0].resolve(); });
     expect(refreshDownloadQuota).toHaveBeenCalledWith('s');
+    expect(toastSuccess).toHaveBeenCalledWith('Photo downloaded');
+    expect(screen.getByRole('button', { name: /^download$/i })).not.toBeDisabled();
   });
 
-  it('routes a refused download through the gate', () => {
+  it('shows the progress while downloading, and ignores a second tap', async () => {
+    renderViewer();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    const busy = screen.getByRole('button', { name: /downloading/i });
+    expect(busy).toBeDisabled();
+    expect(busy.getAttribute('aria-busy')).toBe('true');
+    act(() => downloads[0].onProgress(0.42));
+    expect(screen.getByTestId('viewer-download-progress').textContent).toBe('42%');
+    // An unknown size spins without a number.
+    act(() => downloads[0].onProgress(null));
+    expect(screen.queryByTestId('viewer-download-progress')).toBeNull();
+    fireEvent.click(busy);
+    expect(downloadPhoto).toHaveBeenCalledTimes(1);
+    await act(async () => { downloads[0].resolve(); });
+  });
+
+  it('keeps a photo\'s progress when the viewer steps away and back', async () => {
+    const { rerender } = renderViewer();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    act(() => downloads[0].onProgress(0.5));
+    const client = new QueryClient();
+    const at = (openId: number) => (
+      <QueryClientProvider client={client}>
+        <PhotoViewer photos={photos} openId={openId} onClose={vi.fn()} onNavigate={vi.fn()} c={fakeController()} onToggle={vi.fn()} />
+      </QueryClientProvider>
+    );
+    rerender(at(3));
+    expect(screen.getByRole('button', { name: /^download$/i })).not.toBeDisabled();
+    rerender(at(2));
+    expect(screen.getByTestId('viewer-download-progress').textContent).toBe('50%');
+    await act(async () => { downloads[0].resolve(); });
+  });
+
+  it('routes a refused download through the gate', async () => {
     const c = fakeController();
     renderViewer({ c });
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
-    const [, handlers] = mutate.mock.calls[0];
     const error = new Error('402');
-    handlers.onError(error);
+    await act(async () => { downloads[0].reject(error); });
     expect(c.downloadGate.reportDownloadFailure).toHaveBeenCalledWith(error);
+    // The gate did not recognise it, so the generic message is shown.
+    expect(toastError).toHaveBeenCalledWith('Could not download the photo');
+    expect(screen.getByRole('button', { name: /^download$/i })).not.toBeDisabled();
+  });
+
+  it('shows no generic error when the gate already answered the refusal', async () => {
+    const c = fakeController();
+    c.downloadGate = { ...c.downloadGate, reportDownloadFailure: vi.fn(async () => true) };
+    renderViewer({ c });
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    await act(async () => { downloads[0].reject(new Error('402')); });
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it('opens the offer instead of downloading when the allowance is spent', () => {
@@ -218,7 +275,7 @@ describe('PhotoViewer', () => {
     c.downloadGate = { ...c.downloadGate, quotaEnabled: true, isClient: true, remaining: 0 };
     renderViewer({ c });
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
-    expect(mutate).not.toHaveBeenCalled();
+    expect(downloadPhoto).not.toHaveBeenCalled();
     expect(c.downloadGate.offerForBlockedDownload).toHaveBeenCalled();
   });
 

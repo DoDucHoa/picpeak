@@ -1,12 +1,16 @@
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { stopNavigationEventsPropagation } from 'yet-another-react-lightbox';
-import { useDownloadPhoto } from '../../../hooks/useGallery';
+import { galleryService } from '../../../services/gallery.service';
 import { useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
 import { canDownloadPhotoNow } from '../../../components/gallery/downloadQuotaOffer';
 import { analyticsService } from '../../../services/analytics.service';
 import type { Photo } from '../../../types';
 import type { GalleryController } from '../state/useGalleryController';
-import { BackIcon, CommentIcon, DownloadIcon, HeartIcon, InfoIcon, PickIcon } from '../icons';
+import { BackIcon, CommentIcon, DownloadIcon, HeartIcon, InfoIcon, PickIcon, ProgressRing } from '../icons';
+import {
+  finishPhotoDownload, isPhotoDownloading, startPhotoDownload, updatePhotoDownload, usePhotoDownloadProgress,
+} from '../state/photoDownloadProgress';
 
 export type ViewerPanel = 'comments' | 'info';
 
@@ -26,8 +30,10 @@ interface ViewerRailProps {
  */
 export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: ViewerRailProps) {
   const { t } = useTranslation();
-  const downloadPhoto = useDownloadPhoto();
   const refreshDownloadQuota = useRefreshDownloadQuota();
+  const downloadProgress = usePhotoDownloadProgress(photo.id);
+  const downloading = downloadProgress !== undefined;
+  const fraction = downloadProgress ?? null;
 
   const fs = c.feedbackSettings;
   const feedbackOn = Boolean(fs?.feedback_enabled);
@@ -39,6 +45,8 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
   const togglePanel = (next: ViewerPanel) => onPanel(panel === next ? null : next);
 
   const download = () => {
+    // A second tap while the photo is on its way would fetch it twice.
+    if (isPhotoDownloading(photo.id)) return;
     const gate = c.downloadGate;
     // Predicted from what the server last said, so a click that would only be
     // refused opens the offer straight away instead of making a round trip.
@@ -48,14 +56,28 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
       return;
     }
     analyticsService.trackDownload(photo.id, c.slug, false);
-    downloadPhoto.mutate(
-      { slug: c.slug, photoId: photo.id, filename: photo.filename },
-      {
-        onSuccess: () => refreshDownloadQuota(c.slug),
-        onError: (error) => { void gate.reportDownloadFailure(error); },
-      },
-    );
+    const { id, filename } = photo;
+    const slug = c.slug;
+    startPhotoDownload(id);
+    galleryService.downloadPhoto(slug, id, filename, (fraction) => updatePhotoDownload(id, fraction))
+      .then(() => {
+        toast.success(t('clientGallery.viewer.downloaded', 'Photo downloaded'));
+        refreshDownloadQuota(slug);
+      })
+      .catch(async (error) => {
+        // A refusal for role or allowance is answered by the gate (the quota
+        // dialog, or a "clients only" notice); only anything else gets the
+        // generic message.
+        if (!(await gate.reportDownloadFailure(error))) {
+          toast.error(t('clientGallery.viewer.downloadFailed', 'Could not download the photo'));
+        }
+      })
+      .finally(() => finishPhotoDownload(id));
   };
+
+  const downloadLabel = downloading
+    ? t('clientGallery.viewer.downloading', 'Downloading')
+    : t('clientGallery.viewer.download', 'Download');
 
   return (
     <nav className="cg-viewer-rail" data-testid="viewer-rail" {...stopNavigationEventsPropagation()}>
@@ -107,8 +129,24 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
         <InfoIcon />
       </button>
       {allowDownload && (
-        <button type="button" className="cg-viewer-btn" aria-label={t('clientGallery.viewer.download', 'Download')} onClick={download}>
-          <DownloadIcon />
+        <button
+          type="button"
+          className={`cg-viewer-btn${downloading ? ' cg-viewer-btn-busy' : ''}`}
+          aria-label={downloadLabel}
+          aria-busy={downloading}
+          disabled={downloading}
+          onClick={download}
+        >
+          {downloading ? (
+            <>
+              <ProgressRing fraction={fraction} />
+              {fraction !== null && (
+                <span className="cg-viewer-progress" data-testid="viewer-download-progress">
+                  {Math.round(fraction * 100)}%
+                </span>
+              )}
+            </>
+          ) : <DownloadIcon />}
         </button>
       )}
     </nav>

@@ -348,6 +348,7 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
           choices={c.downloadChoices}
           standardResolution={c.downloadStandard}
           photoIds={c.resolutionPicker.ids || undefined}
+          onDownloadSelection={c.resolutionPicker.downloadSelection}
           onClose={c.resolutionPicker.close}
         />
       )}

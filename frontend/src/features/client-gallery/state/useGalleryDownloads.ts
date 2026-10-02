@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { createElement, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
-import { useDownloadAllPhotos } from '../../../hooks/useGallery';
 import { useDownloadQuota, useRefreshDownloadQuota } from '../../../hooks/useDownloadQuota';
-import { SELECTED_DOWNLOAD_LIMIT } from '../../../components/gallery/folders';
 import { shouldOfferFullPackage, classifyDownloadRefusal } from '../../../components/gallery/downloadQuotaOffer';
 import type { DownloadGate } from '../../../contexts/DownloadGateContext';
 import type {
@@ -12,7 +10,8 @@ import type {
 } from '../../../services/downloadQuota.service';
 import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
-import type { DownloadResolutionChoice, GalleryData, Photo, PhotoCategory } from '../../../types';
+import type { DownloadResolutionChoice, GalleryData } from '../../../types';
+import { BundlePartsNotice } from '../toolbar/BundlePartsNotice';
 
 export type QuotaOffer = { exceeded: QuotaExceededPayload | null } | null;
 
@@ -21,24 +20,18 @@ export interface GalleryDownloadsInput {
   data: GalleryData | undefined;
   isClient: boolean;
   isExpired: boolean;
-  /** What the grid shows after folder, people and sort, before the tab. */
-  filteredPhotos: Photo[];
-  /** What the current folder or root holds, before any filter. */
-  scopedPhotos: Photo[];
-  openFolder: PhotoCategory | null;
   selectedPhotos: Set<number>;
   setSelectedPhotos: (ids: Set<number>) => void;
   setIsSelectionMode: (active: boolean) => void;
-  selectedPersonIds: number[];
 }
 
 export interface GalleryDownloads {
   allowDownloads: boolean;
   downloadChoices: DownloadResolutionChoice[];
   downloadStandard: string | undefined;
-  isDownloadingAll: boolean;
-  handleDownloadAll: () => void;
   handleDownloadSelected: () => Promise<void>;
+  /** True from the click until every part has been handed to the browser. */
+  isDownloadingSelected: boolean;
   quota: ReturnType<typeof useDownloadQuota>['quota'];
   offerFullPackage: boolean;
   quotaOffer: QuotaOffer;
@@ -48,13 +41,24 @@ export interface GalleryDownloads {
   downloadPackages: DownloadPackage[];
   downloadCurrency: string;
   pendingDownloadOrder: DownloadOrder | null;
-  resolutionPicker: { open: boolean; ids: number[] | null; close: () => void };
-  peopleDownloadableIds: number[];
-  handleDownloadPeopleFiltered: () => Promise<void>;
-  folderDownloadIds: number[];
-  folderDownloadTotal: number;
-  folderDownloadCapped: boolean;
-  handleDownloadFolder: () => Promise<void>;
+  resolutionPicker: ResolutionPicker;
+}
+
+export interface ResolutionPicker {
+  open: boolean;
+  ids: number[] | null;
+  close: () => void;
+  /** Downloads `ids` at the chosen size. Reports its own failures. */
+  downloadSelection: (resolution: string) => Promise<void>;
+}
+
+// The gap between two parts of a bundle. Long enough that a browser treats
+// them as separate downloads rather than one burst it might block outright.
+const BUNDLE_PART_GAP_MS = 1500;
+const QUOTA_REREAD_DELAY_MS = 2000;
+
+function bundlePartName(slug: string, index: number, count: number): string {
+  return count > 1 ? `${slug}-selected-part${index + 1}of${count}.zip` : `${slug}-selected.zip`;
 }
 
 const EMPTY_CHOICES: DownloadResolutionChoice[] = [];
@@ -67,17 +71,13 @@ const EMPTY_CHOICES: DownloadResolutionChoice[] = [];
  * never works the numbers out for itself.
  */
 export function useGalleryDownloads({
-  slug, data, isClient, isExpired, filteredPhotos, scopedPhotos, openFolder,
-  selectedPhotos, setSelectedPhotos, setIsSelectionMode, selectedPersonIds,
+  slug, data, isClient, isExpired,
+  selectedPhotos, setSelectedPhotos, setIsSelectionMode,
 }: GalleryDownloadsInput): GalleryDownloads {
   const { t } = useTranslation();
-  // Download size picker (#858). `showResolutionPicker` covers "download all";
-  // `resolutionPickerIds` covers a selection.
-  const [showResolutionPicker, setShowResolutionPicker] = useState(false);
+  // Download size picker (#858), open while it holds the selection to size.
   const [resolutionPickerIds, setResolutionPickerIds] = useState<number[] | null>(null);
 
-  // Data updates are handled by React Query
-  const { mutate: mutateDownloadAll, isPending: isDownloadingAll } = useDownloadAllPhotos();
   const refreshDownloadQuota = useRefreshDownloadQuota();
 
   // Download allowance (#download-quota). One query feeds the header badge,
@@ -206,186 +206,132 @@ export function useGalleryDownloads({
     Boolean(downloadQuota?.enabled) &&
     shouldOfferFullPackage(notDeliveredCount, downloadQuota?.remaining ?? null);
 
-  const zipReady = data?.event?.download_zip_ready;
-  const eventPhotoCount = data?.photos.length || 0;
+  const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
 
-  const handleDownloadAll = useCallback(() => {
-    // Prevent downloads if gallery is expired or downloads disabled
-    if (!allowDownloads) {
+  /**
+   * Two or more photos: plan the bundle, then hand each part to the browser.
+   * Every part is probed first, because a native download cannot report a
+   * refusal and would save the error body as the file. The parts follow one
+   * another with a short gap; a browser that blocks the later ones still has
+   * every part as a button in the toast.
+   */
+  const downloadBundle = useCallback(async (photoIds: number[], resolution?: string) => {
+    const parts = await galleryService.planDownloadBundle(slug, photoIds, resolution);
+    for (let i = 0; i < parts.length; i += 1) {
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, BUNDLE_PART_GAP_MS));
+      await galleryService.probeBundlePart(slug, parts[i].token);
+      galleryService.triggerDirectDownload(galleryService.bundlePartUrl(slug, parts[i].token), bundlePartName(slug, i, parts.length));
+    }
+    if (parts.length > 1) {
+      toast.info(
+        createElement(BundlePartsNotice, {
+          parts: parts.map((part, i) => ({
+            href: galleryService.bundlePartUrl(slug, part.token),
+            name: bundlePartName(slug, i, parts.length),
+          })),
+        }),
+        { autoClose: false, closeOnClick: false },
+      );
+    }
+    // A native download gives no completion to await. Each part claims its
+    // slots the moment the browser's request arrives, before any byte is sent,
+    // so a re-read shortly after the last hand-off sees the charged ledger.
+    setTimeout(() => refreshDownloadQuota(slug), QUOTA_REREAD_DELAY_MS);
+  }, [slug, refreshDownloadQuota]);
+
+  /**
+   * The catch of the bundle path. A probe is a HEAD request, so a refusal
+   * there carries no body to read the shortfall from; the offer then opens on
+   * the allowance the badge already knows.
+   */
+  const failBundleDownload = useCallback(async (error: unknown) => {
+    const status = (error as { response?: { status?: number; data?: unknown } })?.response;
+    if (status?.status === 402 && !status.data) {
+      setQuotaOffer({ exceeded: null });
+      refetchDownloadQuota();
       return;
     }
-
-    // Hand off to the picker; it builds the archive as a job and downloads it.
-    if (downloadChoices.length > 1) {
-      setShowResolutionPicker(true);
-      return;
-    }
-
-    mutateDownloadAll(
-      { slug, zipReady },
-      {
-        // The archive claimed its slots before the first byte went out.
-        onSuccess: () => refreshDownloadQuota(slug),
-        onError: (error) => { void handleDownloadFailure(error); },
-      },
-    );
-
-    // Track download all action
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: eventPhotoCount,
-      is_download_all: true
-    });
-  }, [allowDownloads, downloadChoices.length, mutateDownloadAll, slug, zipReady, refreshDownloadQuota, handleDownloadFailure, eventPhotoCount]);
+    await failBulkDownload(error);
+  }, [failBulkDownload, refetchDownloadQuota]);
 
   const handleDownloadSelected = useCallback(async () => {
-    if (selectedPhotos.size === 0) return;
+    if (selectedPhotos.size === 0 || isDownloadingSelected) return;
 
     // Prevent downloads if gallery is expired or downloads disabled
     if (!allowDownloads) {
       return;
     }
+
+    const ids = Array.from(selectedPhotos);
 
     // Resolution picker (#858): a selection gets the same choice as the
     // single-photo control, rather than silently downloading at the gallery
-    // standard.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(Array.from(selectedPhotos));
+    // standard. One photo is a plain file at the standard size, exactly what
+    // the viewer's own button hands over.
+    if (downloadChoices.length > 1 && ids.length > 1) {
+      setResolutionPickerIds(ids);
       return;
     }
 
-    const selectedPhotosList = filteredPhotos.filter(p => selectedPhotos.has(p.id));
-
-    // Track bulk download
     analyticsService.trackGalleryEvent('bulk_download', {
       gallery: slug,
-      photo_count: selectedPhotos.size
+      photo_count: ids.length,
     });
 
-    // Download each selected photo
+    setIsDownloadingSelected(true);
     try {
-      for (const photo of selectedPhotosList) {
-        await galleryService.downloadPhoto(slug, photo.id, photo.filename);
+      if (ids.length === 1) {
+        const photo = data?.photos.find((p) => p.id === ids[0]);
+        await galleryService.downloadPhoto(slug, ids[0], photo?.filename || `photo-${ids[0]}.jpg`);
+        toast.success(t('clientGallery.viewer.downloaded', 'Photo downloaded'));
+        refreshDownloadQuota(slug);
+      } else {
+        await downloadBundle(ids);
       }
-      // Each photo claimed its slot before streaming, so re-read the allowance.
-      refreshDownloadQuota(slug);
     } catch (error) {
       // The selection is deliberately left standing on any failure: the quota
       // dialog asks the guest to drop photos themselves, and after any other
       // error the same selection is what they would retry.
-      await failBulkDownload(error);
+      await failBundleDownload(error);
       return;
+    } finally {
+      setIsDownloadingSelected(false);
     }
 
     // Clear selection after download
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
   }, [
-    selectedPhotos, allowDownloads, downloadChoices.length, filteredPhotos, slug,
-    refreshDownloadQuota, failBulkDownload, setSelectedPhotos, setIsSelectionMode,
+    selectedPhotos, isDownloadingSelected, allowDownloads, downloadChoices.length, slug, data?.photos,
+    t, refreshDownloadQuota, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode,
   ]);
 
-  // "Download these N" (#1074): the payoff of the people filter.
-  //
-  // Deliberately NO new endpoint or person_id selector: the filtered photo
-  // ids go through the same path as a manual selection, and the server
-  // re-applies the access level and per-category permissions on the way
-  // through. One less thing to authorize.
-  //
-  // Photos in a category with downloads disabled (#640) are excluded HERE as
-  // well as server-side, so the number on the button is the number the guest
-  // actually receives rather than an optimistic one.
-  const peopleDownloadableIds = useMemo(() => {
-    if (selectedPersonIds.length === 0) return [];
-    return filteredPhotos
-      .filter((photo) => photo.category_allow_downloads !== false)
-      .map((photo) => photo.id);
-  }, [filteredPhotos, selectedPersonIds]);
-
-  const handleDownloadPeopleFiltered = useCallback(async () => {
-    if (!allowDownloads || peopleDownloadableIds.length === 0) return;
-
-    // Same resolution-picker behaviour as every other multi-photo download.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(peopleDownloadableIds);
+  // The picker's own download of a selection, at the size it chose.
+  const downloadPickedSelection = useCallback(async (resolution: string) => {
+    if (!resolutionPickerIds) return;
+    try {
+      await downloadBundle(resolutionPickerIds, resolution);
+    } catch (error) {
+      await failBundleDownload(error);
       return;
     }
+    setSelectedPhotos(new Set());
+    setIsSelectionMode(false);
+  }, [resolutionPickerIds, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode]);
 
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: peopleDownloadableIds.length,
-    });
-
-    try {
-      await galleryService.downloadSelectedPhotos(slug, peopleDownloadableIds);
-      refreshDownloadQuota(slug);
-    } catch (error) {
-      await failBulkDownload(error);
-    }
-  }, [allowDownloads, peopleDownloadableIds, downloadChoices.length, slug, refreshDownloadQuota, failBulkDownload]);
-
-  // Download just the open folder (#1160). The event-wide "download all" still
-  // zips the whole gallery including foldered photos; this is the "only this
-  // folder, once" case. Honours the per-category opt-out (#640), so a folder
-  // with allow_downloads = false offers no button at all.
-  const folderDownloadableIds = useMemo(() => {
-    if (!openFolder) return [];
-    if (openFolder.allow_downloads === false) return [];
-    // scopedPhotos, not filteredPhotos: a button that says "Download folder"
-    // must not quietly hand over a filtered subset of it.
-    return scopedPhotos
-      .filter((photo) => photo.category_allow_downloads !== false)
-      .map((photo) => photo.id);
-  }, [openFolder, scopedPhotos]);
-
-  // /download-selected caps the id list server-side, so a folder bigger than the
-  // cap would deliver a truncated archive under a button promising the whole
-  // thing. Send only what the server will honour, and say so on the label.
-  const folderDownloadIds = useMemo(
-    () => folderDownloadableIds.slice(0, SELECTED_DOWNLOAD_LIMIT),
-    [folderDownloadableIds]
-  );
-  const folderDownloadCapped = folderDownloadableIds.length > SELECTED_DOWNLOAD_LIMIT;
-
-  const handleDownloadFolder = useCallback(async () => {
-    if (!allowDownloads || folderDownloadableIds.length === 0) return;
-
-    // Same resolution-picker behaviour as every other multi-photo download.
-    if (downloadChoices.length > 1) {
-      setResolutionPickerIds(folderDownloadIds);
-      return;
-    }
-
-    analyticsService.trackGalleryEvent('bulk_download', {
-      gallery: slug,
-      photo_count: folderDownloadIds.length,
-    });
-
-    try {
-      await galleryService.downloadSelectedPhotos(slug, folderDownloadIds);
-      refreshDownloadQuota(slug);
-    } catch (error) {
-      await failBulkDownload(error);
-    }
-  }, [allowDownloads, folderDownloadableIds.length, downloadChoices.length, folderDownloadIds, slug, refreshDownloadQuota, failBulkDownload]);
-
-  const closeResolutionPicker = useCallback(() => {
-    setShowResolutionPicker(false);
-    setResolutionPickerIds(null);
-  }, []);
+  const closeResolutionPicker = useCallback(() => setResolutionPickerIds(null), []);
   const resolutionPicker = useMemo(() => ({
-    open: showResolutionPicker || resolutionPickerIds !== null,
+    open: resolutionPickerIds !== null,
     ids: resolutionPickerIds,
     close: closeResolutionPicker,
-  }), [showResolutionPicker, resolutionPickerIds, closeResolutionPicker]);
+    downloadSelection: downloadPickedSelection,
+  }), [resolutionPickerIds, closeResolutionPicker, downloadPickedSelection]);
 
   return {
     allowDownloads, downloadChoices, downloadStandard: data?.event?.download_resolution?.standard,
-    isDownloadingAll, handleDownloadAll, handleDownloadSelected,
+    handleDownloadSelected, isDownloadingSelected,
     quota: downloadQuota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
     resolutionPicker,
-    peopleDownloadableIds, handleDownloadPeopleFiltered,
-    folderDownloadIds, folderDownloadTotal: folderDownloadableIds.length, folderDownloadCapped, handleDownloadFolder,
   };
 }

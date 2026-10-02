@@ -36,6 +36,11 @@ interface DownloadResolutionModalProps {
   standardResolution?: string;
   /** Omitted = the whole gallery. */
   photoIds?: number[];
+  /**
+   * Downloads `photoIds` at the chosen size in place of a build job, which
+   * caps a selection at 500 photos. Reports its own failures.
+   */
+  onDownloadSelection?: (resolution: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -44,6 +49,7 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
   choices,
   standardResolution,
   photoIds,
+  onDownloadSelection,
   onClose,
 }) => {
   const { t } = useTranslation();
@@ -103,6 +109,11 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
 
     setPhase('preparing');
     setError(null);
+    if (photoIds && onDownloadSelection) {
+      await onDownloadSelection(selected);
+      onClose();
+      return;
+    }
     try {
       const job = await galleryService.startDownloadJob(slug, selected, photoIds);
       tokenRef.current = job.token;
@@ -117,7 +128,7 @@ export const DownloadResolutionModal: React.FC<DownloadResolutionModalProps> = (
       setError(t('gallery.downloadPrepFailed', 'Preparation failed'));
       setPhase('error');
     }
-  }, [slug, selected, photoIds, poll, t, standardResolution, onClose, refreshDownloadQuota]);
+  }, [slug, selected, photoIds, onDownloadSelection, poll, t, standardResolution, onClose, refreshDownloadQuota]);
 
   const download = useCallback(() => {
     if (!tokenRef.current) return;

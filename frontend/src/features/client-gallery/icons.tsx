@@ -217,6 +217,40 @@ export function EyeOffIcon() {
   );
 }
 
+/** Select all: a ticked frame in front of a second one. */
+export function SelectAllIcon() {
+  return (
+    <Svg>
+      <path d="M7.5 4.5h10a2 2 0 0 1 2 2v10" />
+      <rect x={4.5} y={7.5} width={12} height={12} rx={2} />
+      <path d="m7.75 13.5 2.25 2.25 3.75-4.25" />
+    </Svg>
+  );
+}
+
+/**
+ * Progress of a download, 0 to 1, as a ring drawn round from the top. With
+ * `fraction` null the size is unknown, so a quarter arc spins instead.
+ */
+export function ProgressRing({ fraction }: { fraction: number | null }) {
+  const r = 9;
+  const circumference = 2 * Math.PI * r;
+  const shown = fraction === null ? 0.25 : Math.max(0.02, Math.min(1, fraction));
+  return (
+    <Svg className={fraction === null ? 'cg-spin' : undefined}>
+      <circle cx={12} cy={12} r={r} opacity={0.25} />
+      <circle
+        cx={12}
+        cy={12}
+        r={r}
+        strokeWidth={2}
+        strokeDasharray={`${shown * circumference} ${circumference}`}
+        transform="rotate(-90 12 12)"
+      />
+    </Svg>
+  );
+}
+
 export function ShieldIcon() {
   return (
     <Svg>

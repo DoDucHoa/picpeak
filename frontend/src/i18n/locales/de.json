@@ -9879,7 +9879,10 @@
       "comments": "Kommentare",
       "fileInfo": "Dateiinfo",
       "captured": "Aufgenommen",
-      "download": "Herunterladen"
+      "download": "Herunterladen",
+      "downloading": "Wird heruntergeladen",
+      "downloaded": "Foto heruntergeladen",
+      "downloadFailed": "Das Foto konnte nicht heruntergeladen werden"
     },
     "list": {
       "action": "Aktion"
@@ -9911,6 +9914,14 @@
     "backToTop": "Nach oben",
     "emptyAll": "Noch keine Fotos",
     "copyFailed": "Link konnte nicht kopiert werden",
-    "select": "Auswählen"
+    "select": "Auswählen",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Auswahl aufheben",
+    "preparingDownload": "Download wird vorbereitet",
+    "bundle": {
+      "started": "Ihre Fotos werden in {{count}} Teilen heruntergeladen.",
+      "blockedHint": "Falls ein Teil nicht startet, laden Sie ihn hier herunter:",
+      "part": "Teil {{index}} von {{count}}"
+    }
   }
 }

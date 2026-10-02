@@ -9905,7 +9905,10 @@
       "comments": "Bình luận",
       "fileInfo": "Thông tin file",
       "captured": "Ngày chụp",
-      "download": "Tải về"
+      "download": "Tải về",
+      "downloading": "Đang tải xuống",
+      "downloaded": "Đã tải ảnh xuống",
+      "downloadFailed": "Không tải được ảnh"
     },
     "list": {
       "action": "Thao tác"
@@ -9937,6 +9940,14 @@
     "backToTop": "Lên đầu trang",
     "emptyAll": "Chưa có ảnh nào",
     "copyFailed": "Không chép được link",
-    "select": "Chọn"
+    "select": "Chọn",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả",
+    "preparingDownload": "Đang chuẩn bị tải xuống",
+    "bundle": {
+      "started": "Ảnh của bạn đang được tải xuống thành {{count}} phần.",
+      "blockedHint": "Nếu có phần chưa tự tải, hãy tải tại đây:",
+      "part": "Phần {{index}}/{{count}}"
+    }
   }
 }
