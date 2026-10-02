@@ -26,7 +26,6 @@ import { useMutationWithToast } from '../../hooks';
 import { Button, Card, Loading } from '../../components/common';
 import { UpdateNotification } from '../../components/admin/UpdateNotification';
 import { WhatsNewBanner } from '../../components/admin/WhatsNewBanner';
-import { CrmOverviewSection } from '../../components/admin/CrmOverviewSection';
 import { useQuery } from '@tanstack/react-query';
 import { eventsService } from '../../services/events.service';
 import { adminService, ActivityType, type Activity } from '../../services/admin.service';
@@ -479,14 +478,10 @@ export const AdminDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* CRM overview — quote / invoice pipeline + revenue +
-          outstanding. The section internally gates on the `clients`
-          feature flag (renders nothing when off), and further hides
-          the quotes / invoices subsections individually when their
-          sub-flag is off. Lives at the bottom so admins who don't
-          use the CRM see no visual difference. */}
-      <CrmOverviewSection />
-
+      {/* The CRM headline metrics (CrmOverviewSection) are not mounted in
+          this fork: CRM is hidden from the admin navigation, so the
+          dashboard does not advertise it either. The component and its
+          endpoint are kept, so remounting it here is a one-line change. */}
     </div>
   );
 };

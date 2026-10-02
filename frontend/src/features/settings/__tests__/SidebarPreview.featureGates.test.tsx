@@ -27,14 +27,29 @@ describe('SidebarPreview feature gates (QA J.14)', () => {
     render(<SidebarPreview staged={staged({})} />);
 
     expect(screen.getByText('navigation.dashboard')).toBeInTheDocument();
-    expect(screen.getByText('navigation.sharing')).toBeInTheDocument();
+    expect(screen.getByText('navigation.events')).toBeInTheDocument();
+    expect(screen.getByText('navigation.archives')).toBeInTheDocument();
+    expect(screen.getByText('navigation.downloadOrders')).toBeInTheDocument();
     expect(screen.getByText('navigation.settings')).toBeInTheDocument();
+  });
+
+  it('mirrors the flat sidebar: no Sharing group, former Sharing pages right after Dashboard', () => {
+    render(<SidebarPreview staged={staged({ transfers: true })} />);
+
+    expect(screen.queryByText('navigation.sharing')).not.toBeInTheDocument();
+    const labels = screen.getAllByRole('listitem').map((li) => li.textContent?.trim());
+    expect(labels.slice(0, 5)).toEqual([
+      'navigation.dashboard', 'navigation.events', 'navigation.archives',
+      'navigation.downloadOrders', 'navigation.transfers',
+    ]);
+    expect(labels[labels.length - 1]).toBe('navigation.settings');
   });
 
   it.each([
     ['accounting', 'navigation.accounting'],
     ['analytics', 'admin.analytics'],
     ['messaging', 'navigation.messages'],
+    ['transfers', 'navigation.transfers'],
   ] as const)('reflects the %s toggle', (flag, label) => {
     const { unmount } = render(<SidebarPreview staged={staged({ [flag]: false })} />);
     expect(screen.queryByText(label)).not.toBeInTheDocument();
@@ -63,17 +78,6 @@ describe('SidebarPreview feature gates (QA J.14)', () => {
     }
   });
 
-  it('always lists Sharing, which has no flag of its own', () => {
-    // Events is unconditional, so the section is too; PicTransfer's flag
-    // decides an item inside it, not whether the entry exists.
-    const { unmount } = render(<SidebarPreview staged={staged({ transfers: false })} />);
-    expect(screen.getByText('navigation.sharing')).toBeInTheDocument();
-    unmount();
-
-    render(<SidebarPreview staged={staged({ transfers: true })} />);
-    expect(screen.getByText('navigation.sharing')).toBeInTheDocument();
-  });
-
   it('no longer offers Users as a sidebar entry', () => {
     // User management moved into Settings → People & access, so the preview
     // must not promise a main-menu entry that the sidebar will not render.
@@ -81,14 +85,12 @@ describe('SidebarPreview feature gates (QA J.14)', () => {
     expect(screen.queryByText('navigation.users')).not.toBeInTheDocument();
   });
 
-  it('shows the CRM entry only when one of its sub-features is on', () => {
-    // `clients` is derived, so the entry needs a real sub-feature — mirrors
-    // AdminSidebar's featureFlagsAny check.
-    const { unmount } = render(<SidebarPreview staged={staged({ clients: true })} />);
+  it('never shows a CRM entry, whatever CRM features are on', () => {
+    // CRM left the main menu in this fork; its pages stay reachable by URL,
+    // so the preview must not promise an entry the sidebar does not render.
+    render(<SidebarPreview staged={staged({
+      clients: true, customerPortal: true, contracts: true, calendar: true, quotes: true,
+    })} />);
     expect(screen.queryByText('navigation.clients')).not.toBeInTheDocument();
-    unmount();
-
-    render(<SidebarPreview staged={staged({ clients: true, contracts: true })} />);
-    expect(screen.getByText('navigation.clients')).toBeInTheDocument();
   });
 });

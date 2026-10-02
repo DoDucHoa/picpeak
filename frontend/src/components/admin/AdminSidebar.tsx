@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLeaveGuard } from '../../contexts/UnsavedChangesContext';
 import {
   ArrowLeft,
+  Archive,
+  Calendar,
   LayoutDashboard,
   BarChart3,
   Settings,
@@ -10,7 +12,8 @@ import {
   Briefcase,
   Landmark,
   Mail,
-  Share2,
+  Send,
+  ShoppingCart,
   Workflow,
   PanelLeftClose,
   PanelLeftOpen,
@@ -38,7 +41,6 @@ import {
 } from '../../features/settings/settingsNav';
 import { useClientsNavItems } from './ClientsLayout';
 import { useAccountingNavItems } from './AccountingLayout';
-import { useSharingNavItems, SHARING_PATHS } from './sharingNav';
 import { useAutomationNavItems } from './AutomationLayout';
 
 // A section that takes over the sidebar while the admin is inside it:
@@ -63,10 +65,8 @@ interface SidebarSectionGroup {
 interface SidebarSection {
   key: string;
   /**
-   * Route prefixes that activate the section, and the first of them is where
-   * the main-menu entry points by default. Usually one, but Sharing spans
-   * /admin/events and /admin/transfers: a section is a grouping of pages, and
-   * pages it groups need not share a URL prefix.
+   * Route prefixes that activate the section. A section is a grouping of
+   * pages, and the pages it groups need not share a URL prefix.
    */
   paths: string[];
   title: string;
@@ -107,7 +107,7 @@ interface NavItem {
 }
 
 // Sidebar shape after the Settings reorg (#feature-flags-settings-reorg)
-// and the navigation cleanup that followed it.
+// and the navigation cleanups that followed it.
 //
 // Removed (now live as Settings tabs, with redirects from the old
 // top-level paths so bookmarks keep working):
@@ -115,75 +115,50 @@ interface NavItem {
 //   /admin/cms, /admin/users, /admin/system-health.
 //
 // Folded into sections (same: redirects kept):
-//   /admin/archives  → Events section
-//   /admin/transfers → Sharing section (same URL, new home)
-//   /admin/workflows → Automation section
+//   /admin/workflows: Automation section
 //
-// What is left is eight entries, of which four disappear entirely on an
-// install with the matching features off.
+// This fork flattened the former Sharing section: Events, Archives, Download
+// orders and PicTransfer are plain top-level entries, each with its own
+// permission and flag gate. It also took CRM (/admin/clients) off the main
+// menu. The CRM pages and their feature flags are untouched and stay
+// reachable by URL; a deep link still opens the CRM section menu (see
+// `sections` below), there is simply no main-menu entry leading to it.
 //
 // Feature-gated (only render when the corresponding feature flag is on):
-//   Analytics  → flags.analytics
-//   Messages   → flags.messaging
-//   Automation → flags.workflows | flags.reminderEmails
-// Exported so Settings → Features can render its "Sidebar preview" against
+//   PicTransfer: flags.transfers
+//   Messages:    flags.messaging
+//   Accounting:  flags.accounting
+//   Automation:  flags.workflows | flags.reminderEmails
+//   Analytics:   flags.analytics
+// Exported so Settings > Features can render its "Sidebar preview" against
 // the same declaration the real sidebar uses (it used to keep a second,
 // hand-maintained array that only knew about 2 of the feature gates).
 //
-// Section entries (Sharing, Automation, Settings) carry their
-// FLAGS here — the preview reads them and applies nothing else — but no
-// permission fields. Their visibility is decided in the sidebar by asking the
-// section's own nav hook whether it has anything to show, which cannot drift
-// from what is inside the way a duplicated permission list can.
+// Section entries (Automation, Settings) carry their FLAGS here, since the
+// preview reads them and applies nothing else, but no permission fields.
+// Their visibility is decided in the sidebar by asking the section's own nav
+// hook whether it has anything to show, which cannot drift from what is
+// inside the way a duplicated permission list can.
 export const adminNavigation: NavItem[] = [
   { nameKey: 'navigation.dashboard', href: '/admin/dashboard', icon: LayoutDashboard, permission: false },
-  // Sharing section — the three ways files reach someone: the galleries, the
-  // archived ones, and a direct PicTransfer link.
-  { nameKey: 'navigation.sharing',   href: '/admin/events',    icon: Share2 },
-  // Messages is a single page, so it stays a plain entry. It briefly shared a
-  // "Communication" section with PicTransfer; sending files is not messaging,
-  // and a section wrapping one page is worse than the page itself.
+  { nameKey: 'navigation.events',    href: '/admin/events',          icon: Calendar, permission: 'events.view' },
+  { nameKey: 'navigation.archives',  href: '/admin/events/archives', icon: Archive,  permission: 'archives.view' },
+  // Download orders (migration 214, this fork): the queue a client lands in
+  // once a gallery runs out of free downloads. Gated on events.view, the
+  // same read the backend applies to /admin/download-orders.
+  {
+    nameKey: 'navigation.downloadOrders', href: '/admin/download-orders', icon: ShoppingCart,
+    permission: 'events.view',
+  },
+  // PicTransfer (#997): strictly opt-in, so it keeps its own flag.
+  {
+    nameKey: 'navigation.transfers', href: '/admin/transfers', icon: Send,
+    permission: 'events.view', featureFlag: 'transfers',
+  },
+  // Messages is a single page, so it stays a plain entry.
   {
     nameKey: 'navigation.messages', href: '/admin/messages', icon: Mail,
     permission: 'email.view', featureFlag: 'messaging',
-  },
-  // Clients section (#354 follow-up) — admin-side surface for the
-  // CRM-area sub-features. Today this entry leads to /admin/clients
-  // which renders a Settings-style sub-nav with one item (Accounts).
-  // When calendar / quotes / bills / messaging ship they slot in as
-  // additional sub-nav items inside ClientsLayout without needing
-  // their own top-level sidebar entry.
-  //
-  // Gate uses the parent `clients` flag (master). The Accounts page
-  // itself is independently gated by `customerPortal` inside the
-  // route tree — that nested check is invisible from here.
-  //
-  // `permission: 'customers.view'` is the only Clients-area
-  // permission today; future sub-features (booking, billing) get
-  // their own permission keys and the gate here grows into an OR.
-  {
-    nameKey: 'navigation.clients', href: '/admin/clients', icon: Briefcase,
-    // Any of these opens the section; each sub-page is gated on its own
-    // permission once inside.
-    permissionAny: ['customers.view', 'newsletters.view'],
-    featureFlag: 'clients',
-    // Hide the entry when the parent is on but no sub-feature is —
-    // there's nothing inside ClientsLayout to link to. Mirror the same
-    // set used to derive the parent `clients` flag in
-    // FeatureFlagsContext (see clientsDependsOn) so the two checks
-    // can't disagree: any sub-feature on lights up the entry, all off
-    // hides it. Future siblings (e.g. `messaging`) get appended here
-    // AND in the context derivation.
-    // taxReport intentionally excluded — Tax moved to the Accounting section
-    // and is not a Clients sub-nav item, so it must not reveal Clients (would
-    // open an empty ClientsLayout). Mirrors the context's `clients` derivation.
-    featureFlagsAny: [
-      'customerPortal', 'crmDevelopment', 'quotes', 'bills',
-      'hoursLogging', 'contracts', 'calendar', 'projects',
-      // #1264 — newsletters is a Clients child and must light up the entry,
-      // or a newsletter-only install has no way into the section.
-      'newsletters',
-    ],
   },
   // Accounting section (migration 122) — inbound supplier invoices,
   // expenses + re-bill, and the tax report (which relocates here from
@@ -206,27 +181,29 @@ export const adminNavigation: NavItem[] = [
 ];
 
 /**
- * Does this main-menu entry pass its declared permission and feature gates?
- *
- * Exported because the command palette indexes the same menu and must not
- * offer a destination the sidebar hides. Section entries are NOT decided here
- * — their visibility follows the item count inside the section (see
- * `sectionItemCounts`), which is narrower and cannot drift.
- */
-/**
  * Main-menu entries that open a section rather than a page.
  *
  * The sidebar decides these from the section's own contents and the command
  * palette indexes their sub-pages instead of the entry, so both need the same
- * list — and a section added to one but not the other would be indexed through
+ * list, and a section added to one but not the other would be indexed through
  * `navItemAllowed`, which returns true for everyone because a section entry
  * carries no permission of its own.
+ *
+ * CRM (/admin/clients) is not listed: it has no main-menu entry any more, so
+ * the palette has nothing to skip and indexes none of its pages.
  */
 export const SECTION_PATHS: readonly string[] = [
-  SETTINGS_PATH, ...SHARING_PATHS,
-  '/admin/automation', '/admin/clients', '/admin/accounting',
+  SETTINGS_PATH, '/admin/automation', '/admin/accounting',
 ];
 
+/**
+ * Does this main-menu entry pass its declared permission and feature gates?
+ *
+ * Exported because the command palette indexes the same menu and must not
+ * offer a destination the sidebar hides. Section entries are NOT decided here:
+ * their visibility follows the item count inside the section (see
+ * `sectionState`), which is narrower and cannot drift.
+ */
 export function navItemAllowed(
   item: NavItem,
   hasPermission: (p: string) => boolean,
@@ -291,33 +268,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
   const brandAlt = publicSettings?.branding_company_name?.trim() || t('admin.title');
 
   const settingsGroups = useSettingsNavGroups();
-  const sharingItems = useSharingNavItems();
   const automationItems = useAutomationNavItems();
 
   // A section entry follows what is actually inside the section. Each of
   // these hooks already applies that section's flags AND permissions, so
   // asking it for a count is both the narrowest correct gate and the one
-  // that cannot drift from the section's contents — the failure this
+  // that cannot drift from the section's contents. The failure this
   // replaces is an entry that opens an empty section (or, worse, a page the
   // backend then 403s). Settings needs it because its tabs accept narrower
-  // permissions than `settings.view`; the rest because their sub-pages are
-  // independently flagged.
-  //
-  // `entry` is where the menu entry points. It is NOT always the section root:
-  // /admin/events is the events list, which 403s for a role holding only
-  // `archives.view` — and that role legitimately has the section, because
-  // Archives is in it. Clients, Accounting, Communication and Automation each
-  // redirect their root to the first reachable child; Events has no such root
-  // to redirect, so the entry aims at the first item directly. Settings keeps
-  // its own root, which snaps to a permitted tab by itself.
-  const sectionState: Record<string, { count: number; entry?: string }> = {
+  // permissions than `settings.view`; Automation because its sub-pages are
+  // independently flagged. Both roots snap to a permitted child by
+  // themselves, so the entry can point at the root.
+  const sectionState: Record<string, { count: number }> = {
     [SETTINGS_PATH]: { count: settingsGroups.length },
-    '/admin/events': { count: sharingItems.length, entry: sharingItems[0]?.to },
     '/admin/automation': { count: automationItems.length },
-    // Clients and Accounting keep the declared permission/flag gating they
-    // already had. Converting them to count-gating would be an improvement,
-    // but it is a behaviour change to sections this PR does not otherwise
-    // touch, so it stays out of this diff.
+    // Accounting keeps the declared permission/flag gating it already had.
   };
 
   const filteredNavigation = adminNavigation.filter((item) => {
@@ -326,11 +291,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
     return navItemAllowed(item, hasPermission, flags);
   });
 
-  /** Where the main-menu entry for `href` should actually navigate. */
-  const entryHref = (href: string) => sectionState[href]?.entry ?? href;
-
   // Sections take over the sidebar: while the admin is inside Settings,
-  // CRM or Accounting the main menu is replaced by that section's
+  // Accounting, Automation or CRM the main menu is replaced by that section's
   // navigation, with a "Back to menu" row on top. `peekMain` lets the
   // admin flip back to the main menu without leaving the page; it resets
   // on every navigation so clicking the section entry again (or
@@ -347,11 +309,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
 
   /**
    * Mark the matching item with the LONGEST path as active, not every item
-   * whose path is a prefix of the URL. The Events section is the first one
-   * where a sub-page lives under a sibling entry's path
-   * (/admin/events/archives under /admin/events), and a plain prefix test
+   * whose path is a prefix of the URL. Archives lives under a sibling entry's
+   * path (/admin/events/archives under /admin/events), and a plain prefix test
    * highlights Events and Archives at the same time. Longest-prefix-wins is
-   * the general rule; it is a no-op for sections whose items don't nest.
+   * the general rule; it is a no-op for lists whose items don't nest.
    */
   const activeKeys = <T extends { key: string; to: string }>(items: T[]): Set<string> => {
     const matches = items.filter((i) => isUnder(i.to));
@@ -359,8 +320,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
     const longest = matches.reduce((a, b) => (b.to.length > a.to.length ? b : a));
     return new Set([longest.key]);
   };
-  const activeSharing = activeKeys(sharingItems);
   const activeAutomation = activeKeys(automationItems);
+  // The main menu gets the same rule. Dashboard was always exact-match only;
+  // isUnder already is exact-or-subpath, so no special case is needed.
+  const activeMain = activeKeys(filteredNavigation.map((i) => ({ key: i.href, to: i.href })));
 
   const sections: SidebarSection[] = [
     {
@@ -381,6 +344,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
         })),
       })),
     },
+    // CRM has no main-menu entry, but its pages still work by URL, and a deep
+    // link into /admin/clients keeps its own section menu so the admin can
+    // move between the CRM pages. "Back to menu" leads to the main menu, which
+    // simply has no CRM row to return through.
     {
       key: 'clients',
       paths: ['/admin/clients'],
@@ -400,19 +367,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
       groups: [{
         items: accountingItems.map((i) => ({
           key: i.key, href: i.to, label: i.label, icon: i.icon, active: isUnder(i.to),
-        })),
-      }],
-    },
-    {
-      key: 'sharing',
-      // Two trees, because PicTransfer keeps its own top-level URL rather than
-      // being renamed into the events tree just to sit in this section.
-      paths: [...SHARING_PATHS],
-      title: t('navigation.sharing', 'Sharing'),
-      icon: Share2,
-      groups: [{
-        items: sharingItems.map((i) => ({
-          key: i.key, href: i.to, label: i.label, icon: i.icon, active: activeSharing.has(i.key),
         })),
       }],
     },
@@ -680,15 +634,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
           ) : (
             <div key="main" className={`space-y-1 ${peekMain ? 'animate-panel-in-left' : ''}`}>
               {filteredNavigation.map((item) => {
-                const isActive = location.pathname === item.href ||
-                               (item.href !== '/admin/dashboard' && location.pathname.startsWith(item.href));
+                const isActive = activeMain.has(item.href);
                 const label = t(item.nameKey);
 
+                // Link, not NavLink: NavLink would mark Events
+                // aria-current="page" on /admin/events/archives, because it
+                // prefix-matches. Active state is the longest match above.
                 return (
-                  <NavLink
+                  <Link
                     key={item.nameKey}
-                    to={entryHref(item.href)}
-                    onClick={(e) => guardedClick(e, entryHref(item.href), false, () => {
+                    to={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={(e) => guardedClick(e, item.href, false, () => {
                       // Clicking the current section's entry while peeking
                       // at the main menu hands the sidebar back to section
                       // mode even if the URL doesn't change.
@@ -705,7 +662,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose, col
                         who haven't set CI colours yet see no migration regression. */}
                     <item.icon className={iconClass(isActive)} />
                     <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
-                  </NavLink>
+                  </Link>
                 );
               })}
             </div>
