@@ -4,8 +4,8 @@ const express = require('express');
 const { adminAuth } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 const { requireEventOwnership, scopeEventsQuery } = require('../middleware/ownership');
-const { db } = require('../database/db');
-const { getQuotaState } = require('../services/downloadQuotaService');
+const { db, logActivity } = require('../database/db');
+const { getQuotaState, resetLedger } = require('../services/downloadQuotaService');
 const { decoratePackage, resolvePackages } = require('../services/downloadPackagePricing');
 const orderService = require('../services/downloadOrderService');
 const { getProfile } = require('../services/businessProfileService');
@@ -236,6 +236,26 @@ router.put('/events/:id/download-quota', adminAuth, WRITE, requireEventOwnership
   } catch (error) {
     logger.error('Failed to save download quota settings', { eventId, error: error.message });
     res.status(500).json({ error: 'Failed to save download quota settings' });
+  }
+});
+
+// POST /api/admin/events/:id/download-quota/reset
+// Empties the delivery ledger so the client gets every spent slot back. The
+// free limit and approved orders are kept; see resetLedger for why.
+router.post('/events/:id/download-quota/reset', adminAuth, WRITE, requireEventOwnership, async (req, res) => {
+  const eventId = Number(req.params.id);
+  try {
+    const cleared = await resetLedger(eventId);
+    // Not awaited: the ledger is already empty, and a failed audit line must
+    // not turn a reset that happened into an error the admin retries.
+    Promise.resolve(logActivity('download_quota_reset', { cleared }, eventId, {
+      type: 'admin', id: req.admin?.id, name: req.admin?.username,
+    })).catch(() => {});
+    const quota = await getQuotaState(eventId);
+    res.json({ cleared, quota });
+  } catch (error) {
+    logger.error('Failed to reset download quota', { eventId, error: error.message });
+    res.status(500).json({ error: 'Failed to reset download quota' });
   }
 });
 

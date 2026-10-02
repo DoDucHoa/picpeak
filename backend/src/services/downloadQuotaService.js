@@ -191,6 +191,28 @@ async function releaseReservation(reserved, deliveredPhotoIds, conn = db) {
   return conn('event_photo_downloads').whereIn('id', stale).delete();
 }
 
+/**
+ * Give a gallery every spent slot back by emptying its delivery ledger.
+ *
+ * Only the ledger goes. The free limit and the approved orders stay, because
+ * those are configuration and money: dropping an order would take away photos
+ * the client has already paid for. Everything the ledger recorded is lost,
+ * though, so a photo delivered before the reset costs a slot again afterwards.
+ *
+ * It takes the same per-event advisory lock reserveSlots does, so a download
+ * claiming slots at that moment either lands before the reset and is wiped
+ * with the rest, or lands after it and is charged against the fresh allowance.
+ * Returns how many ledger rows were removed.
+ */
+async function resetLedger(eventId, conn = db) {
+  return conn.transaction(async (trx) => {
+    if (isPostgres(trx)) {
+      await trx.raw('SELECT pg_advisory_xact_lock(?, ?)', [QUOTA_LOCK_NAMESPACE, Number(eventId)]);
+    }
+    return trx('event_photo_downloads').where({ event_id: eventId }).delete();
+  });
+}
+
 async function assertDownloadAccess(req, eventId, conn = db) {
   const state = await getQuotaState(eventId, conn);
   if (!state.enabled) return { ok: true, state };
@@ -208,5 +230,6 @@ module.exports = {
   isPayingClient,
   reserveSlots,
   releaseReservation,
+  resetLedger,
   assertDownloadAccess,
 };

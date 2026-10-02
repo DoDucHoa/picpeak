@@ -3950,7 +3950,8 @@
       "apiPhotosDownloaded_other": "API token “{{token_name}}” downloaded {{count}} originals from {{eventName}}",
       "apiPhotosZipDownloaded": "API token “{{token_name}}” downloaded a ZIP of {{photo_count}} originals from {{eventName}}",
       "downloadOrderCreated": "Download order for {{count}} more photos from “{{eventName}}” is waiting for your approval",
-      "downloadOrderCreatedUnlimited": "Order to unlock all photos in “{{eventName}}” is waiting for your approval"
+      "downloadOrderCreatedUnlimited": "Order to unlock all photos in “{{eventName}}” is waiting for your approval",
+      "downloadQuotaReset": "Download limit of “{{eventName}}” reset, {{count}} delivered photos cleared"
     },
     "notificationToasts": {
       "markedAllRead": "All notifications marked as read",
@@ -9780,7 +9781,16 @@
       "save": "Save allowance",
       "saveError": "Could not save the download allowance.",
       "saved": "Download allowance saved.",
-      "title": "Download allowance"
+      "title": "Download allowance",
+      "reset": {
+        "button": "Reset download limit",
+        "title": "Reset the download limit?",
+        "message": "The record of {{count}} delivered photos is erased and the client gets every spent download back. The free limit and the packages already bought stay as they are. A photo downloaded again after the reset costs a download once more.",
+        "cancel": "Cancel",
+        "confirm": "Reset",
+        "success": "Download limit reset.",
+        "error": "Could not reset the download limit."
+      }
     },
     "ledger": {
       "accessLevel": "Downloaded by",
