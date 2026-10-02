@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Infinity as InfinityIcon, Save, Clock, Gift } from 'lucide-react';
+import { Download, Infinity as InfinityIcon, Save, Clock, Gift, RotateCcw } from 'lucide-react';
 
 import { Button, Card, Input, Loading } from '../common';
 import { Switch } from '../../features/settings/components/Switch';
@@ -87,6 +87,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
   const [showCreateOrder, setShowCreateOrder] = useState(false);
   const [orderPackageId, setOrderPackageId] = useState('');
   const [orderReason, setOrderReason] = useState('');
+  const [showReset, setShowReset] = useState(false);
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ['admin-download-packages-for-order', eventId],
@@ -177,6 +178,21 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
     },
   });
 
+  const reset = useMutationWithToast({
+    mutationFn: () => adminDownloadQuotaService.resetQuota(eventId),
+    successMessage: t('downloadQuotaAdmin.card.reset.success', 'Download limit reset.'),
+    invalidateKeys: [['admin-download-quota', eventId], ['admin-download-ledger', eventId]],
+    errorMessage: (error: unknown) => {
+      const server = error as { response?: { data?: { error?: string } }; message?: string };
+      return (
+        server?.response?.data?.error
+        || server?.message
+        || t('downloadQuotaAdmin.card.reset.error', 'Could not reset the download limit.')
+      );
+    },
+    onSuccess: () => setShowReset(false),
+  });
+
   const openCreateOrder = () => {
     setOrderPackageId('');
     setOrderReason('');
@@ -247,6 +263,17 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
                 <div className="h-full bg-accent-dark" style={{ width: `${percent}%` }} />
               </div>
             </>
+          )}
+          {quota.used > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => setShowReset(true)}
+              leftIcon={<RotateCcw className="w-4 h-4" />}
+            >
+              {t('downloadQuotaAdmin.card.reset.button', 'Reset download limit')}
+            </Button>
           )}
         </div>
       )}
@@ -377,6 +404,36 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
   return (
     <>
       {bare ? body : <Card padding="lg" className="mt-4">{body}</Card>}
+
+      {showReset && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-lg w-full" role="dialog" aria-modal="true">
+            <h2 className="text-xl font-semibold text-heading mb-2">
+              {t('downloadQuotaAdmin.card.reset.title', 'Reset the download limit?')}
+            </h2>
+            <p className="text-sm text-soft mb-4">
+              {t(
+                'downloadQuotaAdmin.card.reset.message',
+                'The record of {{count}} delivered photos is erased and the client gets every spent download back. The free limit and the packages already bought stay as they are. A photo downloaded again after the reset costs a download once more.',
+                { count: quota.used },
+              )}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowReset(false)} disabled={reset.isPending}>
+                {t('downloadQuotaAdmin.card.reset.cancel', 'Cancel')}
+              </Button>
+              <Button
+                variant="danger"
+                isLoading={reset.isPending}
+                disabled={reset.isPending}
+                onClick={() => reset.mutate()}
+              >
+                {t('downloadQuotaAdmin.card.reset.confirm', 'Reset')}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {showCreateOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

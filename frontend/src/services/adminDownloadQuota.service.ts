@@ -34,6 +34,12 @@ export interface QuotaPatch {
   auto_approve?: boolean;
 }
 
+export interface ResetQuotaResponse {
+  /** How many ledger rows the reset removed. */
+  cleared: number;
+  quota: DownloadQuotaState;
+}
+
 export interface DownloadLedgerEntry {
   id: number;
   photo_id: number;
@@ -97,6 +103,17 @@ export const adminDownloadQuotaService = {
     const { data } = await api.put<AdminQuotaResponse>(
       `/admin/events/${eventId}/download-quota`,
       patch,
+    );
+    return data;
+  },
+
+  /**
+   * Empties the delivery ledger, so the client gets every spent slot back. The
+   * free limit and approved orders are untouched on the server.
+   */
+  async resetQuota(eventId: number): Promise<ResetQuotaResponse> {
+    const { data } = await api.post<ResetQuotaResponse>(
+      `/admin/events/${eventId}/download-quota/reset`,
     );
     return data;
   },

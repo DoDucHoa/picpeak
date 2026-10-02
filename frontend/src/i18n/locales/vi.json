@@ -3942,7 +3942,8 @@
       "apiPhotosDownloaded_other": "Token API “{{token_name}}” đã tải xuống {{count}} ảnh gốc từ {{eventName}}",
       "apiPhotosZipDownloaded": "Token API “{{token_name}}” đã tải xuống tệp ZIP gồm {{photo_count}} ảnh gốc từ {{eventName}}",
       "backupRunDeleted": "Đã xoá lượt sao lưu {{backup_run_id}} ({{destination}}, tệp: {{artifact}})",
-      "backupRunDeleteFailed": "Xoá lượt sao lưu {{backup_run_id}} thất bại ({{code}})"
+      "backupRunDeleteFailed": "Xoá lượt sao lưu {{backup_run_id}} thất bại ({{code}})",
+      "downloadQuotaReset": "Đã đặt lại hạn mức tải của “{{eventName}}”, xoá lịch sử {{count}} ảnh đã giao"
     },
     "notificationToasts": {
       "markedAllRead": "Tất cả thông báo đã được đánh dấu là đã đọc",
@@ -8414,6 +8415,15 @@
         "reasonRequiredError": "Hãy nêu lý do bạn tạo đơn này.",
         "pendingExistsError": "Gallery này đã có một đơn đang chờ duyệt.",
         "unknownPackageError": "Hãy chọn một gói trong danh sách."
+      },
+      "reset": {
+        "button": "Đặt lại hạn mức tải",
+        "title": "Đặt lại hạn mức tải ảnh?",
+        "message": "Lịch sử giao {{count}} ảnh sẽ bị xoá và khách được trả lại toàn bộ lượt tải đã dùng. Lượt miễn phí và các gói đã mua vẫn giữ nguyên. Ảnh nào được tải lại sau khi đặt lại sẽ bị trừ lượt một lần nữa.",
+        "cancel": "Huỷ",
+        "confirm": "Đặt lại",
+        "success": "Đã đặt lại hạn mức tải.",
+        "error": "Không đặt lại được hạn mức tải."
       }
     },
     "ledger": {

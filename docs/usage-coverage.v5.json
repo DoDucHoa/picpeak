@@ -1812,6 +1812,7 @@
       "route_signatures": [
         "GET /events/:id/download-quota",
         "PUT /events/:id/download-quota",
+        "POST /events/:id/download-quota/reset",
         "GET /events/:id/download-ledger",
         "POST /events/:id/download-orders",
         "GET /download-orders",

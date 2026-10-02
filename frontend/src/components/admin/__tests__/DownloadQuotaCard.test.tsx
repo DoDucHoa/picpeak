@@ -347,3 +347,49 @@ describe('DownloadQuotaCard in the event Settings draft', () => {
     expect(screen.queryByLabelText(/Free downloads for this gallery/)).toBeNull();
   });
 });
+
+describe('DownloadQuotaCard reset', () => {
+  beforeEach(() => {
+    get.mockReset();
+    post.mockReset();
+    get.mockResolvedValue({ data: quotaPayload() });
+    post.mockResolvedValue({ data: { cleared: 7, quota: { ...quotaPayload().quota, used: 0, remaining: 20 } } });
+  });
+
+  it('asks before resetting and says how many photos lose their record', async () => {
+    renderCard({ part: 'status' });
+
+    await userEvent.click(await screen.findByRole('button', { name: /Reset download limit/ }));
+
+    expect(screen.getByRole('dialog')).toHaveTextContent(/7 delivered photos/);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('confirming posts the reset for this event', async () => {
+    renderCard({ part: 'status' });
+
+    await userEvent.click(await screen.findByRole('button', { name: /Reset download limit/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Reset$/ }));
+
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/admin/events/7/download-quota/reset'));
+  });
+
+  it('cancelling leaves the ledger alone', async () => {
+    renderCard({ part: 'status' });
+
+    await userEvent.click(await screen.findByRole('button', { name: /Reset download limit/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Cancel/ }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('offers no reset while nothing has been delivered', async () => {
+    get.mockResolvedValue({ data: quotaPayload({ quota: { ...quotaPayload().quota, used: 0, remaining: 20 } }) });
+
+    renderCard({ part: 'status' });
+
+    await waitFor(() => expect(screen.getByText(/0 of 20 photos delivered/)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /Reset download limit/ })).toBeNull();
+  });
+});

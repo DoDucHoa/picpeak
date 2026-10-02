@@ -4421,7 +4421,8 @@
       "apiPhotosDownloaded_other": "API-Token „{{token_name}}“ hat {{count}} Originale aus {{eventName}} heruntergeladen",
       "apiPhotosZipDownloaded": "API-Token „{{token_name}}“ hat ein ZIP mit {{photo_count}} Originalen aus {{eventName}} heruntergeladen",
       "downloadOrderCreated": "Bestellung über {{count}} weitere Fotos aus „{{eventName}}“ wartet auf Ihre Freigabe",
-      "downloadOrderCreatedUnlimited": "Bestellung zur Freischaltung aller Fotos in „{{eventName}}“ wartet auf Ihre Freigabe"
+      "downloadOrderCreatedUnlimited": "Bestellung zur Freischaltung aller Fotos in „{{eventName}}“ wartet auf Ihre Freigabe",
+      "downloadQuotaReset": "Download-Limit von „{{eventName}}“ zurückgesetzt, {{count}} gelieferte Fotos gelöscht"
     },
     "notificationToasts": {
       "markedAllRead": "Alle Benachrichtigungen als gelesen markiert",
@@ -9746,7 +9747,16 @@
       "save": "Kontingent speichern",
       "saveError": "Das Download-Kontingent konnte nicht gespeichert werden.",
       "saved": "Download-Kontingent gespeichert.",
-      "title": "Download-Kontingent"
+      "title": "Download-Kontingent",
+      "reset": {
+        "button": "Download-Limit zurücksetzen",
+        "title": "Download-Limit zurücksetzen?",
+        "message": "Der Nachweis über {{count}} gelieferte Fotos wird gelöscht und der Kunde erhält alle verbrauchten Downloads zurück. Das Gratis-Limit und bereits gekaufte Pakete bleiben unverändert. Ein Foto, das nach dem Zurücksetzen erneut heruntergeladen wird, verbraucht wieder einen Download.",
+        "cancel": "Abbrechen",
+        "confirm": "Zurücksetzen",
+        "success": "Download-Limit zurückgesetzt.",
+        "error": "Das Download-Limit konnte nicht zurückgesetzt werden."
+      }
     },
     "ledger": {
       "accessLevel": "Geladen von",

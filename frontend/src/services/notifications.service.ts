@@ -179,6 +179,11 @@ export const notificationsService = {
             eventName: notification.eventName,
             count: notification.metadata?.photo_count,
           });
+      case 'download_quota_reset':
+        return t('admin.notificationMessages.downloadQuotaReset', {
+          eventName: notification.eventName,
+          count: notification.metadata?.cleared,
+        });
 
       // ---- Customer portal (#354) -----------------------------------------
       case 'customer_login':
@@ -459,6 +464,8 @@ export const notificationsService = {
         return { icon: 'Download', color: 'text-green-600' };
       case 'download_order_created':
         return { icon: 'ShoppingCart', color: 'text-amber-600' };
+      case 'download_quota_reset':
+        return { icon: 'Download', color: 'text-gray-600' };
       case 'api_photo_downloaded':
       case 'api_photos_downloaded':
       case 'api_photos_zip_downloaded':
