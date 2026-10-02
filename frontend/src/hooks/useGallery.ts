@@ -52,33 +52,6 @@ export const useGalleryStats = (slug: string, enabled: boolean = true) => {
   });
 };
 
-export const useDownloadPhoto = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      slug,
-      photoId,
-      filename,
-    }: {
-      slug: string;
-      photoId: number;
-      filename: string;
-    }) => galleryService.downloadPhoto(slug, photoId, filename),
-    onSuccess: (_data, variables) => {
-      toast.success('Photo downloaded successfully');
-      queryClient.invalidateQueries({ queryKey: downloadQuotaKey(variables.slug) });
-    },
-    onError: (error) => {
-      // A refusal for role or allowance is answered at the call site (the
-      // quota dialog, or a "clients only" toast): a generic failure message
-      // on top of it would tell the guest something went wrong when in fact
-      // the server explained itself.
-      if (isHandledElsewhere(error)) return;
-      toast.error('Failed to download photo');
-    },
-  });
-};
-
 // Save-aware download — opens the OS share sheet on mobile (so "Save to
 // Photos" lands the file in the Photos/Gallery app instead of Files),
 // falls back to a regular download on browsers without Web Share file
@@ -115,23 +88,6 @@ export const useSavePhotoToDevice = () => {
     onError: (error) => {
       if (isHandledElsewhere(error)) return;
       toast.error('Failed to save photo');
-    },
-  });
-};
-
-export const useDownloadAllPhotos = () => {
-  return useMutation({
-    mutationFn: ({ slug, zipReady }: { slug: string; zipReady?: boolean }) =>
-      galleryService.downloadAllPhotos(slug, zipReady),
-    onSuccess: () => {
-      toast.success('Download started');
-    },
-    onError: (error) => {
-      // A download refused for want of allowance is answered by the gallery's
-      // package dialog. A generic failure toast on top of it tells the guest
-      // something went wrong when in fact the server explained itself.
-      if ((error as { response?: { status?: number } })?.response?.status === 402) return;
-      toast.error('Failed to download photos');
     },
   });
 };

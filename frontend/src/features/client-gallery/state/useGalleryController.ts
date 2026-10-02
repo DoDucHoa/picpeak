@@ -34,7 +34,7 @@ import { readUrlState, writeUrlState } from './urlState';
 import type { GalleryTab, SortField, UrlState, ViewMode } from './urlState';
 import { tabCounts, tabPhotos } from './tabs';
 import { useGalleryDownloads } from './useGalleryDownloads';
-import type { GalleryDownloads } from './useGalleryDownloads';
+import type { GalleryDownloads, ResolutionPicker } from './useGalleryDownloads';
 
 /**
  * The event as the gallery page already knows it from /gallery/:slug/info,
@@ -86,24 +86,22 @@ export interface GalleryController {
   protection: { level: 'basic' | 'standard' | 'enhanced' | 'maximum'; disableRightClick: boolean; devtools: boolean; canvas: boolean };
   showOriginalFilename: boolean;
   allowDownloads: boolean; downloadChoices: DownloadResolutionChoice[]; downloadStandard: string | undefined;
-  isDownloadingAll: boolean; handleDownloadAll: () => void;
   selection: { active: boolean; setActive: (v: boolean) => void; ids: Set<number>; setIds: (s: Set<number>) => void };
-  handleDownloadSelected: () => Promise<void>;
+  handleDownloadSelected: () => Promise<void>; isDownloadingSelected: boolean;
   quota: GalleryDownloads['quota']; offerFullPackage: boolean;
   quotaOffer: { exceeded: QuotaExceededPayload | null } | null; setQuotaOffer: (v: { exceeded: QuotaExceededPayload | null } | null) => void;
   downloadGate: DownloadGate; deliveredPhotoIds: Set<number>;
   downloadPackages: DownloadPackage[]; downloadCurrency: string; pendingDownloadOrder: DownloadOrder | null;
-  resolutionPicker: { open: boolean; ids: number[] | null; close: () => void };
+  resolutionPicker: ResolutionPicker;
   people: {
     enabled: boolean; list: GalleryPerson[]; selectedIds: number[]; toggle: (id: number) => void;
-    downloadableIds: number[]; downloadFiltered: () => Promise<void>;
     sheetOpen: boolean; setSheetOpen: (v: boolean) => void;
   };
   folders: {
     tiles: ReturnType<typeof folderTiles>; open: ReturnType<typeof findFolderByKey>; openBySlug: (key: string | null) => void;
-    downloadIds: number[]; downloadTotal: number; downloadCapped: boolean; downloadFolder: () => Promise<void>; rootIsFoldersOnly: boolean;
+    rootIsFoldersOnly: boolean;
   };
-  client: { isClient: boolean; visibleCount: number; totalCount: number; toggleVisibility: (id: number, current: string) => Promise<void>; bulkVisibility: (v: 'visible' | 'hidden') => Promise<void> };
+  client: { isClient: boolean; visibleCount: number; totalCount: number; toggleVisibility: (id: number, current: string) => Promise<void>; bulkVisibility: (v: 'visible' | 'hidden') => Promise<void>; bulkVisibilityPending: boolean };
   expiry: { expiresAt: string | null };
   showLogout: boolean; logout: () => void;
   promoMarkdown: string | null; infoMarkdown: string | null;
@@ -408,8 +406,14 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     }
   }, [slug, queryClient]);
 
+  // Locks Hide and Show while a change is on its way, so a second press
+  // never sends the same change twice.
+  const [bulkVisibilityPending, setBulkVisibilityPending] = useState(false);
+  const bulkVisibilityRef = useRef(false);
   const handleBulkVisibility = useCallback(async (visibility: 'visible' | 'hidden') => {
-    if (selectedPhotos.size === 0) return;
+    if (selectedPhotos.size === 0 || bulkVisibilityRef.current) return;
+    bulkVisibilityRef.current = true;
+    setBulkVisibilityPending(true);
     try {
       await galleryService.bulkToggleVisibility(slug, Array.from(selectedPhotos), visibility);
       setSelectedPhotos(new Set());
@@ -417,6 +421,9 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
       queryClient.invalidateQueries({ queryKey: ['gallery-photos', slug] });
     } catch (error) {
       console.error('Failed to bulk toggle visibility:', error);
+    } finally {
+      bulkVisibilityRef.current = false;
+      setBulkVisibilityPending(false);
     }
   }, [selectedPhotos, slug, setSelectedPhotos, setIsSelectionMode, queryClient]);
 
@@ -556,8 +563,8 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   }, [data, url.photo, url.tab, visiblePhotos, tiles, openFolder, enterFolder, openPhoto, setTab]);
 
   const downloads = useGalleryDownloads({
-    slug, data, isClient, isExpired, filteredPhotos, scopedPhotos, openFolder,
-    selectedPhotos, setSelectedPhotos, setIsSelectionMode, selectedPersonIds,
+    slug, data, isClient, isExpired,
+    selectedPhotos, setSelectedPhotos, setIsSelectionMode,
   });
 
   // Track expiration warning views
@@ -613,38 +620,23 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     active: isSelectionMode, setActive: setIsSelectionMode, ids: selectedPhotos, setIds: setSelectedPhotos,
   }), [isSelectionMode, setIsSelectionMode, selectedPhotos, setSelectedPhotos]);
 
-  const {
-    peopleDownloadableIds, handleDownloadPeopleFiltered,
-    folderDownloadIds, folderDownloadTotal, folderDownloadCapped, handleDownloadFolder,
-  } = downloads;
   const peopleGroup = useMemo(() => ({
     enabled: peopleEnabled,
     list: people,
     selectedIds: selectedPersonIds,
     toggle: togglePerson,
-    downloadableIds: peopleDownloadableIds,
-    downloadFiltered: handleDownloadPeopleFiltered,
     sheetOpen: showPeopleSheet,
     setSheetOpen: setShowPeopleSheet,
   }), [
-    peopleEnabled, people, selectedPersonIds, togglePerson,
-    peopleDownloadableIds, handleDownloadPeopleFiltered, showPeopleSheet,
+    peopleEnabled, people, selectedPersonIds, togglePerson, showPeopleSheet,
   ]);
 
   const foldersGroup = useMemo(() => ({
     tiles,
     open: openFolder,
     openBySlug: openFolderBySlug,
-    downloadIds: folderDownloadIds,
-    // The full count for the "Download first N of M" label when capped.
-    downloadTotal: folderDownloadTotal,
-    downloadCapped: folderDownloadCapped,
-    downloadFolder: handleDownloadFolder,
     rootIsFoldersOnly,
-  }), [
-    tiles, openFolder, openFolderBySlug, folderDownloadIds, folderDownloadTotal,
-    folderDownloadCapped, handleDownloadFolder, rootIsFoldersOnly,
-  ]);
+  }), [tiles, openFolder, openFolderBySlug, rootIsFoldersOnly]);
 
   const clientGroup = useMemo(() => ({
     isClient,
@@ -652,14 +644,15 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     totalCount,
     toggleVisibility: handleToggleVisibility,
     bulkVisibility: handleBulkVisibility,
-  }), [isClient, visibleCount, totalCount, handleToggleVisibility, handleBulkVisibility]);
+    bulkVisibilityPending,
+  }), [isClient, visibleCount, totalCount, handleToggleVisibility, handleBulkVisibility, bulkVisibilityPending]);
 
   const expiresAt = event.expires_at;
   const expiry = useMemo(() => ({ expiresAt }), [expiresAt]);
 
   const {
-    allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
-    handleDownloadSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
+    allowDownloads, downloadChoices, downloadStandard,
+    handleDownloadSelected, isDownloadingSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
     resolutionPicker,
   } = downloads;
@@ -676,9 +669,8 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     protection,
     showOriginalFilename,
     allowDownloads, downloadChoices, downloadStandard,
-    isDownloadingAll, handleDownloadAll,
     selection,
-    handleDownloadSelected,
+    handleDownloadSelected, isDownloadingSelected,
     quota, offerFullPackage,
     quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds,
@@ -696,8 +688,8 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     url, setSort, toggleDir, setView, setTab, openPhoto, closePhoto,
     visiblePhotos, scopedPhotos, counts, pickLimit, pickedTotal, feedbackSettings, identityMode,
     staticHeroPhoto, heroLogoUrl, brandName, protection, showOriginalFilename,
-    allowDownloads, downloadChoices, downloadStandard, isDownloadingAll, handleDownloadAll,
-    selection, handleDownloadSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
+    allowDownloads, downloadChoices, downloadStandard,
+    selection, handleDownloadSelected, isDownloadingSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
     resolutionPicker, peopleGroup, foldersGroup, clientGroup, expiry,
     showLogoutControl, logout, promoMarkdown, infoMarkdown,

@@ -9913,7 +9913,10 @@
       "comments": "Comments",
       "fileInfo": "File info",
       "captured": "Captured",
-      "download": "Download"
+      "download": "Download",
+      "downloading": "Downloading",
+      "downloaded": "Photo downloaded",
+      "downloadFailed": "Could not download the photo"
     },
     "list": {
       "action": "Action"
@@ -9945,6 +9948,14 @@
     "backToTop": "Back to top",
     "emptyAll": "No photos yet",
     "copyFailed": "Could not copy the link",
-    "select": "Select"
+    "select": "Select",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "preparingDownload": "Preparing download",
+    "bundle": {
+      "started": "Your photos are downloading in {{count}} parts.",
+      "blockedHint": "If a part did not start, download it here:",
+      "part": "Part {{index}} of {{count}}"
+    }
   }
 }

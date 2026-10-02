@@ -28,9 +28,8 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
     protection: { level: 'standard', disableRightClick: false, devtools: false, canvas: false },
     showOriginalFilename: false,
     allowDownloads: true, downloadChoices: [], downloadStandard: undefined,
-    isDownloadingAll: false, handleDownloadAll: vi.fn(),
     selection: { active: false, setActive: vi.fn(), ids: new Set<number>(), setIds: vi.fn() },
-    handleDownloadSelected: vi.fn(async () => {}),
+    handleDownloadSelected: vi.fn(async () => {}), isDownloadingSelected: false,
     quota: null, offerFullPackage: false,
     quotaOffer: null, setQuotaOffer: vi.fn(),
     downloadGate: {
@@ -40,20 +39,19 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
     },
     deliveredPhotoIds: new Set<number>(),
     downloadPackages: [], downloadCurrency: 'EUR', pendingDownloadOrder: null,
-    resolutionPicker: { open: false, ids: null, close: vi.fn() },
+    resolutionPicker: { open: false, ids: null, close: vi.fn(), downloadSelection: vi.fn(async () => {}) },
     people: {
       enabled: false, list: [], selectedIds: [], toggle: vi.fn(),
-      downloadableIds: [], downloadFiltered: vi.fn(async () => {}),
       sheetOpen: false, setSheetOpen: vi.fn(),
     },
     folders: {
       tiles: [], open: null, openBySlug: vi.fn(),
-      downloadIds: [], downloadTotal: 0, downloadCapped: false, downloadFolder: vi.fn(async () => {}),
       rootIsFoldersOnly: false,
     },
     client: {
       isClient: false, visibleCount: 0, totalCount: 0,
       toggleVisibility: vi.fn(async () => {}), bulkVisibility: vi.fn(async () => {}),
+      bulkVisibilityPending: false,
     },
     expiry: { expiresAt: null },
     showLogout: false, logout: vi.fn(),

@@ -7,6 +7,7 @@ import en from '../../../i18n/locales/en.json';
 import { GalleryToolbar } from '../toolbar/GalleryToolbar';
 import { fakeController } from './fakeController';
 import type { PhotoCategory } from '../../../types';
+import type { GalleryController } from '../state/useGalleryController';
 
 // A real instance, so counts interpolate and the labels come from en.json.
 i18n.use(initReactI18next).init({ lng: 'en', resources: { en: { translation: en } } });
@@ -86,50 +87,17 @@ describe('GalleryToolbar', () => {
     expect(c.setView).toHaveBeenCalledWith('grid');
   });
 
-  it('offers download all and multi-select', () => {
+  it('has no Download menu, and starts downloads from Select', () => {
     const c = fakeController();
     render(<GalleryToolbar c={c} onShare={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /^all$/i }));
-    expect(c.handleDownloadAll).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /multi-select/i }));
+    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^select$/i }));
     expect(c.selection.setActive).toHaveBeenCalledWith(true);
-  });
-
-  it('disables download all and says it is preparing while the archive builds', () => {
-    const c = fakeController({ isDownloadingAll: true });
-    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    expect(screen.queryByRole('menuitem', { name: /^all$/i })).toBeNull();
-    const busy = screen.getByRole('menuitem', { name: /preparing your download/i });
-    expect(busy).toBeDisabled();
-    // Focus skips the disabled item, and the arrows never land on it.
-    const multi = screen.getByRole('menuitem', { name: /multi-select/i });
-    expect(document.activeElement).toBe(multi);
-    fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
-    expect(document.activeElement).toBe(multi);
-    fireEvent.click(busy);
-    expect(c.handleDownloadAll).not.toHaveBeenCalled();
-  });
-
-  it('offers the open folder and the picked people as downloads through the controller', () => {
-    const c = fakeController({
-      folders: { ...fakeController().folders, open: folder, downloadIds: [1, 2, 3], downloadTotal: 3 },
-      people: { ...fakeController().people, enabled: true, selectedIds: [4], downloadableIds: [1, 2] },
-    });
-    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /download folder \(3\)/i }));
-    expect(c.folders.downloadFolder).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /download these/i }));
-    expect(c.people.downloadFiltered).toHaveBeenCalled();
   });
 
   it('closes a menu on Escape and returns focus to its trigger', () => {
     render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
-    const trigger = screen.getByRole('button', { name: /^download$/i });
+    const trigger = screen.getByRole('button', { name: /creation time/i });
     fireEvent.click(trigger);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
@@ -148,21 +116,23 @@ describe('GalleryToolbar', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('adds the order offer and drops download all when the album no longer fits', () => {
-    const c = fakeController({ offerFullPackage: true });
+  it('moves the order offer from the toolbar into the selection bar', () => {
+    const { unmount } = render(<GalleryToolbar c={fakeController({ offerFullPackage: true })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /get all photos/i })).toBeNull();
+    unmount();
+    const c = fakeController({
+      offerFullPackage: true,
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1]), setIds: vi.fn() },
+    });
     render(<GalleryToolbar c={c} onShare={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /get all photos/i }));
     expect(c.setQuotaOffer).toHaveBeenCalledWith({ exceeded: null });
-    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
-    expect(screen.queryByRole('menuitem', { name: /^all$/i })).toBeNull();
-    fireEvent.click(screen.getByRole('menuitem', { name: /multi-select/i }));
-    expect(c.selection.setActive).toHaveBeenCalledWith(true);
-    expect(c.handleDownloadAll).not.toHaveBeenCalled();
   });
 
   it('hides downloads entirely when they are off', () => {
-    render(<GalleryToolbar c={fakeController({ allowDownloads: false, offerFullPackage: true })} onShare={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /^download$/i })).toBeNull();
+    const selection = { active: true, setActive: vi.fn(), ids: new Set([1]), setIds: vi.fn() };
+    render(<GalleryToolbar c={fakeController({ allowDownloads: false, offerFullPackage: true, selection })} onShare={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /download selected/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /get all photos/i })).toBeNull();
   });
 
@@ -258,6 +228,61 @@ describe('GalleryToolbar', () => {
     expect(screen.queryByRole('button', { name: /hide selected/i })).toBeNull();
   });
 
+  it('selects every photo on screen, and clears them on a second press', () => {
+    const visiblePhotos = [{ id: 1 }, { id: 2 }, { id: 3 }] as GalleryController['visiblePhotos'];
+    const setIds = vi.fn();
+    const c = fakeController({ visiblePhotos, selection: { active: true, setActive: vi.fn(), ids: new Set([2]), setIds } });
+    const { unmount } = render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^select all$/i }));
+    expect(setIds).toHaveBeenCalledWith(new Set([1, 2, 3]));
+    unmount();
+    const all = fakeController({ visiblePhotos, selection: { active: true, setActive: vi.fn(), ids: new Set([1, 2, 3]), setIds } });
+    render(<GalleryToolbar c={all} onShare={vi.fn()} />);
+    const toggle = screen.getByRole('button', { name: /^deselect all$/i });
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(toggle);
+    expect(setIds).toHaveBeenLastCalledWith(new Set());
+  });
+
+  it('disables Select all when nothing is on screen', () => {
+    const c = fakeController({ selection: { active: true, setActive: vi.fn(), ids: new Set(), setIds: vi.fn() } });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /^select all$/i })).toBeDisabled();
+  });
+
+  it('locks download selected while the download is being prepared', () => {
+    const c = fakeController({
+      isDownloadingSelected: true,
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1, 2]), setIds: vi.fn() },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    const button = screen.getByRole('button', { name: /preparing download/i });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('locks hide and show while a visibility change is on its way', () => {
+    const c = fakeController({
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1]), setIds: vi.fn() },
+      client: { ...fakeController().client, isClient: true, bulkVisibilityPending: true },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /hide selected/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /show selected/i })).toBeDisabled();
+  });
+
+  it('gives every selection control an icon', () => {
+    const c = fakeController({
+      offerFullPackage: true,
+      selection: { active: true, setActive: vi.fn(), ids: new Set([1]), setIds: vi.fn() },
+      client: { ...fakeController().client, isClient: true },
+    });
+    render(<GalleryToolbar c={c} onShare={vi.fn()} />);
+    for (const name of [/select all/i, /download selected/i, /hide selected/i, /show selected/i, /get all photos/i, /cancel/i]) {
+      expect(screen.getByRole('button', { name }).querySelector('svg')).not.toBeNull();
+    }
+  });
+
   it('stays non-compact without IntersectionObserver', () => {
     vi.stubGlobal('IntersectionObserver', undefined);
     render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
@@ -285,5 +310,41 @@ describe('GalleryToolbar', () => {
     expect(bar.className).toMatch(/cg-toolbar-compact/);
     fire(true, 10);
     expect(bar.className).not.toMatch(/cg-toolbar-compact/);
+  });
+});
+
+describe('GalleryToolbar fold', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the page from moving when the bar folds, by the height the fold took off', () => {
+    let callback: IntersectionObserverCallback = () => {};
+    class FakeObserver {
+      constructor(cb: IntersectionObserverCallback) { callback = cb; }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return []; }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    vi.stubGlobal('ResizeObserver', undefined);
+    // Two rows unfolded, one row folded, as measured in the browser.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function rect(this: HTMLElement) {
+      const height = this.classList.contains('cg-toolbar-compact') ? 60 : 120;
+      return { height, top: 0, bottom: height, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    const bar = screen.getByTestId('gallery-toolbar');
+    const fire = (isIntersecting: boolean, top: number) => React.act(() => {
+      callback([{ isIntersecting, boundingClientRect: { top } } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+    expect(bar.style.marginBottom).toBe('');
+    fire(false, -1);
+    expect(bar.className).toMatch(/cg-toolbar-compact/);
+    expect(bar.style.marginBottom).toBe('60px');
+    fire(true, 10);
+    expect(bar.style.marginBottom).toBe('');
   });
 });

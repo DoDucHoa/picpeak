@@ -21,6 +21,7 @@ const { blockHiddenGallery } = require('../../utils/revealMode');
 const downloadZipService = require('../../services/downloadZipService');
 const { renderPhotoForDownload, resolveWatermarkSettings } = require('../../services/downloadRendition');
 const downloadJobService = require('../../services/downloadJobService');
+const downloadBundleService = require('../../services/downloadBundleService');
 const {
   resolveEventDownloadPolicy,
   pickRequestedResolution,
@@ -747,30 +748,44 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
 
 // Download selected photos as ZIP
 router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken, blockHiddenGallery, async (req, res) => {
+  // Check if downloads are allowed for this event
+  if (!parseBooleanInput(req.event.allow_downloads, true)) {
+    return res.status(403).json({ error: 'Downloads are disabled for this gallery' });
+  }
+
+  const ids = Array.isArray(req.body?.photo_ids) ? req.body.photo_ids : [];
+  if (!ids.length) {
+    return res.status(400).json({ error: 'photo_ids is required (non-empty array)' });
+  }
+
+  // Clean IDs
+  const photoIds = ids
+    .map((v) => parseInt(v, 10))
+    .filter((v) => Number.isInteger(v))
+    .slice(0, 500);
+
+  if (photoIds.length === 0) {
+    return res.status(400).json({ error: 'No valid photo IDs provided' });
+  }
+
+  return sendSelectionArchive(req, res, photoIds, {
+    resolution: req.body?.resolution,
+    archiveName: `${req.event.slug}-selected.zip`,
+  });
+});
+
+/**
+ * Stream the deliverable photos among `photoIds` as one ZIP: download-selected
+ * and every part of a download bundle. The allowance is claimed before the
+ * first byte and refunded for anything that never made it out. A HEAD request
+ * checks the allowance without claiming it and sends no archive.
+ */
+async function sendSelectionArchive(req, res, photoIds, { resolution, archiveName }) {
   // Hoisted so the catch can reclaim reads opened before the failure.
   let selectedGuard = null;
   let selectedCancelled = false;
+  const isProbe = req.method === 'HEAD';
   try {
-    // Check if downloads are allowed for this event
-    if (!parseBooleanInput(req.event.allow_downloads, true)) {
-      return res.status(403).json({ error: 'Downloads are disabled for this gallery' });
-    }
-
-    const ids = Array.isArray(req.body?.photo_ids) ? req.body.photo_ids : [];
-    if (!ids.length) {
-      return res.status(400).json({ error: 'photo_ids is required (non-empty array)' });
-    }
-
-    // Clean IDs
-    const photoIds = ids
-      .map((v) => parseInt(v, 10))
-      .filter((v) => Number.isInteger(v))
-      .slice(0, 500);
-
-    if (photoIds.length === 0) {
-      return res.status(400).json({ error: 'No valid photo IDs provided' });
-    }
-
     // The same deliverable-photos query the whole-gallery paths use, narrowed to
     // the requested ids. Ids the filter drops here are never charged either: the
     // gate below prices what this query returned, not what the client asked for.
@@ -786,7 +801,7 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     // Gate on what this viewer would actually receive, not on what they asked
     // for: ids filtered out above are never delivered and must not be counted
     // against the allowance.
-    const selectedGate = await passesQuotaGate(req, res, photos.map((photo) => photo.id));
+    const selectedGate = await passesQuotaGate(req, res, photos.map((photo) => photo.id), { reserve: !isProbe });
     if (!selectedGate.ok) return;
     // Registered before the resolution check below, so a request refused there
     // gives its slots back instead of keeping them.
@@ -796,13 +811,16 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     // Download resolution (#858). Resolve BEFORE any header goes out — once
     // the archive starts streaming we can no longer return a JSON error.
     const selectedPolicy = await resolveEventDownloadPolicy(req.event);
-    const selectedResolution = pickRequestedResolution(selectedPolicy, req.body?.resolution);
+    const selectedResolution = pickRequestedResolution(selectedPolicy, resolution);
     if (selectedResolution === null) {
       return res.status(400).json({ error: 'Resolution not available for this gallery' });
     }
     const selectedBox = parseResolution(selectedResolution);
 
-    const archiveName = `${req.event.slug}-selected.zip`;
+    if (isProbe) {
+      return res.status(200).end();
+    }
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${archiveName}"`);
 
@@ -925,6 +943,80 @@ router.post('/:slug/download-selected', verifyGalleryAccess, denySlideshowToken,
     }
     errorResponse(res, error, 500, 'Failed to download selected photos');
   }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Download bundles: a selection of any size, as one or more ZIP parts.
+//
+// download-selected streams one archive from a POST, which the browser can
+// only receive into page memory, and caps the selection at 500. A bundle is
+// split by stored file size into parts the browser fetches itself with a
+// plain GET, so a part never sits in page memory and a large selection never
+// becomes one archive too big to handle.
+// ──────────────────────────────────────────────────────────────────────────
+
+// Plan the parts. Read-only on the allowance: each part claims its slots when
+// it is collected, like a download job, because a part the guest never takes
+// must not cost them anything.
+router.post('/:slug/download-bundles', verifyGalleryAccess, denySlideshowToken, blockHiddenGallery, async (req, res) => {
+  try {
+    if (!parseBooleanInput(req.event.allow_downloads, true)) {
+      return res.status(403).json({ error: 'Downloads are disabled for this gallery' });
+    }
+
+    const ids = Array.isArray(req.body?.photo_ids) ? req.body.photo_ids : [];
+    const photoIds = [...new Set(ids.map((v) => parseInt(v, 10)).filter((v) => Number.isInteger(v)))];
+    if (photoIds.length === 0) {
+      return res.status(400).json({ error: 'No valid photo IDs provided' });
+    }
+    if (photoIds.length > downloadBundleService.MAX_PHOTOS) {
+      return res.status(400).json({ error: 'Too many photos in one request' });
+    }
+
+    const policy = await resolveEventDownloadPolicy(req.event);
+    if (pickRequestedResolution(policy, req.body?.resolution) === null) {
+      return res.status(400).json({ error: 'Resolution not available for this gallery' });
+    }
+
+    const photos = await downloadablePhotosQuery(req.event.id, req.accessLevel, db)
+      .whereIn('photos.id', photoIds)
+      .select('photos.id', 'photos.size_bytes')
+      .orderBy('photos.uploaded_at', 'desc');
+    if (photos.length === 0) {
+      return res.status(404).json({ error: 'No photos found for selected IDs' });
+    }
+
+    if (!(await passesQuotaGate(req, res, photos.map((photo) => photo.id), { reserve: false })).ok) return;
+
+    const parts = downloadBundleService.createBundle({
+      eventId: req.event.id,
+      scope: downloadJobService.visibilityScopeFor(req.accessLevel),
+      photos,
+      resolution: req.body?.resolution,
+    });
+    res.json({ parts });
+  } catch (error) {
+    errorResponse(res, error, 500, 'Failed to prepare the download');
+  }
+});
+
+// Collect one part. The token alone never grants access: the gallery check
+// above it still runs, the part must belong to this event and to the scope it
+// was planned under, and the photos are re-filtered on the way out.
+router.get('/:slug/download-bundles/:token', verifyGalleryAccess, denySlideshowToken, blockHiddenGallery, async (req, res) => {
+  if (!parseBooleanInput(req.event.allow_downloads, true)) {
+    return res.status(403).json({ error: 'Downloads are disabled for this gallery' });
+  }
+  const part = downloadBundleService.getPart(req.params.token);
+  if (!part || part.eventId !== req.event.id
+    || part.scope !== downloadJobService.visibilityScopeFor(req.accessLevel)) {
+    return res.status(404).json({ error: 'This download is no longer available, please request it again' });
+  }
+  const suffix = part.count > 1 ? `-part${part.index}of${part.count}` : '';
+  return sendSelectionArchive(req, res, part.photoIds, {
+    resolution: part.resolution,
+    archiveName: `${req.event.slug}-selected${suffix}.zip`,
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────────

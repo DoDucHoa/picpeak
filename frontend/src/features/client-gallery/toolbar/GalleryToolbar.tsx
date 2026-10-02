@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DownloadQuotaBadge } from '../../../components/gallery/DownloadQuotaBadge';
 import type { GalleryController } from '../state/useGalleryController';
 import type { GalleryTab } from '../state/urlState';
 import {
-  BackIcon, CartIcon, CheckIcon, DownloadIcon, GridIcon, HeartIcon, ListIcon, LogoutIcon,
-  PeopleIcon, PhotosIcon, PickIcon, ShareIcon, SortChevron,
+  BackIcon, CartIcon, CheckIcon, CloseIcon, DownloadIcon, EyeIcon, EyeOffIcon, GridIcon, HeartIcon,
+  ListIcon, LogoutIcon, PeopleIcon, PhotosIcon, PickIcon, ProgressRing, SelectAllIcon, ShareIcon, SortChevron,
 } from '../icons';
-import { DownloadMenu } from './DownloadMenu';
 import { SortMenu } from './SortMenu';
 
 interface GalleryToolbarProps {
@@ -38,9 +37,42 @@ function useCompact(sentinel: React.RefObject<HTMLElement>): boolean {
 }
 
 /**
+ * The bottom margin that keeps the folded bar from moving the page. Folding
+ * takes the bar from two rows to one, and without this the album below would
+ * jump up by the difference. Scroll anchoring pulls the page back by the same
+ * amount, which brings the sentinel back into view, unfolds the bar, and the
+ * loop repeats: the page shakes and will not scroll past the cover. The
+ * margin is transparent, so the photos scroll up through it and under the bar.
+ */
+function useFoldCompensation(bar: React.RefObject<HTMLElement>, compact: boolean): number {
+  const fullHeight = useRef(0);
+  const [margin, setMargin] = useState(0);
+  useLayoutEffect(() => {
+    const node = bar.current;
+    if (!node) return undefined;
+    const measure = () => {
+      const height = node.getBoundingClientRect().height;
+      if (!compact) {
+        fullHeight.current = height;
+        setMargin(0);
+      } else {
+        setMargin(Math.max(0, Math.round(fullHeight.current - height)));
+      }
+    };
+    measure();
+    if (typeof ResizeObserver !== 'function') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [bar, compact]);
+  return margin;
+}
+
+/**
  * The gallery toolbar: tabs, share and logout on row one; people, folder,
- * quota, downloads, sort and view on row two, or the multi-select bar while
- * selecting. Sticky, and folded to one icon-only row once the cover is gone.
+ * quota, Select, sort and view on row two, or the multi-select bar while
+ * selecting. Downloading many photos starts from Select. Sticky, and folded
+ * to one icon-only row once the cover is gone.
  *
  * Renders its own scroll sentinel, so the page places only this component.
  */
@@ -48,6 +80,8 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const compact = useCompact(sentinelRef);
+  const barRef = useRef<HTMLDivElement>(null);
+  const foldMargin = useFoldCompensation(barRef, compact);
 
   const fs = c.feedbackSettings;
   const showLikes = !!fs?.feedback_enabled && !!fs?.allow_likes;
@@ -76,39 +110,74 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
     c.selection.setIds(new Set());
     c.selection.setActive(false);
   };
+  // What is on screen: the open folder, the tab and the people filter. A
+  // second press clears it, so the button reads as a toggle.
+  const visibleIds = c.visiblePhotos.map((photo) => photo.id);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => c.selection.ids.has(id));
+  const toggleSelectAll = () => c.selection.setIds(allSelected ? new Set() : new Set(visibleIds));
+
+  const getAllLabel = t('gallery.downloadQuota.getAll', 'Get all photos');
+  const selectAllLabel = allSelected
+    ? t('clientGallery.deselectAll', 'Deselect all')
+    : t('clientGallery.selectAll', 'Select all');
+  const downloadSelectedLabel = c.isDownloadingSelected
+    ? t('clientGallery.preparingDownload', 'Preparing download')
+    : t('clientGallery.downloadSelected', 'Download selected');
+  const hideLabel = t('clientAccess.hideSelected', 'Hide Selected');
+  const showLabel = t('clientAccess.showSelected', 'Show Selected');
+  const cancelLabel = t('clientGallery.cancel', 'Cancel');
+  const visibilityLocked = selectedCount === 0 || c.client.bulkVisibilityPending;
 
   const selectionBar = (
     <>
       <span className="cg-tb-count">{t('clientGallery.selectedCount', '{{count}} selected', { count: selectedCount })}</span>
+      <button
+        type="button"
+        className="cg-tb-btn"
+        aria-label={selectAllLabel}
+        aria-pressed={allSelected}
+        disabled={visibleIds.length === 0}
+        onClick={toggleSelectAll}
+      >
+        <SelectAllIcon /><span className="cg-tb-label">{selectAllLabel}</span>
+      </button>
       {c.allowDownloads && (
         <button
           type="button"
           className="cg-tb-btn"
-          aria-label={t('clientGallery.downloadSelected', 'Download selected')}
-          disabled={selectedCount === 0}
+          aria-label={downloadSelectedLabel}
+          aria-busy={c.isDownloadingSelected}
+          disabled={selectedCount === 0 || c.isDownloadingSelected}
           onClick={() => { void c.handleDownloadSelected(); }}
         >
-          <DownloadIcon /><span className="cg-tb-label">{t('clientGallery.downloadSelected', 'Download selected')}</span>
+          {c.isDownloadingSelected ? <ProgressRing fraction={null} /> : <DownloadIcon />}
+          <span className="cg-tb-label">{downloadSelectedLabel}</span>
         </button>
       )}
       {c.client.isClient && (
         <>
-          <button type="button" className="cg-tb-btn cg-tb-text" disabled={selectedCount === 0} onClick={() => { void c.client.bulkVisibility('hidden'); }}>
-            {t('clientAccess.hideSelected', 'Hide Selected')}
+          <button type="button" className="cg-tb-btn" aria-label={hideLabel} disabled={visibilityLocked} onClick={() => { void c.client.bulkVisibility('hidden'); }}>
+            <EyeOffIcon /><span className="cg-tb-label">{hideLabel}</span>
           </button>
-          <button type="button" className="cg-tb-btn cg-tb-text" disabled={selectedCount === 0} onClick={() => { void c.client.bulkVisibility('visible'); }}>
-            {t('clientAccess.showSelected', 'Show Selected')}
+          <button type="button" className="cg-tb-btn" aria-label={showLabel} disabled={visibilityLocked} onClick={() => { void c.client.bulkVisibility('visible'); }}>
+            <EyeIcon /><span className="cg-tb-label">{showLabel}</span>
           </button>
         </>
       )}
-      <button type="button" className="cg-tb-btn cg-tb-text" onClick={cancelSelection}>
-        {t('clientGallery.cancel', 'Cancel')}
+      {/* The allowance no longer fits the whole gallery: the offer to buy
+          more sits with the downloads it would unlock. */}
+      {c.allowDownloads && c.offerFullPackage && (
+        <button type="button" className="cg-tb-btn" aria-label={getAllLabel} onClick={() => c.setQuotaOffer({ exceeded: null })}>
+          <CartIcon /><span className="cg-tb-label">{getAllLabel}</span>
+        </button>
+      )}
+      <button type="button" className="cg-tb-btn" aria-label={cancelLabel} onClick={cancelSelection}>
+        <CloseIcon /><span className="cg-tb-label">{cancelLabel}</span>
       </button>
     </>
   );
 
   const allPhotosLabel = t('gallery.backToGallery', 'All photos');
-  const getAllLabel = t('gallery.downloadQuota.getAll', 'Get all photos');
   const peopleLabel = t('clientGallery.people', 'People');
   const selectLabel = t('clientGallery.select', 'Select');
 
@@ -130,19 +199,13 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
         </span>
       )}
       {c.quota?.enabled && c.client.isClient && <span className="cg-tb-quota"><DownloadQuotaBadge quota={c.quota} /></span>}
-      {c.allowDownloads && c.offerFullPackage && (
-        <button type="button" className="cg-tb-btn" aria-label={getAllLabel} onClick={() => c.setQuotaOffer({ exceeded: null })}>
-          <CartIcon /><span className="cg-tb-label">{getAllLabel}</span>
-        </button>
-      )}
-      {/* A client selects to hide or show photos, which has nothing to do
-          with downloads, so Select stands on its own for them. */}
-      {c.client.isClient && (
+      {/* Selecting is where downloads live, and where a client hides or shows
+          photos, so Select is offered to anyone who can do either. */}
+      {(c.client.isClient || c.allowDownloads) && (
         <button type="button" className="cg-tb-btn" aria-label={selectLabel} onClick={() => c.selection.setActive(true)}>
           <CheckIcon /><span className="cg-tb-label">{selectLabel}</span>
         </button>
       )}
-      {c.allowDownloads && <DownloadMenu c={c} />}
       <button
         type="button"
         className="cg-tb-dir"
@@ -166,7 +229,12 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
   return (
     <>
       <div ref={sentinelRef} className="cg-toolbar-sentinel" aria-hidden="true" />
-      <div data-testid="gallery-toolbar" className={`cg-toolbar${compact ? ' cg-toolbar-compact' : ''}`}>
+      <div
+        ref={barRef}
+        data-testid="gallery-toolbar"
+        className={`cg-toolbar${compact ? ' cg-toolbar-compact' : ''}${c.selection.active ? ' cg-toolbar-selecting' : ''}`}
+        style={foldMargin ? { marginBottom: foldMargin } : undefined}
+      >
         <div role="tablist" className="cg-tabs">
           {tabs.map(({ tab, label, count, icon, mobileOnlyIcon }) => (
             <button

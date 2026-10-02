@@ -7,6 +7,13 @@ import type {
 import { normalizeRequirePassword } from '../utils/accessControl';
 import { parseContentDispositionFilename } from '../utils/contentDisposition';
 
+/** One ZIP of a download bundle, as the server planned it. */
+export interface DownloadBundlePart {
+  token: string;
+  photo_count: number;
+  size_bytes: number;
+}
+
 // Gallery pages beyond the first are fetched this many at a time (#1357).
 const PAGE_FETCH_CONCURRENCY = 4;
 
@@ -199,10 +206,19 @@ export const galleryService = {
   // The server's Content-Disposition is the source of truth for the
   // filename (#493 — "use original camera filename" toggle reaches disk
   // through this header).
+  //
+  // `onProgress` receives the share downloaded so far, 0 to 1, or null while
+  // the size is unknown (the server sent no Content-Length).
   async fetchPhotoBlob(
     slug: string,
     photoId: number,
+    onProgress?: (fraction: number | null) => void,
   ): Promise<{ blob: Blob; serverFilename: string | null }> {
+    const onDownloadProgress = onProgress
+      ? (event: { loaded: number; total?: number }) => {
+          onProgress(event.total ? Math.min(1, event.loaded / event.total) : null);
+        }
+      : undefined;
     const readResponse = (response: AxiosResponse<Blob>) => {
       const headerName =
         response.headers['content-disposition'] || response.headers['Content-Disposition'];
@@ -215,6 +231,7 @@ export const galleryService = {
     try {
       const response = await api.get<Blob>(`/gallery/${slug}/download/${photoId}`, {
         responseType: 'blob',
+        onDownloadProgress,
       });
       return readResponse(response);
     } catch (error) {
@@ -234,6 +251,7 @@ export const galleryService = {
 
       const response = await api.get<Blob>(`/gallery/${slug}/photo/${photoId}`, {
         responseType: 'blob',
+        onDownloadProgress,
       });
       return readResponse(response);
     }
@@ -271,9 +289,41 @@ export const galleryService = {
   // Download single photo — kept as the canonical name for the existing
   // grid + lightbox-action callers that haven't been migrated to the
   // share-aware savePhotoToDevice path yet.
-  async downloadPhoto(slug: string, photoId: number, filename: string): Promise<void> {
-    const fetched = await this.fetchPhotoBlob(slug, photoId);
+  async downloadPhoto(
+    slug: string,
+    photoId: number,
+    filename: string,
+    onProgress?: (fraction: number | null) => void,
+  ): Promise<void> {
+    const fetched = await this.fetchPhotoBlob(slug, photoId, onProgress);
     this.triggerBrowserDownload(fetched.blob, fetched.serverFilename || filename);
+  },
+
+  // ── Download bundles ────────────────────────────────────────────────────
+  // A selection of two or more photos, of any size, as one or more ZIP parts
+  // of at most 2 GB each. The server plans the parts; the browser collects
+  // each one as a native download, so a part never sits in page memory.
+
+  async planDownloadBundle(
+    slug: string,
+    photoIds: number[],
+    resolution?: string,
+  ): Promise<DownloadBundlePart[]> {
+    const body: Record<string, unknown> = { photo_ids: photoIds };
+    if (resolution) body.resolution = resolution;
+    const response = await api.post<{ parts: DownloadBundlePart[] }>(`/gallery/${slug}/download-bundles`, body);
+    return response.data.parts;
+  },
+
+  bundlePartUrl(slug: string, token: string): string {
+    return withAdminPreview(api.getUri({ url: `/gallery/${slug}/download-bundles/${token}` }));
+  },
+
+  // Checks the allowance for a part without claiming it. A native download
+  // cannot report a refusal, it would save the error body as the file, so
+  // every part is probed before the browser is handed its URL.
+  async probeBundlePart(slug: string, token: string): Promise<void> {
+    await api.head(`/gallery/${slug}/download-bundles/${token}`);
   },
 
   // Per-photo view beacon (#895). Fired by the lightbox when a photo
