@@ -153,9 +153,9 @@ const nameField = () => screen.findByPlaceholderText('events.hostNamePlaceholder
 // A choice of the guest feedback mode (spec 5.7).
 const modeRadio = (name: RegExp) => screen.findByRole('radio', { name });
 const setPhotoLimit = async (value: string) => {
-  await goTo(/^Advanced/);
-  await userEvent.click(screen.getByRole('button', { name: 'Show advanced options' }));
-  const field = screen.getByRole('spinbutton');
+  // Photos & sorting is always open: no advanced toggle to click first.
+  await goTo(/^Photos & sorting/);
+  const field = await screen.findByLabelText('Photo Limit');
   await userEvent.clear(field);
   await userEvent.type(field, value);
 };
@@ -174,7 +174,7 @@ afterEach(cleanup);
 describe('event Settings save model', () => {
   it('opens every section of a legacy event with zero changes', async () => {
     await open();
-    for (const name of [/^Details/, /^Access/, /^Appearance/, /^Guest interaction/, /^Downloads/, /^Advanced/]) {
+    for (const name of [/^Details/, /^Access/, /^Appearance/, /^Guest interaction/, /^Downloads/, /^Photos & sorting/]) {
       await goTo(name);
       expect(bar()).toBeNull();
     }

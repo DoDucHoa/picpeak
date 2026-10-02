@@ -11,6 +11,7 @@ vi.mock('../../../../../hooks/useActiveEventTypes', () => ({ useActiveEventTypes
 vi.mock('../../../../../components/admin/CustomerAccountPicker', () => ({ CustomerAccountPicker: () => null }));
 vi.mock('../../ExternalFolderPicker', () => ({ ExternalFolderPicker: () => null }));
 vi.mock('../../../../../contexts/FeatureFlagsContext', () => ({ useFeatureFlags: () => ({ flags: {} }) }));
+vi.mock('../../../../../contexts/PermissionsContext', () => ({ usePermissions: () => ({ hasPermission: () => true }) }));
 
 import { EventSettingsTab } from '../EventSettingsTab';
 
@@ -48,8 +49,18 @@ it('routes a change through the draft setter', async () => {
 it('switches section through the rail', async () => {
   const onSection = vi.fn();
   mount(base(), 'details', onSection);
-  await userEvent.click(screen.getByRole('button', { name: /Advanced/ }));
+  await userEvent.click(screen.getByRole('button', { name: /Photos & sorting/ }));
   expect(onSection).toHaveBeenCalledWith('advanced');
+});
+
+it('names the photo section for what it holds and shows it open, expert mode or not', () => {
+  mount(base(), 'advanced');
+  expect(screen.getByRole('heading', { name: 'Photos & sorting' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Advanced/ })).toBeNull();
+  expect(screen.queryByText('Show advanced options')).toBeNull();
+  expect(screen.getByText('Source Mode')).toBeInTheDocument();
+  expect(screen.getByText('Photo Limit')).toBeInTheDocument();
+  expect(screen.getByText('Default Photo Sort')).toBeInTheDocument();
 });
 
 it('puts a dot on a section with unsaved changes', () => {

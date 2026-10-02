@@ -1965,10 +1965,25 @@
       "sectionAppearance": "Giao diện",
       "sectionGuests": "Tương tác của khách",
       "sectionDownloads": "Tải về",
-      "sectionAdvanced": "Nâng cao",
+      "sectionPhotos": "Ảnh & sắp xếp",
       "sectionExtra": "Tính năng bổ sung",
       "lockedPermission": "Đã khóa: cần quyền {{permission}}",
       "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
+    },
+    "summary": {
+      "label": "Tóm tắt sự kiện",
+      "photos": "Ảnh",
+      "media": "Ảnh và video",
+      "downloads": "Lượt tải đã dùng",
+      "downloadsOf": "{{used}} / {{total}}",
+      "downloadsUnlimited": "{{used}}, không giới hạn",
+      "expires": "Hết hạn",
+      "noExpiry": "Không bao giờ",
+      "expired": "Đã hết hạn",
+      "daysLeft_one": "Còn {{count}} ngày",
+      "daysLeft_other": "Còn {{count}} ngày",
+      "order": "Đơn tải",
+      "orderWaiting": "Đang chờ duyệt"
     },
     "changePasswordLink": "Đổi mật khẩu",
     "credits": {
@@ -2680,6 +2695,7 @@
       "intro": "Bật hoặc tắt các bề mặt sản phẩm. Các tính năng được bật sẽ xuất hiện trong thanh điều hướng bên trái và trở nên khả dụng cho nhóm của bạn. Một số tính năng vẫn đang trong giai đoạn beta: bật để dùng thử, tắt để ẩn đi.",
       "notYetAvailable": "Chưa khả dụng: công tắc này sẽ kích hoạt khi tính năng chính thức ra mắt.",
       "sidebarHidden": "Không có mục trong thanh bên: chạy ngầm",
+      "crmNotInSidebar": "Không có trong thanh bên: mở tại /admin/clients",
       "unsavedChanges": "Bạn có thay đổi chưa được lưu",
       "preview": {
         "title": "Xem trước thanh bên",

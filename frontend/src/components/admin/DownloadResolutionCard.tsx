@@ -4,7 +4,7 @@
  * Per-event override for the download-resolution settings (#858). The globals
  * live in Settings → Download resolutions; this card lets one gallery differ.
  *
- * Every field is tri-state — "Inherit" writes NULL and the gallery follows the
+ * Every field is tri-state: "Inherit" writes NULL and the gallery follows the
  * global, matching the show_watermark / show_qr convention. The card shows the
  * inherited value inline so an admin can see what "Inherit" currently means
  * without leaving the page.
@@ -13,7 +13,7 @@
  * overrides, the globals, and the resolved effective policy) and saves through
  * PATCH on the same path.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -21,6 +21,7 @@ import { Download, Save } from 'lucide-react';
 
 import { Button, Card, Loading } from '../common';
 import { DownloadsDisabledNotice } from './DownloadsDisabledNotice';
+import { SettingRow } from './SettingRow';
 import { api } from '../../config/api';
 import type { DownloadResolutionChoice } from '../../types';
 
@@ -59,6 +60,11 @@ export interface DownloadResolutionCardProps {
    * save bar sends them (spec 5.2), so the card has no Save of its own.
    */
   onDraftChange?: (name: string, value: unknown, serverValue: unknown) => void;
+  /**
+   * Render without the card frame, title and downloads-off notice, for a
+   * settings section that supplies those itself.
+   */
+  bare?: boolean;
 }
 
 /** null → "Inherit"; true/false → explicit. */
@@ -67,9 +73,10 @@ const triToSelect = (v: boolean | null | undefined) =>
 const selectToTri = (v: string) => (v === INHERIT ? null : v === 'true');
 
 export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({
-  eventId, onChanged, downloadsDisabled = false, draftValues, onDraftChange,
+  eventId, onChanged, downloadsDisabled = false, draftValues, onDraftChange, bare = false,
 }) => {
   const { t } = useTranslation();
+  const id = useId();
   const [standard, setStandard] = useState<string>(INHERIT);
   const [picker, setPicker] = useState<string>(INHERIT);
   const [allowOriginal, setAllowOriginal] = useState<string>(INHERIT);
@@ -98,7 +105,7 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({
   };
 
   if (isLoading || !data) {
-    return <Card><Loading /></Card>;
+    return bare ? <Loading /> : <Card><Loading /></Card>;
   }
 
   const globalStandardLabel = data.globals.standard_resolution === ORIGINAL
@@ -124,80 +131,60 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({
     }
   };
 
-  // Same input styling as the other admin cards (SlideshowStyleFields) —
+  // Same input styling as the other admin cards (SlideshowStyleFields):
   // notably the explicit text colour, without which the select renders
   // muted and reads as disabled.
-  const selectClass = 'w-full px-3 py-2 bg-inset border border-line-strong text-heading rounded-lg text-sm';
+  const selectClass = 'w-full sm:w-64 px-3 py-2 bg-inset border border-line-strong text-heading rounded-lg text-sm';
+  const onOff = (on: boolean) => (on ? t('common.on', 'on') : t('common.off', 'off'));
 
-  return (
-    <Card>
-      <div className="flex items-center gap-2 mb-1">
-        <Download className="w-5 h-5 text-neutral-500" />
-        <h3 className="text-base font-semibold text-heading">
-          {t('settings.downloads.eventTitle', 'Download resolution')}
-        </h3>
-      </div>
-      <p className="text-sm text-soft mb-4">
-        {t('settings.downloads.eventIntro',
-          'Override the site-wide download settings for this gallery only. "Inherit" follows Settings → Download resolutions.')}
-      </p>
-
-      {downloadsDisabled && <DownloadsDisabledNotice />}
-
+  const body = (
       <fieldset disabled={downloadsDisabled} className={downloadsDisabled ? 'opacity-60' : undefined}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1 text-body">
-            {t('settings.downloads.standard', 'Standard resolution')}
-          </label>
-          <select className={selectClass} value={standard} onChange={(e) => change('download_standard_resolution', e.target.value, setStandard, e.target.value === INHERIT ? null : e.target.value, data.overrides.download_standard_resolution ?? null)}>
-            <option value={INHERIT}>
-              {t('settings.downloads.inheritWith', 'Inherit ({{value}})', { value: globalStandardLabel })}
-            </option>
-            <option value={ORIGINAL}>{t('settings.downloads.original', 'Original (full size)')}</option>
-            {data.globals.resolutions.map((r) => (
-              <option key={r.id} value={r.id}>{r.label} — {r.width} × {r.height}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1 text-body">
-            {t('settings.downloads.picker', 'Let guests choose a download size')}
-          </label>
-          <select className={selectClass} value={picker} onChange={(e) => change('download_resolution_picker_enabled', e.target.value, setPicker, selectToTri(e.target.value), data.overrides.download_resolution_picker_enabled ?? null)}>
-            <option value={INHERIT}>
-              {t('settings.downloads.inheritWith', 'Inherit ({{value}})', {
-                value: data.globals.picker_enabled ? t('common.on', 'on') : t('common.off', 'off'),
-              })}
-            </option>
-            <option value="true">{t('common.on', 'on')}</option>
-            <option value="false">{t('common.off', 'off')}</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1 text-body">
-            {t('settings.downloads.allowOriginal', 'Offer "Original" in the picker')}
-          </label>
-          <select
-            className={selectClass}
-            value={allowOriginal}
-            onChange={(e) => change('download_allow_original', e.target.value, setAllowOriginal, selectToTri(e.target.value), data.overrides.download_allow_original ?? null)}
-          >
-            <option value={INHERIT}>
-              {t('settings.downloads.inheritWith', 'Inherit ({{value}})', {
-                value: data.globals.allow_original ? t('common.on', 'on') : t('common.off', 'off'),
-              })}
-            </option>
-            <option value="true">{t('common.on', 'on')}</option>
-            <option value="false">{t('common.off', 'off')}</option>
-          </select>
-        </div>
+      <div className="divide-y divide-line">
+        <SettingRow
+          htmlFor={`${id}-standard`}
+          label={t('settings.downloads.standard', 'Standard resolution')}
+          control={
+            <select id={`${id}-standard`} className={selectClass} value={standard} onChange={(e) => change('download_standard_resolution', e.target.value, setStandard, e.target.value === INHERIT ? null : e.target.value, data.overrides.download_standard_resolution ?? null)}>
+              <option value={INHERIT}>
+                {t('settings.downloads.inheritWith', 'Inherit ({{value}})', { value: globalStandardLabel })}
+              </option>
+              <option value={ORIGINAL}>{t('settings.downloads.original', 'Original (full size)')}</option>
+              {data.globals.resolutions.map((r) => (
+                <option key={r.id} value={r.id}>{r.label} ({r.width} × {r.height})</option>
+              ))}
+            </select>
+          }
+        />
+        <SettingRow
+          htmlFor={`${id}-picker`}
+          label={t('settings.downloads.picker', 'Let guests choose a download size')}
+          control={
+            <select id={`${id}-picker`} className={selectClass} value={picker} onChange={(e) => change('download_resolution_picker_enabled', e.target.value, setPicker, selectToTri(e.target.value), data.overrides.download_resolution_picker_enabled ?? null)}>
+              <option value={INHERIT}>
+                {t('settings.downloads.inheritWith', 'Inherit ({{value}})', { value: onOff(data.globals.picker_enabled) })}
+              </option>
+              <option value="true">{t('common.on', 'on')}</option>
+              <option value="false">{t('common.off', 'off')}</option>
+            </select>
+          }
+        />
+        <SettingRow
+          htmlFor={`${id}-original`}
+          label={t('settings.downloads.allowOriginal', 'Offer "Original" in the picker')}
+          control={
+            <select id={`${id}-original`} className={selectClass} value={allowOriginal} onChange={(e) => change('download_allow_original', e.target.value, setAllowOriginal, selectToTri(e.target.value), data.overrides.download_allow_original ?? null)}>
+              <option value={INHERIT}>
+                {t('settings.downloads.inheritWith', 'Inherit ({{value}})', { value: onOff(data.globals.allow_original) })}
+              </option>
+              <option value="true">{t('common.on', 'on')}</option>
+              <option value="false">{t('common.off', 'off')}</option>
+            </select>
+          }
+        />
       </div>
 
       {/* What the gallery actually does right now, after the cascade. */}
-      <p className="text-xs text-muted mt-4">
+      <p className="text-xs text-muted mt-2">
         {t('settings.downloads.effective', 'Currently hands out: {{standard}}', {
           standard: data.effective.standard === ORIGINAL
             ? t('settings.downloads.original', 'Original (full size)')
@@ -216,6 +203,25 @@ export const DownloadResolutionCard: React.FC<DownloadResolutionCardProps> = ({
         </div>
       )}
       </fieldset>
+  );
+
+  if (bare) return body;
+
+  return (
+    <Card>
+      <div className="flex items-center gap-2 mb-1">
+        <Download className="w-5 h-5 text-neutral-500" />
+        <h3 className="text-base font-semibold text-heading">
+          {t('settings.downloads.eventTitle', 'Download resolution')}
+        </h3>
+      </div>
+      <p className="text-sm text-soft mb-4">
+        {t('settings.downloads.eventIntro',
+          'Override the site-wide download settings for this gallery only. "Inherit" follows Settings → Download resolutions.')}
+      </p>
+
+      {downloadsDisabled && <DownloadsDisabledNotice />}
+      {body}
     </Card>
   );
 };

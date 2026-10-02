@@ -11,6 +11,10 @@
  *     hiding when it has), which strands a role on an empty page;
  *  3. a moved URL losing its redirect, which 404s bookmarks and links in
  *     already-sent email.
+ *
+ * This fork later flattened the Sharing section back into plain top-level
+ * entries (Events, Archives, Download orders, PicTransfer) and took CRM off
+ * the main menu and out of the palette, so those cases are pinned here too.
  */
 import React from 'react';
 import { render, renderHook, screen, cleanup, fireEvent } from '@testing-library/react';
@@ -86,67 +90,136 @@ function renderSidebar(path: string) {
 
 afterEach(() => { cleanup(); granted = new Set(); flags = {}; isAnyDirty = false; confirmLeave.mockClear(); });
 
-describe('admin sidebar — what is top level', () => {
-  it('does not offer the six relocated surfaces as main-menu entries', () => {
+/** Every feature on, so nothing can be absent merely for being switched off. */
+const ALL_FLAGS = {
+  messaging: true, transfers: true, workflows: true, reminderEmails: true,
+  analytics: true, userManagement: true, accounting: true,
+  clients: true, customerPortal: true, calendar: true, quotes: true, bills: true,
+  contracts: true, projects: true, newsletters: true,
+};
+
+/** Labels of the main-menu entries, top to bottom. */
+const mainMenuLabels = () =>
+  Array.from(document.querySelectorAll('nav a')).map((a) => a.textContent?.trim());
+
+describe('admin sidebar: what is top level', () => {
+  it('lists the former Sharing pages flat, right after Dashboard, with Settings last', () => {
     granted = new Set(ALL_PERMISSIONS);
-    // Everything on, so nothing can be absent merely for being switched off.
-    flags = {
-      messaging: true, transfers: true, workflows: true, reminderEmails: true,
-      analytics: true, userManagement: true, accounting: true,
-    };
+    flags = { ...ALL_FLAGS };
     renderSidebar('/admin/dashboard');
 
-    for (const key of [
-      'navigation.archives', 'navigation.transfers', 'navigation.events',
-      'navigation.workflows', 'navigation.users', 'navigation.systemHealth',
-    ]) {
-      expect(screen.queryByText(key)).not.toBeInTheDocument();
-    }
-
-    // …and the entries that replaced them are there. Messages keeps a plain
-    // entry of its own: it is one page, and sending files is not messaging,
-    // so it does not share a section with PicTransfer (review of #1718).
-    expect(screen.getByText('navigation.sharing')).toBeInTheDocument();
-    expect(screen.getByText('navigation.messages')).toBeInTheDocument();
-    expect(screen.getByText('navigation.automation')).toBeInTheDocument();
-    expect(screen.getByText('navigation.settings')).toBeInTheDocument();
+    expect(mainMenuLabels()).toEqual([
+      'navigation.dashboard',
+      'navigation.events',
+      'navigation.archives',
+      'navigation.downloadOrders',
+      'navigation.transfers',
+      'navigation.messages',
+      'navigation.accounting',
+      'navigation.automation',
+      'admin.analytics',
+      'navigation.settings',
+    ]);
   });
 
-  it('hides Sharing when the role can reach nothing inside it', () => {
-    granted = new Set(['settings.view']); // neither events.view nor archives.view
+  it('has no Sharing group and no CRM entry, even with every CRM feature on', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { ...ALL_FLAGS };
     renderSidebar('/admin/dashboard');
 
     expect(screen.queryByText('navigation.sharing')).not.toBeInTheDocument();
+    expect(screen.queryByText('navigation.clients')).not.toBeInTheDocument();
+    expect(document.querySelector('nav a[href^="/admin/clients"]')).toBeNull();
   });
 
-  it('keeps Sharing for a role that holds only archives.view', () => {
-    granted = new Set(['archives.view']);
+  it('does not offer the surfaces that moved into Settings or Automation', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { ...ALL_FLAGS };
     renderSidebar('/admin/dashboard');
 
-    expect(screen.getByText('navigation.sharing')).toBeInTheDocument();
+    for (const key of ['navigation.workflows', 'navigation.users', 'navigation.systemHealth']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument();
+    }
+  });
+
+  it('shows PicTransfer only when its feature flag is on', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { transfers: false };
+    renderSidebar('/admin/dashboard');
+    expect(screen.queryByText('navigation.transfers')).not.toBeInTheDocument();
+    cleanup();
+
+    flags = { transfers: true };
+    renderSidebar('/admin/dashboard');
+    expect(screen.getByText('navigation.transfers').closest('a'))
+      .toHaveAttribute('href', '/admin/transfers');
+  });
+
+  it('keeps each entry on its own permission', () => {
+    // A role holding only archives.view sees Archives and nothing that needs
+    // events.view: the events list, Download orders and PicTransfer all 403
+    // without it.
+    granted = new Set(['archives.view']);
+    flags = { transfers: true };
+    renderSidebar('/admin/dashboard');
+
+    expect(screen.getByText('navigation.archives').closest('a'))
+      .toHaveAttribute('href', '/admin/events/archives');
+    for (const key of ['navigation.events', 'navigation.downloadOrders', 'navigation.transfers']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument();
+    }
   });
 });
 
-describe('a section entry has to lead somewhere the role can open', () => {
-  it('aims Sharing at Archives for a role that only holds archives.view', () => {
-    // Before the cleanup this role saw a top-level Archives entry pointing
-    // straight at /admin/archives. Archives now lives inside Sharing, so the
-    // entry appears — but the section's first path is /admin/events, the
-    // events list, which 403s without events.view. The entry must aim at the
-    // first item this role can actually open.
-    granted = new Set(['archives.view']);
-    renderSidebar('/admin/dashboard');
+describe('admin sidebar: active entry on the flat menu', () => {
+  it('lights up Archives, not Events, on /admin/events/archives', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    renderSidebar('/admin/events/archives');
 
-    const entry = screen.getByText('navigation.sharing').closest('a');
-    expect(entry).toHaveAttribute('href', '/admin/events/archives');
+    // /admin/events is a prefix of /admin/events/archives, so a naive prefix
+    // test would light up Events here too.
+    expect(screen.getByText('navigation.archives').closest('a'))
+      .toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('navigation.events').closest('a'))
+      .not.toHaveAttribute('aria-current');
   });
 
-  it('still aims Sharing at the events list for a role that can see it', () => {
-    granted = new Set(['events.view', 'archives.view']);
-    renderSidebar('/admin/dashboard');
+  it('lights up Events on an event page, and the main menu stays in place', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    renderSidebar('/admin/events/42');
 
-    const entry = screen.getByText('navigation.sharing').closest('a');
-    expect(entry).toHaveAttribute('href', '/admin/events');
+    expect(screen.getByText('navigation.events').closest('a'))
+      .toHaveAttribute('aria-current', 'page');
+    // No section takeover: there is no "Back to menu" row, and Dashboard is
+    // still listed next to Events.
+    expect(screen.queryByText('admin.backToMenu')).not.toBeInTheDocument();
+    expect(screen.getByText('navigation.dashboard')).toBeInTheDocument();
+  });
+
+  it('keeps the main menu on PicTransfer, which is a different URL tree', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { transfers: true };
+    renderSidebar('/admin/transfers');
+
+    expect(screen.getByText('navigation.transfers').closest('a'))
+      .toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('admin.backToMenu')).not.toBeInTheDocument();
+  });
+});
+
+describe('a CRM deep link still works without a menu entry', () => {
+  it('opens the CRM section menu, whose Back to menu leads to a menu without CRM', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { ...ALL_FLAGS };
+    renderSidebar('/admin/clients/calendar');
+
+    // Section mode: the CRM sub-pages are listed, Calendar among them.
+    expect(screen.getByText('admin.backToMenu')).toBeInTheDocument();
+    expect(document.querySelector('nav a[href="/admin/clients/calendar"]')).not.toBeNull();
+
+    fireEvent.click(screen.getByText('admin.backToMenu'));
+    expect(screen.getByText('navigation.dashboard')).toBeInTheDocument();
+    expect(document.querySelector('nav a[href^="/admin/clients"]')).toBeNull();
   });
 });
 
@@ -175,36 +248,6 @@ describe('an empty section says which kind of empty it is', () => {
     renderAutomation();
     expect(screen.getByText('automation.empty.noAccessTitle')).toBeInTheDocument();
     expect(screen.queryByText('automation.empty.title')).not.toBeInTheDocument();
-  });
-});
-
-describe('admin sidebar — sections', () => {
-  it('takes the menu over on a Sharing sub-page and marks only the deepest match', () => {
-    granted = new Set(ALL_PERMISSIONS);
-    renderSidebar('/admin/events/archives');
-
-    const archives = screen.getByText('navigation.archives').closest('a');
-    expect(archives).toHaveAttribute('aria-current', 'page');
-
-    // /admin/events is a prefix of /admin/events/archives, so a naive prefix
-    // test would light up Events here too.
-    const eventsLinks = screen.getAllByText('navigation.events')
-      .map((n) => n.closest('a')).filter(Boolean);
-    for (const link of eventsLinks) {
-      expect(link).not.toHaveAttribute('aria-current', 'page');
-    }
-  });
-
-  it('stays in the Sharing section on PicTransfer, which is a different URL tree', () => {
-    granted = new Set(ALL_PERMISSIONS);
-    flags = { transfers: true };
-    renderSidebar('/admin/transfers');
-
-    // A section spanning two trees is the whole point of `paths`: without it
-    // PicTransfer would drop the admin back to the main menu.
-    const transfers = screen.getByText('navigation.transfers').closest('a');
-    expect(transfers).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('navigation.archives')).toBeInTheDocument();
   });
 });
 
@@ -329,12 +372,27 @@ describe('the command palette cannot offer what the sidebar hides', () => {
     expect(indexAt().some((h) => h.startsWith('/admin/accounting'))).toBe(true);
   });
 
-  it('leaves out CRM pages for a role holding none of the section permissions', () => {
-    // Same shape: projects/calendar/quotes/contracts/bills declare no
-    // permission of their own in useClientsNavItems.
-    granted = new Set(['events.view', 'settings.view']);
-    flags = { clients: true, quotes: true, contracts: true, projects: true };
-    expect(indexAt().some((h) => h.startsWith('/admin/clients'))).toBe(false);
+  it('offers no CRM page and no Calendar, even to a role that may open them all', () => {
+    // CRM left the main menu, so the palette does not index it either. The
+    // pages still work by URL; they are just not advertised.
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { ...ALL_FLAGS };
+    const hrefs = indexAt();
+    expect(hrefs.some((h) => h.startsWith('/admin/clients'))).toBe(false);
+    expect(hrefs.some((h) => h.includes('calendar'))).toBe(false);
+  });
+
+  it('offers the flat former Sharing pages as plain pages, gated like the sidebar', () => {
+    granted = new Set(ALL_PERMISSIONS);
+    flags = { transfers: false };
+    const off = indexAt();
+    expect(off).toEqual(expect.arrayContaining([
+      '/admin/events', '/admin/events/archives', '/admin/download-orders',
+    ]));
+    expect(off).not.toContain('/admin/transfers');
+
+    flags = { transfers: true };
+    expect(indexAt()).toContain('/admin/transfers');
   });
 });
 

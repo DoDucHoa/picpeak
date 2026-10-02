@@ -17,7 +17,8 @@ const LABELS: Record<SectionId, [string, string]> = {
   appearance: ['events.settings.sectionAppearance', 'Appearance'],
   guests: ['events.settings.sectionGuests', 'Guest interaction'],
   downloads: ['events.settings.sectionDownloads', 'Downloads'],
-  advanced: ['events.settings.sectionAdvanced', 'Advanced'],
+  // The id stays "advanced" so links that open this section keep working.
+  advanced: ['events.settings.sectionPhotos', 'Photos & sorting'],
   extra: ['events.settings.sectionExtra', 'Extra features'],
 };
 

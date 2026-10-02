@@ -15,17 +15,23 @@ import {
 } from '../../services/adminDownloadQuota.service';
 import type { DownloadPackage } from '../../services/downloadQuota.service';
 import { DownloadsDisabledNotice } from './DownloadsDisabledNotice';
+import { SettingRow } from './SettingRow';
 
 export interface DownloadQuotaCardProps {
   eventId: number;
   /** The gallery's master "Allow photo downloads" switch is off (#downloads-off). */
   downloadsDisabled?: boolean;
   /**
-   * Which part to render: the delivered summary (event Overview), the two
-   * switches or the amounts and create-order (event Settings). Absent renders
-   * the whole card.
+   * Which part to render: the delivered summary (event Overview) or the
+   * settings list with its switches, amounts and create-order (event
+   * Settings). Absent renders the whole card.
    */
-  part?: 'status' | 'switches' | 'amounts';
+  part?: 'status' | 'settings';
+  /**
+   * Render without the card frame, title and downloads-off notice, for a
+   * settings section that supplies those itself.
+   */
+  bare?: boolean;
   /** Drafted values that are shown over the saved ones (event Settings). */
   draftValues?: Record<string, unknown>;
   /**
@@ -66,7 +72,7 @@ function packageOptionLabel(
 }
 
 export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
-  eventId, downloadsDisabled = false, part, draftValues, onDraftChange,
+  eventId, downloadsDisabled = false, part, bare = false, draftValues, onDraftChange,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -178,11 +184,8 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
   };
 
   if (isLoading || !data) {
-    return (
-      <Card padding="lg" className="mt-4">
-        <Loading size="sm" text={t('downloadQuotaAdmin.card.loading', 'Loading download allowance')} />
-      </Card>
-    );
+    const loading = <Loading size="sm" text={t('downloadQuotaAdmin.card.loading', 'Loading download allowance')} />;
+    return bare ? loading : <Card padding="lg" className="mt-4">{loading}</Card>;
   }
 
   const { quota, settings, pending_order: pendingOrder, currency } = data;
@@ -190,7 +193,7 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
   const serverAutoApprove = !!settings?.auto_approve;
   const enabled = drafted('quota_enabled') ? !!draftValues?.quota_enabled : serverEnabled;
   const autoApprove = drafted('auto_approve') ? !!draftValues?.auto_approve : serverAutoApprove;
-  const show = (which: 'status' | 'switches' | 'amounts') => !part || part === which;
+  const show = (which: 'status' | 'settings') => !part || part === which;
   const percent = quota.total ? Math.min(100, Math.round((quota.used / quota.total) * 100)) : 0;
 
   const saveNumbers = () => {
@@ -200,61 +203,13 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
     });
   };
 
-  return (
-    <>
-      <Card padding="lg" className="mt-4">
-      {/* The whole card, switch included: an allowance is meaningless on a
-          gallery whose download routes all answer 403, and letting it be
-          configured anyway is how a gallery ends up with priced packages
-          nobody can ever use. */}
+  // The whole card, switch included: an allowance is meaningless on a
+  // gallery whose download routes all answer 403, and letting it be
+  // configured anyway is how a gallery ends up with priced packages
+  // nobody can ever use.
+  const body = (
       <fieldset disabled={downloadsDisabled} className={downloadsDisabled ? 'opacity-60' : undefined}>
-      {show('switches') && (<>
-      <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Download className="w-5 h-5" aria-hidden />
-          <h2 className="text-lg font-semibold text-heading">
-            {t('downloadQuotaAdmin.card.title', 'Download allowance')}
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Switch
-            checked={enabled}
-            disabled={save.isPending}
-            onChange={(next) => (draftMode ? onDraftChange('quota_enabled', next, serverEnabled) : save.mutate({ quota_enabled: next }))}
-            ariaLabel={t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery') as string}
-          />
-          {t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery')}
-        </div>
-      </div>
-
-      <p className="text-xs text-muted mb-3">
-        {t(
-          'downloadQuotaAdmin.card.help',
-          'The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.',
-        )}
-      </p>
-
-      <div className="flex items-center gap-2 text-sm mb-3">
-        <Switch
-          checked={autoApprove}
-          disabled={save.isPending}
-          onChange={(next) => (draftMode ? onDraftChange('auto_approve', next, serverAutoApprove) : save.mutate({ auto_approve: next }))}
-          ariaLabel={t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders') as string}
-        />
-        {t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders')}
-      </div>
-      <p className="text-xs text-muted mb-3">
-        {t(
-          'downloadQuotaAdmin.card.autoApproveHelp',
-          'A new order settles the moment the client places it, with no photographer approval step. Orders already waiting are not affected.',
-        )}
-      </p>
-
-      </>)}
-
-      {downloadsDisabled && <DownloadsDisabledNotice />}
-
-      {show('status') && part === 'status' && (
+      {!bare && (
         <div className="flex items-center gap-2 mb-2">
           <Download className="w-5 h-5" aria-hidden />
           <h2 className="text-lg font-semibold text-heading">
@@ -262,6 +217,8 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
           </h2>
         </div>
       )}
+
+      {downloadsDisabled && !bare && <DownloadsDisabledNotice />}
 
       {show('status') && enabled && (
         <div className="mb-4">
@@ -304,77 +261,122 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
         </p>
       )}
 
-      {show('amounts') && (<>
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={openCreateOrder}
-          leftIcon={<Gift className="w-4 h-4" />}
-        >
-          {t('downloadQuotaAdmin.card.createOrder.button', 'Create order for client')}
-        </Button>
-      </div>
+      {show('settings') && (
+        <div className="divide-y divide-line">
+          <SettingRow
+            label={t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery')}
+            description={t(
+              'downloadQuotaAdmin.card.help',
+              'The client downloads a set number of photos for free. Past that they order a package and you approve it here. Leave a field empty to inherit the system default.',
+            )}
+            control={
+              <Switch
+                checked={enabled}
+                disabled={save.isPending}
+                onChange={(next) => (draftMode ? onDraftChange('quota_enabled', next, serverEnabled) : save.mutate({ quota_enabled: next }))}
+                ariaLabel={t('downloadQuotaAdmin.card.enableLabel', 'Limit downloads for this gallery') as string}
+              />
+            }
+          >
+            {/* Kept on screen while the limit is off, greyed, so the amounts
+                are still there when it is switched back on. */}
+            <fieldset disabled={!enabled} className={!enabled && !downloadsDisabled ? 'opacity-60' : undefined}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  id="download-quota-free-limit"
+                  type="number"
+                  min={0}
+                  label={t('downloadQuotaAdmin.card.freeLimitLabel', 'Free downloads for this gallery') as string}
+                  value={freeLimit}
+                  onChange={(e) => {
+                    setFreeLimit(e.target.value);
+                    if (draftMode) onDraftChange('free_limit', draftNumber(e.target.value), settings?.free_limit ?? null);
+                  }}
+                  placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
+                    value: quota.freeLimit,
+                  }) as string}
+                  helperText={t(
+                    'downloadQuotaAdmin.card.freeLimitHelp',
+                    'Empty inherits the system default. Type 0 to grant no free download at all.',
+                  ) as string}
+                />
+                <Input
+                  id="download-quota-price"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  label={t('downloadQuotaAdmin.card.priceLabel', 'Price per extra photo ({{currency}})', {
+                    currency,
+                  }) as string}
+                  value={pricePerPhoto}
+                  onChange={(e) => {
+                    setPricePerPhoto(e.target.value);
+                    if (draftMode) onDraftChange('price_per_photo', draftNumber(e.target.value), settings?.price_per_photo ?? null);
+                  }}
+                  placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
+                    value: quota.pricePerPhoto,
+                  }) as string}
+                  helperText={t(
+                    'downloadQuotaAdmin.card.priceHelp',
+                    'Used to work out what a package saves the client. Empty inherits the system default.',
+                  ) as string}
+                />
+              </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input
-          id="download-quota-free-limit"
-          type="number"
-          min={0}
-          label={t('downloadQuotaAdmin.card.freeLimitLabel', 'Free downloads for this gallery') as string}
-          value={freeLimit}
-          onChange={(e) => {
-            setFreeLimit(e.target.value);
-            if (draftMode) onDraftChange('free_limit', draftNumber(e.target.value), settings?.free_limit ?? null);
-          }}
-          placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
-            value: quota.freeLimit,
-          }) as string}
-          helperText={t(
-            'downloadQuotaAdmin.card.freeLimitHelp',
-            'Empty inherits the system default. Type 0 to grant no free download at all.',
-          ) as string}
-        />
-        <Input
-          id="download-quota-price"
-          type="number"
-          min={0}
-          step="0.01"
-          label={t('downloadQuotaAdmin.card.priceLabel', 'Price per extra photo ({{currency}})', {
-            currency,
-          }) as string}
-          value={pricePerPhoto}
-          onChange={(e) => {
-            setPricePerPhoto(e.target.value);
-            if (draftMode) onDraftChange('price_per_photo', draftNumber(e.target.value), settings?.price_per_photo ?? null);
-          }}
-          placeholder={t('downloadQuotaAdmin.card.inheritPlaceholder', 'Inherits {{value}}', {
-            value: quota.pricePerPhoto,
-          }) as string}
-          helperText={t(
-            'downloadQuotaAdmin.card.priceHelp',
-            'Used to work out what a package saves the client. Empty inherits the system default.',
-          ) as string}
-        />
-      </div>
+              {!draftMode && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={saveNumbers}
+                    isLoading={save.isPending}
+                    disabled={save.isPending}
+                    leftIcon={<Save className="w-4 h-4" />}
+                  >
+                    {t('downloadQuotaAdmin.card.save', 'Save allowance')}
+                  </Button>
+                </div>
+              )}
+            </fieldset>
+          </SettingRow>
 
-      {!draftMode && (
-      <div className="mt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={saveNumbers}
-          isLoading={save.isPending}
-          disabled={save.isPending}
-          leftIcon={<Save className="w-4 h-4" />}
-        >
-          {t('downloadQuotaAdmin.card.save', 'Save allowance')}
-        </Button>
-      </div>
+          {/* Orders only arise once a limit runs out, so with the limit off
+              this switch governs nothing and greys with the amounts. */}
+          <SettingRow
+            label={t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders')}
+            description={t(
+              'downloadQuotaAdmin.card.autoApproveHelp',
+              'A new order settles the moment the client places it, with no photographer approval step. Orders already waiting are not affected.',
+            )}
+            muted={!enabled && !downloadsDisabled}
+            control={
+              <Switch
+                checked={autoApprove}
+                disabled={save.isPending || !enabled}
+                onChange={(next) => (draftMode ? onDraftChange('auto_approve', next, serverAutoApprove) : save.mutate({ auto_approve: next }))}
+                ariaLabel={t('downloadQuotaAdmin.card.autoApproveLabel', 'Auto-approve download orders') as string}
+              />
+            }
+          />
+
+          <div className="py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openCreateOrder}
+              leftIcon={<Gift className="w-4 h-4" />}
+            >
+              {t('downloadQuotaAdmin.card.createOrder.button', 'Create order for client')}
+            </Button>
+          </div>
+        </div>
       )}
-      </>)}
       </fieldset>
-      </Card>
+  );
+
+  return (
+    <>
+      {bare ? body : <Card padding="lg" className="mt-4">{body}</Card>}
 
       {showCreateOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

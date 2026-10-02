@@ -16,9 +16,7 @@ import {
   useSettingsNavGroups,
 } from '../../features/settings/settingsNav';
 import { adminNavigation, navItemAllowed, SECTION_PATHS } from './AdminSidebar';
-import { useSharingNavItems } from './sharingNav';
 import { useAutomationNavItems } from './AutomationLayout';
-import { useClientsNavItems } from './ClientsLayout';
 import { useAccountingNavItems } from './AccountingLayout';
 
 export interface AdminSearchEntry {
@@ -39,9 +37,7 @@ export function useAdminSearchIndex(): AdminSearchEntry[] {
   const { flags } = useFeatureFlags();
 
   const settingsGroups = useSettingsNavGroups();
-  const sharingItems = useSharingNavItems();
   const automationItems = useAutomationNavItems();
-  const clientsItems = useClientsNavItems();
   const accountingItems = useAccountingNavItems();
 
   return useMemo(() => {
@@ -68,15 +64,17 @@ export function useAdminSearchIndex(): AdminSearchEntry[] {
      * Add a section's sub-pages — but only if this admin may enter the
      * section at all.
      *
-     * Sharing and Automation filter on permissions inside their own hooks, so
-     * their items are already safe. CRM and Accounting do not: Accounting's
-     * hook filters on flags alone and CRM's checks a permission only where an
-     * item declares one, because both rely on the SIDEBAR ENTRY to carry the
-     * section's permission (`accounting.view`, `customers.view |
-     * newsletters.view`) and on the section root to be the only way in.
-     * Indexing their items directly walked around that entry, which is how
-     * the palette came to offer Inbox and Tax report to a role that gets a
-     * 403 on both. Asking the entry keeps one gate, not two.
+     * Automation filters on permissions inside its own hook, so its items are
+     * already safe. Accounting does not: its hook filters on flags alone and
+     * relies on the SIDEBAR ENTRY to carry the section's permission
+     * (`accounting.view`) and on the section root to be the only way in.
+     * Indexing its items directly walked around that entry, which is how the
+     * palette came to offer Inbox and Tax report to a role that gets a 403 on
+     * both. Asking the entry keeps one gate, not two.
+     *
+     * CRM is deliberately not indexed: it has no main-menu entry in this fork,
+     * so neither it nor its sub-pages (Calendar among them) are offered here.
+     * The pages still work by URL.
      */
     const pushSection = (
       sectionHref: string,
@@ -100,8 +98,6 @@ export function useAdminSearchIndex(): AdminSearchEntry[] {
         });
       }
     };
-    pushSection('/admin/events', t('navigation.sharing', 'Sharing'), sharingItems);
-    pushSection('/admin/clients', t('navigation.clients', 'CRM'), clientsItems);
     pushSection('/admin/accounting', t('navigation.accounting', 'Accounting'), accountingItems);
     pushSection('/admin/automation', t('navigation.automation', 'Automation'), automationItems);
 
@@ -121,6 +117,5 @@ export function useAdminSearchIndex(): AdminSearchEntry[] {
     }
 
     return entries;
-  }, [t, hasPermission, flags, settingsGroups, sharingItems,
-      automationItems, clientsItems, accountingItems]);
+  }, [t, hasPermission, flags, settingsGroups, automationItems, accountingItems]);
 }
