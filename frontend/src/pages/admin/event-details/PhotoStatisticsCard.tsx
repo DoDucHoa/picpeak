@@ -28,23 +28,14 @@ export const PhotoStatisticsCard: React.FC<PhotoStatisticsCardProps> = ({
         {media.hasVideos ? t('events.mediaStatistics', 'Media Statistics') : t('events.photoStatistics')}
       </h2>
 
+      {/* The photo and video counts sit in the summary strip above the
+          cards (EventSummaryStrip), so they are not repeated here. */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between py-2 px-3 bg-inset rounded-lg">
-          <span className="text-sm text-soft">{media.hasVideos ? t('events.photos') : t('events.totalPhotos')}</span>
-          <span className="text-sm font-medium text-heading">{media.photos}</span>
-        </div>
-
         {media.hasVideos && (
-          <>
-            <div className="flex items-center justify-between py-2 px-3 bg-inset rounded-lg">
-              <span className="text-sm text-soft">{t('events.videos', 'Videos')}</span>
-              <span className="text-sm font-medium text-heading">{media.videos}</span>
-            </div>
-            <div className="flex items-center justify-between py-2 px-3 bg-inset rounded-lg">
-              <span className="text-sm text-soft">{t('events.videoRuntime', 'Video runtime')}</span>
-              <span className="text-sm font-medium text-heading tabular-nums">{formatRuntime(event.video_duration)}</span>
-            </div>
-          </>
+          <div className="flex items-center justify-between py-2 px-3 bg-inset rounded-lg">
+            <span className="text-sm text-soft">{t('events.videoRuntime', 'Video runtime')}</span>
+            <span className="text-sm font-medium text-heading tabular-nums">{formatRuntime(event.video_duration)}</span>
+          </div>
         )}
 
         <div className="flex items-center justify-between py-2 px-3 bg-inset rounded-lg">

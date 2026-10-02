@@ -2508,10 +2508,25 @@
       "sectionAppearance": "Erscheinungsbild",
       "sectionGuests": "Gäste-Interaktion",
       "sectionDownloads": "Downloads",
-      "sectionAdvanced": "Erweitert",
+      "sectionPhotos": "Fotos & Sortierung",
       "sectionExtra": "Zusatzfunktionen",
       "lockedPermission": "Gesperrt: benötigt die Berechtigung {{permission}}",
       "lockedArchived": "Diese Veranstaltung ist archiviert. Ihre Einstellungen sind schreibgeschützt."
+    },
+    "summary": {
+      "label": "Übersicht der Veranstaltung",
+      "photos": "Fotos",
+      "media": "Fotos und Videos",
+      "downloads": "Genutzte Downloads",
+      "downloadsOf": "{{used}} von {{total}}",
+      "downloadsUnlimited": "{{used}}, ohne Limit",
+      "expires": "Läuft ab",
+      "noExpiry": "Nie",
+      "expired": "Abgelaufen",
+      "daysLeft_one": "Noch {{count}} Tag",
+      "daysLeft_other": "Noch {{count}} Tage",
+      "order": "Download-Bestellung",
+      "orderWaiting": "Wartet auf Freigabe"
     },
     "changePasswordLink": "Passwort ändern",
     "credits": {

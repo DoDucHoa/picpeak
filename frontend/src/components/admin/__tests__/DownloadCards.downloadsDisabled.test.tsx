@@ -132,7 +132,7 @@ describe('per-event download cards in the event Settings draft', () => {
   });
 
   it('the allowance switches stay inert in draft mode when downloads are off', async () => {
-    renderWithClient(<DownloadQuotaCard eventId={1} downloadsDisabled part="switches" draftValues={{}} onDraftChange={vi.fn()} />);
+    renderWithClient(<DownloadQuotaCard eventId={1} downloadsDisabled part="settings" draftValues={{}} onDraftChange={vi.fn()} />);
     await waitFor(() => expect(screen.getByText(NOTICE)).toBeInTheDocument());
     screen.getAllByRole('switch').forEach((el) => expect(el).toBeDisabled());
   });

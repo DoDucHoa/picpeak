@@ -281,26 +281,26 @@ describe('DownloadQuotaCard in the event Settings draft', () => {
   });
 
   it('puts the enable switch in the draft instead of saving', async () => {
-    renderCard({ part: 'switches', onDraftChange, draftValues: {} });
+    renderCard({ part: 'settings', onDraftChange, draftValues: {} });
     await userEvent.click(await screen.findByRole('switch', { name: /Limit downloads for this gallery/ }));
     expect(onDraftChange).toHaveBeenCalledWith('quota_enabled', false, true);
     expect(put).not.toHaveBeenCalled();
   });
 
   it('puts auto-approve in the draft', async () => {
-    renderCard({ part: 'switches', onDraftChange, draftValues: {} });
+    renderCard({ part: 'settings', onDraftChange, draftValues: {} });
     await userEvent.click(await screen.findByRole('switch', { name: /Auto-approve download orders/ }));
     expect(onDraftChange).toHaveBeenCalledWith('auto_approve', true, false);
   });
 
   it('shows a drafted value over the saved one', async () => {
-    renderCard({ part: 'amounts', onDraftChange, draftValues: { free_limit: 12 } });
+    renderCard({ part: 'settings', onDraftChange, draftValues: { free_limit: 12 } });
     const field = await screen.findByLabelText(/Free downloads for this gallery/);
     await waitFor(() => expect(field).toHaveValue(12));
   });
 
   it('keeps an empty free limit as null, a typed 0 as 0', async () => {
-    renderCard({ part: 'amounts', onDraftChange, draftValues: {} });
+    renderCard({ part: 'settings', onDraftChange, draftValues: {} });
     const field = await screen.findByLabelText(/Free downloads for this gallery/);
     await userEvent.type(field, '5');
     await userEvent.clear(field);
@@ -310,9 +310,34 @@ describe('DownloadQuotaCard in the event Settings draft', () => {
   });
 
   it('has no save button of its own', async () => {
-    renderCard({ part: 'amounts', onDraftChange, draftValues: {} });
+    renderCard({ part: 'settings', onDraftChange, draftValues: {} });
     await screen.findByLabelText(/Free downloads for this gallery/);
     expect(screen.queryByRole('button', { name: /Save allowance/ })).toBeNull();
+  });
+
+  it('greys the amounts and auto-approve while the limit is off, but keeps them on screen', async () => {
+    get.mockResolvedValue({ data: quotaPayload({ settings: { ...quotaPayload().settings, quota_enabled: false, free_limit: 15 } }) });
+    renderCard({ part: 'settings', onDraftChange, draftValues: {} });
+    const field = await screen.findByLabelText(/Free downloads for this gallery/);
+    await waitFor(() => expect(field).toHaveValue(15));
+    expect(field).toBeDisabled();
+    expect(screen.getByRole('switch', { name: /Auto-approve download orders/ })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: /Limit downloads for this gallery/ })).toBeEnabled();
+  });
+
+  it('frees the amounts the moment the limit is switched on in the draft', async () => {
+    get.mockResolvedValue({ data: quotaPayload({ settings: { ...quotaPayload().settings, quota_enabled: false } }) });
+    renderCard({ part: 'settings', onDraftChange, draftValues: { quota_enabled: true } });
+    expect(await screen.findByLabelText(/Free downloads for this gallery/)).toBeEnabled();
+    expect(screen.getByRole('switch', { name: /Auto-approve download orders/ })).toBeEnabled();
+  });
+
+  it('drops its frame, title and notice when a settings section supplies them', async () => {
+    renderCard({ part: 'settings', bare: true, downloadsDisabled: true, onDraftChange, draftValues: {} });
+    await screen.findByLabelText(/Free downloads for this gallery/);
+    expect(screen.queryByRole('heading', { name: /Download allowance/ })).toBeNull();
+    expect(screen.queryByText(/Downloads are switched off for this gallery/)).toBeNull();
+    expect(screen.getByRole('switch', { name: /Limit downloads for this gallery/ })).toBeDisabled();
   });
 
   it('shows only the summary on the Overview', async () => {

@@ -13,6 +13,7 @@ import { EventActionsCard } from './EventActionsCard';
 import { PhotoStatisticsCard } from './PhotoStatisticsCard';
 import { ArchiveStatusCard } from './ArchiveStatusCard';
 import { NextStepsChecklist } from './NextStepsChecklist';
+import { EventSummaryStrip } from './EventSummaryStrip';
 import { toBoolean } from '../../../utils/parsers';
 
 interface OverviewTabProps {
@@ -67,8 +68,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         onChooseHero={() => openSettings('appearance')}
         onPublish={() => setShowPublishDialog(true)}
       />
+      <EventSummaryStrip
+        event={event}
+        daysUntilExpiration={daysUntilExpiration}
+        setActiveTab={setActiveTab}
+        openSettings={openSettings}
+      />
+      {/* Two columns balanced by height: who the event is for on the left,
+          what gets shared and done with it on the right. */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Left Column - Main Details */}
+        {/* Left column: the event and its client */}
         <div className="space-y-6">
           {/* Event Information */}
           <EventInformationCard
@@ -77,16 +86,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             daysUntilExpiration={daysUntilExpiration}
           />
 
+          {/* Client Access (#172) */}
+          <ClientAccessCard event={event} refetchEvent={refetchEvent} />
+
+          {/* Photo Statistics */}
+          <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
+        </div>
+
+        {/* Right column: sharing, downloads and actions */}
+        <div className="space-y-6">
           {/* Share Link */}
           <ShareLinkCard event={event} onChangePassword={() => openSettings('access')} passwordVersion={passwordVersion} />
 
-          {/* Branded short URLs (#699). Sits between the canonical share-link
-              card and the Client Access card, same "things you share with
-              the customer" cluster. */}
+          {/* Branded short URLs (#699). Sits under the canonical share-link
+              card, same "things you share with the customer" cluster. */}
           <ShortUrlsCard eventId={event.id} />
-
-          {/* Client Access (#172) */}
-          <ClientAccessCard event={event} refetchEvent={refetchEvent} />
 
           {/* Download allowance (migration 214). Always mounted: the card owns
               its own on-off switch, and the ledger it reports on survives the
@@ -128,12 +142,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               />
             </PermissionGate>
           )}
-        </div>
-
-        {/* Right Column - Statistics, Theme, and Actions */}
-        <div className="space-y-6">
-          {/* Photo Statistics */}
-          <PhotoStatisticsCard event={event} categories={categories} setActiveTab={setActiveTab} />
 
           {/* Feedback Moderation Panel */}
           {!event.is_archived && feedbackSettings?.feedback_enabled && (

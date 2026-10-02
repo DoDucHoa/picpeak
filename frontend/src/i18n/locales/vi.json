@@ -1965,10 +1965,25 @@
       "sectionAppearance": "Giao diện",
       "sectionGuests": "Tương tác của khách",
       "sectionDownloads": "Tải về",
-      "sectionAdvanced": "Nâng cao",
+      "sectionPhotos": "Ảnh & sắp xếp",
       "sectionExtra": "Tính năng bổ sung",
       "lockedPermission": "Đã khóa: cần quyền {{permission}}",
       "lockedArchived": "Sự kiện này đã được lưu trữ. Cài đặt chỉ xem được."
+    },
+    "summary": {
+      "label": "Tóm tắt sự kiện",
+      "photos": "Ảnh",
+      "media": "Ảnh và video",
+      "downloads": "Lượt tải đã dùng",
+      "downloadsOf": "{{used}} / {{total}}",
+      "downloadsUnlimited": "{{used}}, không giới hạn",
+      "expires": "Hết hạn",
+      "noExpiry": "Không bao giờ",
+      "expired": "Đã hết hạn",
+      "daysLeft_one": "Còn {{count}} ngày",
+      "daysLeft_other": "Còn {{count}} ngày",
+      "order": "Đơn tải",
+      "orderWaiting": "Đang chờ duyệt"
     },
     "changePasswordLink": "Đổi mật khẩu",
     "credits": {

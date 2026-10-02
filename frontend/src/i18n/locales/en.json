@@ -1970,10 +1970,25 @@
       "sectionAppearance": "Appearance",
       "sectionGuests": "Guest interaction",
       "sectionDownloads": "Downloads",
-      "sectionAdvanced": "Advanced",
+      "sectionPhotos": "Photos & sorting",
       "sectionExtra": "Extra features",
       "lockedPermission": "Locked: needs the {{permission}} permission",
       "lockedArchived": "This event is archived. Its settings are read-only."
+    },
+    "summary": {
+      "label": "Event summary",
+      "photos": "Photos",
+      "media": "Photos and videos",
+      "downloads": "Downloads used",
+      "downloadsOf": "{{used}} of {{total}}",
+      "downloadsUnlimited": "{{used}}, no limit",
+      "expires": "Expires",
+      "noExpiry": "Never",
+      "expired": "Expired",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "order": "Download order",
+      "orderWaiting": "Waiting for approval"
     },
     "changePasswordLink": "Change password",
     "credits": {
