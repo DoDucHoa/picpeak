@@ -5,6 +5,14 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.0.0-beta.0...v1.0.1-beta.0) (2026-10-02)
+
+
+### Bug Fixes
+
+* **gallery:** turn scroll anchoring off so a smooth scroll can pass the cover ([6d457d1](https://github.com/DoDucHoa/picpeak/commit/6d457d164395c8abe22ed22304017d407d08da1e))
+* **gallery:** turn scroll anchoring off so a smooth scroll can pass the cover ([66b25df](https://github.com/DoDucHoa/picpeak/commit/66b25df74b0fee2f1c510c3ddb12046ad464858c))
+
 ## [3.153.0-beta.0](https://github.com/PicPeak/picpeak/compare/v3.152.0-beta.0...v3.153.0-beta.0) (2026-10-01)
 
 
