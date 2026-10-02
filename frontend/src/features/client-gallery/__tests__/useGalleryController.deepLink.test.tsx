@@ -21,7 +21,6 @@ const gallery = vi.hoisted(() => ({
 
 vi.mock('../../../hooks/useGallery', () => ({
   useGalleryPhotos: () => ({ data: gallery.data, isLoading: false, error: null, refetch: vi.fn() }),
-  useDownloadAllPhotos: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock('../../../hooks/useDownloadQuota', () => ({
   useDownloadQuota: () => ({ quota: null, downloadedIds: new Set(), packages: [], pendingOrder: null, currency: 'EUR', refetch: vi.fn() }),
