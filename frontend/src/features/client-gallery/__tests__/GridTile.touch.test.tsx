@@ -58,6 +58,22 @@ it('toggles selection from the body of the tile while selecting', () => {
   expect(onOpen).not.toHaveBeenCalled();
 });
 
+it('marks a selected tile on the tile itself and draws a check in its mark', () => {
+  render(<GridTile {...base} selecting selected onOpen={vi.fn()} onToggle={vi.fn()} />);
+  expect(screen.getByTestId('grid-tile').className).toContain('cg-tile-selected');
+  const mark = screen.getByTestId('select-mark');
+  expect(mark.className).toContain('cg-select-on');
+  expect(mark.querySelector('svg')).not.toBeNull();
+});
+
+it('leaves an unselected tile plain, with an empty ring', () => {
+  render(<GridTile {...base} selecting selected={false} onOpen={vi.fn()} onToggle={vi.fn()} />);
+  expect(screen.getByTestId('grid-tile').className).not.toContain('cg-tile-selected');
+  const mark = screen.getByTestId('select-mark');
+  expect(mark.className).not.toContain('cg-select-on');
+  expect(mark.querySelector('svg')).toBeNull();
+});
+
 it('likes from the heart without opening the viewer', () => {
   const onOpen = vi.fn(); const onToggle = vi.fn();
   render(<GridTile {...base} onOpen={onOpen} onToggle={onToggle} />);
