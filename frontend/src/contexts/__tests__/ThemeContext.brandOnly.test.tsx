@@ -76,13 +76,18 @@ describe('ThemeContext keeps brand tokens only', () => {
   });
 
   it('still renders when storage throws', () => {
-    const spy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+    // Spy on the prototype: jsdom's Storage is a legacy platform object, so
+    // spying on the instance would define a stored item instead of a method.
+    const spy = vi.spyOn(Object.getPrototypeOf(localStorage), 'removeItem').mockImplementation(() => {
       throw new Error('SecurityError');
     });
-    localStorage.setItem('gallery-theme', '{}');
-    expect(() => render(<ThemeProvider><div /></ThemeProvider>)).not.toThrow();
-    expect(spy).toHaveBeenCalledWith('gallery-theme');
-    spy.mockRestore();
+    try {
+      localStorage.setItem('gallery-theme', '{}');
+      expect(() => render(<ThemeProvider><div /></ThemeProvider>)).not.toThrow();
+      expect(spy).toHaveBeenCalledWith('gallery-theme');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('exposes only the theme and its setter', () => {
