@@ -287,3 +287,39 @@ describe('GalleryToolbar', () => {
     expect(bar.className).not.toMatch(/cg-toolbar-compact/);
   });
 });
+
+describe('GalleryToolbar fold', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the page from moving when the bar folds, by the height the fold took off', () => {
+    let callback: IntersectionObserverCallback = () => {};
+    class FakeObserver {
+      constructor(cb: IntersectionObserverCallback) { callback = cb; }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return []; }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    vi.stubGlobal('ResizeObserver', undefined);
+    // Two rows unfolded, one row folded, as measured in the browser.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function rect(this: HTMLElement) {
+      const height = this.classList.contains('cg-toolbar-compact') ? 60 : 120;
+      return { height, top: 0, bottom: height, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    render(<GalleryToolbar c={fakeController()} onShare={vi.fn()} />);
+    const bar = screen.getByTestId('gallery-toolbar');
+    const fire = (isIntersecting: boolean, top: number) => React.act(() => {
+      callback([{ isIntersecting, boundingClientRect: { top } } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+    expect(bar.style.marginBottom).toBe('');
+    fire(false, -1);
+    expect(bar.className).toMatch(/cg-toolbar-compact/);
+    expect(bar.style.marginBottom).toBe('60px');
+    fire(true, 10);
+    expect(bar.style.marginBottom).toBe('');
+  });
+});

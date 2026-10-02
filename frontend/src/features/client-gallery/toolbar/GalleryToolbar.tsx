@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DownloadQuotaBadge } from '../../../components/gallery/DownloadQuotaBadge';
 import type { GalleryController } from '../state/useGalleryController';
@@ -38,6 +38,38 @@ function useCompact(sentinel: React.RefObject<HTMLElement>): boolean {
 }
 
 /**
+ * The bottom margin that keeps the folded bar from moving the page. Folding
+ * takes the bar from two rows to one, and without this the album below would
+ * jump up by the difference. Scroll anchoring pulls the page back by the same
+ * amount, which brings the sentinel back into view, unfolds the bar, and the
+ * loop repeats: the page shakes and will not scroll past the cover. The
+ * margin is transparent, so the photos scroll up through it and under the bar.
+ */
+function useFoldCompensation(bar: React.RefObject<HTMLElement>, compact: boolean): number {
+  const fullHeight = useRef(0);
+  const [margin, setMargin] = useState(0);
+  useLayoutEffect(() => {
+    const node = bar.current;
+    if (!node) return undefined;
+    const measure = () => {
+      const height = node.getBoundingClientRect().height;
+      if (!compact) {
+        fullHeight.current = height;
+        setMargin(0);
+      } else {
+        setMargin(Math.max(0, Math.round(fullHeight.current - height)));
+      }
+    };
+    measure();
+    if (typeof ResizeObserver !== 'function') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [bar, compact]);
+  return margin;
+}
+
+/**
  * The gallery toolbar: tabs, share and logout on row one; people, folder,
  * quota, downloads, sort and view on row two, or the multi-select bar while
  * selecting. Sticky, and folded to one icon-only row once the cover is gone.
@@ -48,6 +80,8 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const compact = useCompact(sentinelRef);
+  const barRef = useRef<HTMLDivElement>(null);
+  const foldMargin = useFoldCompensation(barRef, compact);
 
   const fs = c.feedbackSettings;
   const showLikes = !!fs?.feedback_enabled && !!fs?.allow_likes;
@@ -166,7 +200,12 @@ export function GalleryToolbar({ c, onShare }: GalleryToolbarProps) {
   return (
     <>
       <div ref={sentinelRef} className="cg-toolbar-sentinel" aria-hidden="true" />
-      <div data-testid="gallery-toolbar" className={`cg-toolbar${compact ? ' cg-toolbar-compact' : ''}`}>
+      <div
+        ref={barRef}
+        data-testid="gallery-toolbar"
+        className={`cg-toolbar${compact ? ' cg-toolbar-compact' : ''}`}
+        style={foldMargin ? { marginBottom: foldMargin } : undefined}
+      >
         <div role="tablist" className="cg-tabs">
           {tabs.map(({ tab, label, count, icon, mobileOnlyIcon }) => (
             <button
