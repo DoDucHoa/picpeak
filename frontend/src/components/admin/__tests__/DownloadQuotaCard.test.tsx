@@ -346,6 +346,57 @@ describe('DownloadQuotaCard in the event Settings draft', () => {
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByLabelText(/Free downloads for this gallery/)).toBeNull();
   });
+
+  it('renders nothing on the Overview while the allowance is switched off', async () => {
+    get.mockResolvedValue({
+      data: quotaPayload({
+        quota: { ...quotaPayload().quota, enabled: false },
+        settings: { ...quotaPayload().settings, quota_enabled: false },
+      }),
+    });
+
+    const { container } = renderCard({ part: 'status' });
+
+    await waitFor(() => expect(get).toHaveBeenCalled());
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(screen.queryByRole('heading', { name: /Download allowance/ })).toBeNull();
+  });
+
+  it('still shows a waiting order on the Overview while the allowance is switched off', async () => {
+    get.mockResolvedValue({
+      data: quotaPayload({
+        quota: { ...quotaPayload().quota, enabled: false },
+        settings: { ...quotaPayload().settings, quota_enabled: false },
+        pending_order: { id: 3, status: 'pending' },
+      }),
+    });
+
+    renderCard({ part: 'status' });
+
+    await waitFor(() =>
+      expect(screen.getByText(/This gallery has an order waiting for your approval/)).toBeInTheDocument());
+  });
+
+  it('shows no loading frame on the Overview before it knows whether the allowance is on', () => {
+    get.mockReturnValue(new Promise(() => {}));
+
+    const { container } = renderCard({ part: 'status' });
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('keeps the whole card in Settings while the allowance is switched off', async () => {
+    get.mockResolvedValue({
+      data: quotaPayload({
+        quota: { ...quotaPayload().quota, enabled: false },
+        settings: { ...quotaPayload().settings, quota_enabled: false },
+      }),
+    });
+
+    renderCard({ part: 'settings' });
+
+    expect(await screen.findByRole('switch', { name: /Limit downloads for this gallery/ })).toBeInTheDocument();
+  });
 });
 
 describe('DownloadQuotaCard reset', () => {

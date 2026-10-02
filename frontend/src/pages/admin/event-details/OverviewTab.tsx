@@ -102,9 +102,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               card, same "things you share with the customer" cluster. */}
           <ShortUrlsCard eventId={event.id} />
 
-          {/* Download allowance (migration 214). Always mounted: the card owns
-              its own on-off switch, and the ledger it reports on survives the
-              feature being switched off, so hiding it would hide history. */}
+          {/* Download allowance (migration 214), summary only: the switch lives
+              in Settings. The card renders nothing while the allowance is off,
+              unless an order is still waiting for approval. */}
           <PermissionGate permissions={['events.view', 'events.edit']}>
             <DownloadQuotaCard eventId={event.id} part="status" downloadsDisabled={!event.allow_downloads} />
           </PermissionGate>

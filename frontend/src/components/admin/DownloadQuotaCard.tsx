@@ -199,6 +199,11 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
     setShowCreateOrder(true);
   };
 
+  // The Overview only reports on the allowance; the switch lives in Settings.
+  // Until the answer arrives it cannot know there is anything to report, and a
+  // loading frame that then vanishes is worse than waiting.
+  if (part === 'status' && (isLoading || !data)) return null;
+
   if (isLoading || !data) {
     const loading = <Loading size="sm" text={t('downloadQuotaAdmin.card.loading', 'Loading download allowance')} />;
     return bare ? loading : <Card padding="lg" className="mt-4">{loading}</Card>;
@@ -211,6 +216,11 @@ export const DownloadQuotaCard: React.FC<DownloadQuotaCardProps> = ({
   const autoApprove = drafted('auto_approve') ? !!draftValues?.auto_approve : serverAutoApprove;
   const show = (which: 'status' | 'settings') => !part || part === which;
   const percent = quota.total ? Math.min(100, Math.round((quota.used / quota.total) * 100)) : 0;
+
+  // With the allowance off the summary has nothing to say, so the Overview
+  // would show an empty frame under a title. A waiting order is the one thing
+  // still worth showing: it needs the photographer to act either way.
+  if (part === 'status' && !enabled && !pendingOrder) return null;
 
   const saveNumbers = () => {
     save.mutate({
