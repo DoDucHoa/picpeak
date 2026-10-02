@@ -1652,6 +1652,8 @@
         "GET /:slug/download/:photoId",
         "GET /:slug/download-all",
         "POST /:slug/download-selected",
+        "POST /:slug/download-bundles",
+        "GET /:slug/download-bundles/:token",
         "POST /:slug/download-jobs",
         "GET /:slug/download-jobs/:token",
         "GET /:slug/download-jobs/:token/file"
