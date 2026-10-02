@@ -5,7 +5,7 @@ import { useInputMode } from '../../../hooks/useInputMode';
 import { useIsPhotoDelivered } from '../../../contexts/DownloadedPhotosContext';
 import type { Photo } from '../../../types';
 import { tilePreviewUrl } from '../layout/tileImage';
-import { DeliveredIcon, EyeIcon, EyeOffIcon, HeartIcon, PickIcon } from '../icons';
+import { CheckIcon, DeliveredIcon, EyeIcon, EyeOffIcon, HeartIcon, PickIcon } from '../icons';
 
 interface GridTileProps {
   photo: Photo; width: number; height: number; x: number; y: number; priority: 'high' | 'normal';
@@ -52,7 +52,7 @@ function GridTileImpl({
     <div
       data-testid="grid-tile"
       data-photo-id={photo.id}
-      className={`cg-tile${hidden ? ' cg-tile-hidden' : ''}`}
+      className={`cg-tile${hidden ? ' cg-tile-hidden' : ''}${selecting && selected ? ' cg-tile-selected' : ''}`}
       style={{ position: 'absolute', width, height, transform: `translate(${x}px, ${y}px)` }}
     >
       <AuthenticatedImage
@@ -97,7 +97,9 @@ function GridTileImpl({
           </button>
         )}
         {selecting && (
-          <span aria-hidden className={`cg-select${selected ? ' cg-select-on' : ''}`} />
+          <span data-testid="select-mark" aria-hidden className={`cg-select${selected ? ' cg-select-on' : ''}`}>
+            {selected && <CheckIcon />}
+          </span>
         )}
       </div>
       {hidden && (

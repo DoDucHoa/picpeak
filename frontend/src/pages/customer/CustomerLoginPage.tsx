@@ -10,7 +10,7 @@ import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { Button, Input, Card, ReCaptcha, PoweredBy } from '../../components/common';
+import { Button, Input, Card, ReCaptcha, PoweredBy, SupportContact } from '../../components/common';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { customerService } from '../../services/customer.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
@@ -259,23 +259,18 @@ export const CustomerLoginPage: React.FC = () => {
           </form>
         </Card>
 
-        {/* Footer — mirrors AdminLoginPage. Support email links to
-            mailto: with the address from Branding settings; falls back
-            to a placeholder so the link is never broken. The
-            "admin hint" line that used to live here is gone — admins
-            who land here on purpose can navigate to /admin/login on
-            their own. */}
+        {/* Footer: mirrors AdminLoginPage. The help line appears only when
+            Branding sets a support email, never with a placeholder address.
+            The "admin hint" line that used to live here is gone: admins who
+            land here on purpose can navigate to /admin/login on their own. */}
         <div className="text-center mt-8">
-          <p className="text-sm" style={{ color: 'var(--color-text, #171717)', opacity: 0.7 }}>
-            {t('customer.login.needHelp', 'Need help?')}{' '}
-            <a
-              href={`mailto:${settingsData?.branding_support_email || 'support@example.com'}`}
-              className="hover:underline"
-              style={{ color: 'var(--color-primary, #5C8762)' }}
-            >
-              {settingsData?.branding_support_email || 'support@example.com'}
-            </a>
-          </p>
+          <SupportContact
+            email={settingsData?.branding_support_email}
+            label={t('customer.login.needHelp', 'Need help?')}
+            className="text-sm"
+            style={{ color: 'var(--color-text, #171717)', opacity: 0.7 }}
+            linkStyle={{ color: 'var(--color-primary, #5C8762)' }}
+          />
           <PoweredBy className="text-xs mt-2" style={{ color: 'var(--color-text, #171717)', opacity: 0.5 }} />
         </div>
       </div>

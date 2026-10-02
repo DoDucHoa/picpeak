@@ -5,7 +5,7 @@ import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, KeyRound, ArrowLeft 
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
-import { Button, Input, Card, ReCaptcha, PoweredBy } from '../../components/common';
+import { Button, Input, Card, ReCaptcha, PoweredBy, SupportContact } from '../../components/common';
 import { useAdminAuth } from '../../contexts';
 import { authService } from '../../services/auth.service';
 import { isMfaChallenge } from '../../types';
@@ -481,16 +481,13 @@ export const AdminLoginPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-sm" style={{ color: 'var(--color-text, #171717)', opacity: 0.7 }}>
-            {t('adminLogin.needHelp')}{' '}
-            <a 
-              href={`mailto:${settingsData?.branding_support_email || 'support@example.com'}`} 
-              className="hover:underline"
-              style={{ color: 'var(--color-primary, #5C8762)' }}
-            >
-              {settingsData?.branding_support_email || 'support@example.com'}
-            </a>
-          </p>
+          <SupportContact
+            email={settingsData?.branding_support_email}
+            label={t('adminLogin.needHelp')}
+            className="text-sm"
+            style={{ color: 'var(--color-text, #171717)', opacity: 0.7 }}
+            linkStyle={{ color: 'var(--color-primary, #5C8762)' }}
+          />
           <PoweredBy className="text-xs mt-2" style={{ color: 'var(--color-text, #171717)', opacity: 0.5 }} />
         </div>
 
