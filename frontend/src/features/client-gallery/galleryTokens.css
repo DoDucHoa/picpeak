@@ -19,6 +19,8 @@
   --cg-accent: #f08a24;
   --cg-like: #f0524f;
   --cg-pick: #3b5bdb;
+  --cg-select: #df1400;
+  --cg-select-tint: #fce8e5;
   --cg-placeholder: #f2f2f2;
   --cg-font: 'Red Hat Display', 'Inter', sans-serif;
   --cg-title-font: 'DM Serif Display', Georgia, serif;
@@ -81,21 +83,22 @@ body:has(.client-gallery) { background: #ffffff; }
 .client-gallery .cg-badges-touch .cg-badge-like::before { left: -6px; }
 .client-gallery .cg-badges-touch .cg-badge-pick::before { right: -6px; }
 /* Selection mark: an empty ring that reads on light and dark photos alike,
-   then a filled pick-blue disc with a white check. */
+   then a filled disc in the selection colour with a white check. */
 .client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.95); background: rgba(0,0,0,.18); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); box-shadow: 0 1px 3px rgba(0,0,0,.35); color: #fff; pointer-events: none; transition: background-color 150ms ease, border-color 150ms ease; }
 .client-gallery .cg-select svg { width: 14px; height: 14px; stroke-width: 2.5; }
 .client-gallery .cg-tile:hover .cg-select:not(.cg-select-on) { background: rgba(255,255,255,.28); }
-/* A selected tile pulls its photo in from the edges onto a pale pick-blue
-   frame with a thin outline, so the selection reads across the whole grid.
+/* A selected tile pulls its photo in from the edges onto a pale tint of the
+   selection colour with a thin outline, so the selection reads across the
+   whole grid.
    clip-path and the inset outline are paint-only: nothing reflows. */
 .client-gallery .cg-tile-img { transition: opacity 200ms ease, clip-path 160ms ease; }
-.client-gallery .cg-tile-selected { background: #e7ecfb; }
+.client-gallery .cg-tile-selected { background: var(--cg-select-tint); }
 .client-gallery .cg-tile-selected .cg-tile-img { clip-path: inset(6px round 4px); }
-.client-gallery .cg-tile-selected::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--cg-pick); pointer-events: none; }
+.client-gallery .cg-tile-selected::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--cg-select); pointer-events: none; }
 /* Already downloaded: a quiet corner mark, never a control, so it takes no taps. */
 .client-gallery .cg-delivered { position: absolute; left: 8px; bottom: 8px; display: flex; color: #fff; opacity: .8; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
 .client-gallery .cg-delivered svg { width: 18px; height: 18px; }
-.client-gallery .cg-select-on { background: var(--cg-pick); border: 2px solid #fff; animation: cg-select-pop 180ms ease-out; }
+.client-gallery .cg-select-on { background: var(--cg-select); border: 2px solid #fff; animation: cg-select-pop 180ms ease-out; }
 @keyframes cg-select-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
   .client-gallery .cg-select-on { animation: none; }
