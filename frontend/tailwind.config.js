@@ -1,3 +1,18 @@
+/**
+ * One shade of the brand colour: `share` percent of --color-primary mixed
+ * with `toward`, or the brand colour itself when `toward` is null. Returned
+ * as a Tailwind colour function so opacity modifiers such as
+ * `bg-primary-900/20` keep working on a colour Tailwind cannot parse.
+ */
+function brandShade(toward, share) {
+  const base = toward
+    ? `color-mix(in srgb, var(--color-primary) ${share}%, ${toward})`
+    : 'var(--color-primary)';
+  return ({ opacityValue }) => (opacityValue === undefined || opacityValue === '1'
+    ? base
+    : `color-mix(in srgb, ${base} calc(${opacityValue} * 100%), transparent)`);
+}
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -38,17 +53,23 @@ export default {
         'text-secondary': 'var(--color-muted-text)',
         accent: 'var(--color-accent)',
         'accent-dark': 'var(--color-accent-dark)',
+        // Derived from the operator's brand colour (--color-primary, set by
+        // ThemeContext from Branding), so focus rings, tints and accents in
+        // the admin follow Branding instead of a fixed green. 600 is the
+        // brand colour itself; lighter shades mix toward white, darker ones
+        // toward black. Without a brand colour, tokens.css supplies the
+        // original green.
         primary: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#5C8762', // Main brand color from scrappbook.de
-          700: '#4a6f4f',
-          800: '#3f5d42',
-          900: '#365238',
+          50: brandShade('white', 8),
+          100: brandShade('white', 15),
+          200: brandShade('white', 30),
+          300: brandShade('white', 50),
+          400: brandShade('white', 72),
+          500: brandShade('white', 88),
+          600: brandShade(null, 100),
+          700: brandShade('black', 82),
+          800: brandShade('black', 68),
+          900: brandShade('black', 55),
         },
         sand: {
           50: '#fdfcfb',
