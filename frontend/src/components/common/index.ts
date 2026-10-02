@@ -32,4 +32,5 @@ export { ReCaptcha } from './ReCaptcha';
 export { PasswordGenerator } from './PasswordGenerator';
 export { MarkdownContent } from './MarkdownContent';
 export { PoweredBy } from './PoweredBy';
+export { SupportContact } from './SupportContact';
 export { ConfirmDialogProvider, useConfirm, type ConfirmOptions, type ConfirmVariant } from './ConfirmDialog';
