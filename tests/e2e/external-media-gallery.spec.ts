@@ -120,59 +120,41 @@ test.describe('External media gallery behavior', () => {
       test.skip('Mobile viewport handling requires manual verification.');
     }
 
-    const { shareLink, slug } = await createExternalGallery(page);
+    const { shareLink } = await createExternalGallery(page);
 
     await page.goto(shareLink);
     await passGalleryPasswordPrompt(page, GALLERY_PASSWORD);
 
-    const tiles = page.locator('.relative.group');
+    const tiles = page.getByTestId('grid-tile');
     await expect(tiles.first()).toBeVisible({ timeout: 20000 });
 
     const initialTileCount = await tiles.count();
     expect(initialTileCount).toBeGreaterThan(0);
 
-    const firstTile = tiles.first();
-    await firstTile.scrollIntoViewIfNeeded();
-    // The tile's action buttons only take pointer events while it is hovered.
-    await firstTile.hover();
-    await firstTile.getByRole('button', { name: /View full size/i }).click();
-
-    // Open the feedback panel only if it is closed: toggling it blindly
-    // collapses a panel the lightbox already shows.
-    await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
-    const favoritesButtonInLightbox = page.getByRole('button', { name: /Add to favorites|Remove from favorites/ }).first();
-    if (!(await favoritesButtonInLightbox.isVisible())) {
-      await page.getByRole('button', { name: 'Toggle feedback' }).click();
+    // Pick the first photo from the viewer's rail.
+    await tiles.first().getByTestId('tile-open').click();
+    const pickInViewer = page.locator('.cg-viewer-rail').getByRole('button', { name: /^(Pick|Unpick)$/ });
+    await expect(pickInViewer).toBeVisible();
+    if ((await pickInViewer.getAttribute('aria-pressed')) !== 'true') {
+      await pickInViewer.click();
+      await expect(pickInViewer).toHaveAttribute('aria-pressed', 'true');
     }
-    await expect(favoritesButtonInLightbox).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
 
-    const ariaLabel = await favoritesButtonInLightbox.getAttribute('aria-label');
-    const isAlreadyFavorited = ariaLabel ? /Remove from favorites/i.test(ariaLabel) : false;
-    if (!isAlreadyFavorited) {
-      await favoritesButtonInLightbox.click();
-      // Wait for the mutation to complete and the subsequent refetch with updated counts
-      // The onSuccess handler invalidates gallery-photos, triggering a fresh refetch
-      await page.waitForTimeout(500);
-      await page.waitForLoadState('networkidle');
-    }
-
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
-    await page.waitForLoadState('networkidle');
-
-    await page.getByRole('button', { name: 'Favorited' }).click();
-    await expect(page.locator('.relative.group')).toHaveCount(1, { timeout: 15000 });
+    const pickTab = page.getByRole('tab', { name: /^Pick / });
+    await pickTab.click();
+    await expect(tiles).toHaveCount(1, { timeout: 15000 });
 
     await page.reload();
-    await page.waitForLoadState('networkidle');
-
     await expect(page).toHaveURL(/\/gallery\//);
-    await expect(page.locator('.relative.group').first()).toBeVisible();
+    await expect(tiles.first()).toBeVisible({ timeout: 20000 });
 
-    await page.getByRole('button', { name: 'Favorited' }).click();
-    await expect(page.locator('.relative.group')).toHaveCount(1, { timeout: 15000 });
+    // The tab rides on the URL, so the reload lands on it again.
+    await expect(pickTab).toHaveAttribute('aria-selected', 'true');
+    await expect(tiles).toHaveCount(1, { timeout: 15000 });
 
-    await page.getByRole('button', { name: 'All', exact: true }).click();
-    await expect(page.locator('.relative.group')).toHaveCount(initialTileCount);
+    await page.getByRole('tab', { name: /^Total / }).click();
+    await expect(tiles).toHaveCount(initialTileCount);
 
     const cookies = await context.cookies();
     expect(cookies.some((cookie) => cookie.name === 'gallery_token')).toBeTruthy();

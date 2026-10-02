@@ -108,8 +108,6 @@ const createEventType = async (eventTypeData) => {
     name,
     slug_prefix,
     emoji,
-    theme_preset,
-    theme_config,
     display_order
   } = eventTypeData;
 
@@ -135,8 +133,6 @@ const createEventType = async (eventTypeData) => {
     name,
     slug_prefix: normalizedSlugPrefix,
     emoji: emoji || '📷',
-    theme_preset: theme_preset || 'default',
-    theme_config: theme_config ? JSON.stringify(theme_config) : null,
     display_order: finalDisplayOrder,
     is_system: false,
     is_active: true,
@@ -193,14 +189,6 @@ const updateEventType = async (id, updates, actor = null) => {
 
   if (updates.emoji !== undefined) {
     updateData.emoji = updates.emoji;
-  }
-
-  if (updates.theme_preset !== undefined) {
-    updateData.theme_preset = updates.theme_preset;
-  }
-
-  if (updates.theme_config !== undefined) {
-    updateData.theme_config = updates.theme_config ? JSON.stringify(updates.theme_config) : null;
   }
 
   if (updates.display_order !== undefined) {
@@ -397,7 +385,7 @@ const reorderEventTypes = async (orderedIds) => {
  * Get event type info for slug generation
  * Returns the slug_prefix to use for a given event type identifier
  * @param {string} eventTypeIdentifier - Either an ID or slug_prefix
- * @returns {Promise<Object>} - Event type with slug_prefix and theme_preset
+ * @returns {Promise<Object>} - Event type with slug_prefix and emoji
  */
 const getEventTypeForSlug = async (eventTypeIdentifier) => {
   // Try to find by slug_prefix first
@@ -417,10 +405,10 @@ const getEventTypeForSlug = async (eventTypeIdentifier) => {
 
   // Fallback for legacy types - return a compatible object
   const legacyDefaults = {
-    wedding: { slug_prefix: 'wedding', theme_preset: 'elegantWedding', emoji: '💒' },
-    birthday: { slug_prefix: 'birthday', theme_preset: 'birthdayFun', emoji: '🎂' },
-    corporate: { slug_prefix: 'corporate', theme_preset: 'corporateTimeline', emoji: '🏢' },
-    other: { slug_prefix: 'other', theme_preset: 'default', emoji: '📸' }
+    wedding: { slug_prefix: 'wedding', emoji: '💒' },
+    birthday: { slug_prefix: 'birthday', emoji: '🎂' },
+    corporate: { slug_prefix: 'corporate', emoji: '🏢' },
+    other: { slug_prefix: 'other', emoji: '📸' }
   };
 
   const normalized = eventTypeIdentifier.toLowerCase();
@@ -429,7 +417,7 @@ const getEventTypeForSlug = async (eventTypeIdentifier) => {
   }
 
   // Default fallback
-  return { slug_prefix: 'event', theme_preset: 'default', emoji: '📷' };
+  return { slug_prefix: 'event', emoji: '📷' };
 };
 
 /**

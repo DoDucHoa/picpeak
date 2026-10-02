@@ -134,7 +134,7 @@ async function openGalleryShareLink(page: Page, shareLink: string) {
     }
   }
 
-  const tiles = page.locator('.relative.group');
+  const tiles = page.getByTestId('grid-tile');
   await expect(tiles.first()).toBeVisible({ timeout: 20000 });
   return tiles;
 }
@@ -160,10 +160,11 @@ test('admin login and gallery viewing smoke test @smoke', async ({ page }) => {
   try {
     // Verify long-form share link works
     const tiles = await openGalleryShareLink(page, shareLink);
-    await tiles.first().hover();
-    await tiles.first().getByRole('button', { name: /View full size/i }).click();
-    await expect(page.getByRole('button', { name: /Close/i })).toBeVisible();
-    await page.getByRole('button', { name: /Close/i }).click();
+    await tiles.first().getByTestId('tile-open').click();
+    const back = page.getByRole('button', { name: 'Back', exact: true });
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(back).toBeHidden();
 
     // Enable short gallery URLs
     await updateShortGallerySetting(page, adminToken, true);

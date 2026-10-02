@@ -48,15 +48,3 @@ describe('useDraftObject', () => {
     expect(result.current.form).toEqual(server);
   });
 });
-
-describe('useEventDraft.update', () => {
-  it('builds on the latest value, so two updates in one handler both land', () => {
-    const { result } = renderHook(() => useEventDraft());
-    const base = { config: { a: 1 }, preset: 'default' };
-    act(() => {
-      result.current.update('event', '__theme', (cur) => ({ ...(cur as typeof base), config: { a: 2 } }), base);
-      result.current.update('event', '__theme', (cur) => ({ ...(cur as typeof base), preset: 'custom' }), base);
-    });
-    expect(result.current.state['event.__theme'].value).toEqual({ config: { a: 2 }, preset: 'custom' });
-  });
-});

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type SetStateAction } from 'react';
 import {
-  currentValue, draftCount, dropParts as dropDraftParts, fieldKey, nameOf, partOf, sameValue, setField,
+  draftCount, dropParts as dropDraftParts, fieldKey, nameOf, partOf, sameValue, setField,
   type DraftPart, type DraftState,
 } from './eventDraft';
 
@@ -9,7 +9,6 @@ export interface EventDraft {
   count: number;
   isDirty: boolean;
   set: (part: DraftPart, name: string, value: unknown, serverValue: unknown) => void;
-  update: (part: DraftPart, name: string, fn: (current: unknown) => unknown, serverValue: unknown) => void;
   discard: () => void;
   dropParts: (parts: DraftPart[]) => void;
 }
@@ -19,18 +18,10 @@ export function useEventDraft(): EventDraft {
   const set = useCallback((part: DraftPart, name: string, value: unknown, serverValue: unknown) => {
     setState((s) => setField(s, fieldKey(part, name), value, serverValue));
   }, []);
-  // Reads the latest draft inside the state update, so two calls in one
-  // handler (a preset change sets config and preset name) both land.
-  const update = useCallback((part: DraftPart, name: string, fn: (current: unknown) => unknown, serverValue: unknown) => {
-    setState((s) => {
-      const key = fieldKey(part, name);
-      return setField(s, key, fn(currentValue(s, key, serverValue)), serverValue);
-    });
-  }, []);
   const discard = useCallback(() => setState({}), []);
   const dropParts = useCallback((parts: DraftPart[]) => setState((s) => dropDraftParts(s, parts)), []);
   const count = draftCount(state);
-  return { state, count, isDirty: count > 0, set, update, discard, dropParts };
+  return { state, count, isDirty: count > 0, set, discard, dropParts };
 }
 
 /**

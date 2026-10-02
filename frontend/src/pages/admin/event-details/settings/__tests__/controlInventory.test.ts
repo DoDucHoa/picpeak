@@ -16,7 +16,6 @@ const FILES: Record<SectionId, string> = {
 };
 // Fields a section edits through a component it renders, not in its own source.
 const VIA_COMPONENT: Record<string, string> = {
-  'event.__theme': 'EventThemeSection', 'event.css_template_id': 'EventThemeSection',
   'event.client_access_enabled': 'ClientAccessCard', 'event.client_password': 'ClientAccessCard',
   'event.customer_accounts': 'CustomerAccountPicker', 'event.show_credits_to_guests': 'CreditVisibilitySetting',
   'event.hero_photo_id': 'HeroPhotoSelector',

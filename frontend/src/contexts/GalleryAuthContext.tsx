@@ -20,7 +20,6 @@ interface GalleryEvent {
   event_type: string;
   event_date: string | null;
   welcome_message?: string;
-  color_theme?: string;
   expires_at: string | null;
   require_password?: boolean;
 }

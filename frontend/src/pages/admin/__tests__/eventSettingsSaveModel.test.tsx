@@ -72,10 +72,6 @@ vi.mock('../../../services/feedback.service', async () => ({
   },
 }));
 
-vi.mock('../../../services/cssTemplates.service', () => ({
-  cssTemplatesService: { getEnabledTemplates: vi.fn().mockResolvedValue([]) },
-}));
-
 vi.mock('../../../config/api', () => ({
   api: {
     get: vi.fn(async (url: string) => {
@@ -118,10 +114,10 @@ vi.mock('../../../contexts/PermissionsContext', () => ({
 
 import { EventDetailsPage } from '../EventDetailsPage';
 
-// A legacy event: NULL theme, SQLite 0/1 booleans, NULL hero logo fields.
+// A legacy event: SQLite 0/1 booleans, NULL hero logo fields.
 const legacyEvent = {
   id: 7, slug: 'legacy', event_name: 'Legacy', event_type: 'wedding', event_date: '2020-06-01',
-  expires_at: '2030-01-01T00:00:00.000Z', color_theme: null, header_style: 'standard', hero_divider_style: 'wave',
+  expires_at: '2030-01-01T00:00:00.000Z',
   hero_logo_visible: null, hero_logo_size: null, login_logo_visible: 0, allow_downloads: 1, external_watch: 0,
   og_image_share_enabled: 0, require_password: 1, customer_name: 'Anna', customer_email: 'anna@example.com',
   is_archived: 0, client_access_enabled: 0, source_mode: 'managed', is_active: 1, photo_count: 0,

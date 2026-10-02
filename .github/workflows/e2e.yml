@@ -45,6 +45,8 @@ jobs:
       - name: Install Playwright
         run: |
           npm ci
+          # Photo generation in tests/e2e/_helpers/gallery.ts loads sharp from backend/.
+          npm ci --prefix backend
           npx playwright install --with-deps chromium
 
       - name: Run smoke subset

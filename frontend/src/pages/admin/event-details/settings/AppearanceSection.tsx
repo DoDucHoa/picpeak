@@ -7,23 +7,21 @@ import { Card, Loading } from '../../../../components/common';
 import { HeroPhotoSelector, FocalPointPicker } from '../../../../components/admin';
 import { api } from '../../../../config/api';
 import { buildResourceUrl } from '../../../../utils/url';
-import { EventThemeSection } from '../EventThemeSection';
 import { useEventSettings } from './EventSettingsContext';
 import { AdvancedArea } from './AdvancedArea';
 import { BannerOverride } from './BannerOverride';
-import { ThemePresetPicker } from './ThemePresetPicker';
 import { usePublicSettings } from '../../../../hooks/usePublicSettings';
 
 /**
- * Settings > Appearance (spec 5.1). The theme preset and the hero photo are
- * the everyday controls; the full customizer, the hero details, the logo and
- * the banners sit in the advanced area. The event logo is an action: it
- * uploads or deletes at once and refreshes the page's event query.
+ * Settings > Appearance (spec 5.1). The hero photo is the everyday control;
+ * the hero details, the logo and the banners sit in the advanced area. The
+ * gallery's look itself is fixed. The event logo is an action: it uploads or
+ * deletes at once and refreshes the page's event query.
  */
 export const AppearanceSection: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { event, editForm, setEditForm, theme, setTheme, heroPhotos, cssTemplates, expert } = useEventSettings();
+  const { event, editForm, setEditForm, heroPhotos, expert } = useEventSettings();
   const { data: publicSettings } = usePublicSettings();
   const [logoUploading, setLogoUploading] = useState(false);
   const id = String(event.id);
@@ -64,7 +62,6 @@ export const AppearanceSection: React.FC = () => {
       <Card padding="md">
         <h2 className="text-lg font-semibold text-heading mb-4">{t('events.settings.sectionAppearance', 'Appearance')}</h2>
         <div className="space-y-4">
-          <ThemePresetPicker theme={theme} setTheme={setTheme} />
           {/* Hero Photo Selection */}
           <HeroPhotoSelector
             photos={heroPhotos}
@@ -74,7 +71,6 @@ export const AppearanceSection: React.FC = () => {
           />
         </div>
         <AdvancedArea expert={expert}>
-          <EventThemeSection theme={theme} setTheme={setTheme} editForm={editForm} setEditForm={setEditForm} cssTemplates={cssTemplates} />
           {/* Hero Image Focal Point Picker (#162) */}
           {editForm.hero_photo_id && (() => {
             const heroPhoto = heroPhotos.find((p) => p.id === editForm.hero_photo_id);

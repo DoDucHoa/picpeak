@@ -13,7 +13,6 @@ import {
   Tag,
   BarChart3,
   Flag,
-  Code,
   KeyRound,
   Webhook,
   Mail,
@@ -55,7 +54,6 @@ export type SettingsTab =
   | 'thumbnails'
   | 'downloads'
   | 'downloadQuota'
-  | 'styling'
   | 'cms'
   | 'email'
   | 'moderation'
@@ -109,7 +107,7 @@ export const ALL_SETTINGS_TABS: SettingsTab[] = [
   'usage',
   'features', 'general', 'events', 'eventTypes',
   'users',
-  'branding', 'categories', 'thumbnails', 'downloads', 'downloadQuota', 'styling', 'cms',
+  'branding', 'categories', 'thumbnails', 'downloads', 'downloadQuota', 'cms',
   'email', 'moderation', 'transfers',
   'security', 'sso', 'imageSecurity', 'seo',
   'apiTokens', 'webhooks',
@@ -148,7 +146,6 @@ export const SETTINGS_TAB_PERMISSIONS: Record<SettingsTab, string[]> = {
   thumbnails:        ['settings.view'],
   downloads:         ['settings.view'],
   downloadQuota:     ['settings.view', 'events.edit'],
-  styling:           ['settings.view', 'branding.edit'],
   cms:               ['settings.view', 'cms.view', 'cms.edit'],
   email:             ['settings.view', 'email.view', 'email.edit'],
   moderation:        ['settings.view'],
@@ -270,7 +267,6 @@ export function useSettingsNavGroups(): SettingsNavGroup[] {
         { key: 'thumbnails', label: t('settings.thumbnails.title', 'Thumbnails'),  icon: ImageIcon },
         { key: 'downloads',  label: t('settings.downloads.title',  'Download resolutions'), icon: DownloadIcon },
         { key: 'downloadQuota', label: t('downloadQuotaAdmin.packages.tab', 'Download packages'), icon: ShoppingCart },
-        { key: 'styling',    label: t('settings.styling.title',    'Custom CSS'),  icon: Code },
         { key: 'cms',        label: t('settings.cms.title',        'CMS Pages'),   icon: FileText },
         ...(flags.slideshow
           ? [{ key: 'slideshow' as const, label: t('settings.slideshow.title', 'Slideshow'), icon: MonitorPlay }]

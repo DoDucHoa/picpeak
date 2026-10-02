@@ -93,12 +93,11 @@ describe('face avatars use a whole-frame rendition', () => {
     Object.defineProperty(window, 'location', { value: { search: orig }, configurable: true });
   });
 
-  // The helper being correct is not the contract — the call sites using it is.
-  // Every assertion above passes with all three surfaces still reading
+  // The helper being correct is not the contract: the call sites using it is.
+  // Every assertion above passes with both surfaces still reading
   // thumbnail_url, which is exactly the bug. So pin the call sites.
-  describe('the three face surfaces actually use it', () => {
+  describe('the face surfaces actually use it', () => {
     const surfaces = [
-      ['PeopleStrip', '../PeopleStrip.tsx', 'facePreviewUrl'],
       ['PeopleSheet', '../PeopleSheet.tsx', 'facePreviewUrl'],
       ['PeopleManagerModal', '../../admin/PeopleManagerModal.tsx', 'adminFacePreviewUrl'],
     ] as const;

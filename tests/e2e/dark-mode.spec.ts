@@ -196,28 +196,6 @@ test.describe('Settings Page Dark Mode', () => {
   });
 });
 
-test.describe('Gallery Theme Color Mode', () => {
-  test('branding page has color mode selector', async ({ page }, testInfo) => {
-    if (testInfo.project.name === 'mobile-chrome') {
-      test.skip('Theme customizer validated on desktop viewport');
-    }
-
-    await loginToAdmin(page);
-
-    await page.goto('/admin/branding');
-    await expect(page.getByText(/Theme|Themen/i).first()).toBeVisible({ timeout: 10000 });
-
-    // Look for the color mode selector
-    // Anchored: "Force color mode" on the same page matches an unanchored regex.
-    await expect(page.getByText(/^(Color Mode|Farbmodus)$/i)).toBeVisible();
-
-    // Verify the mode buttons exist
-    await expect(page.getByRole('button', { name: /^Light$|^Hell$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Dark$|^Dunkel$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Auto$/i })).toBeVisible();
-  });
-});
-
 test.describe('Force color mode (instance-wide lock)', () => {
   // The force color mode setting is exposed in Branding > Force color mode.
   // When set, the user-facing dark/light toggle in the admin header should

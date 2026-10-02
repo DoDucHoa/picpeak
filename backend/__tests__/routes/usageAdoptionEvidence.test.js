@@ -32,7 +32,7 @@ describe('v5 evidence comes from real edits, not the generic successful-route ma
     });
     await db.schema.createTable('app_settings', t => { t.string('setting_key').primary(); t.text('setting_value'); });
     await db.schema.createTable('event_types', t => {
-      t.increments('id'); for (const key of ['name', 'slug_prefix', 'emoji', 'theme_preset', 'theme_config']) t.text(key);
+      t.increments('id'); for (const key of ['name', 'slug_prefix', 'emoji']) t.text(key);
       t.integer('display_order'); t.boolean('is_active'); t.boolean('is_system'); t.timestamp('updated_at'); t.timestamp('created_at');
     });
     await db.schema.createTable('events', t => { t.increments('id'); t.integer('created_by'); });

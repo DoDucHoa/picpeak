@@ -5,17 +5,17 @@ import type { CreateType } from './createForm';
 
 /** Used when the type catalog cannot be read. */
 export const FALLBACK_EVENT_TYPES: CreateType[] = [
-  { slug: 'wedding', name: 'Wedding', emoji: '💒', themePreset: 'elegantWedding' },
-  { slug: 'birthday', name: 'Birthday', emoji: '🎂', themePreset: 'birthdayFun' },
-  { slug: 'corporate', name: 'Corporate', emoji: '🏢', themePreset: 'corporateTimeline' },
-  { slug: 'other', name: 'Other', emoji: '📸', themePreset: 'default' },
+  { slug: 'wedding', name: 'Wedding', emoji: '💒' },
+  { slug: 'birthday', name: 'Birthday', emoji: '🎂' },
+  { slug: 'corporate', name: 'Corporate', emoji: '🏢' },
+  { slug: 'other', name: 'Other', emoji: '📸' },
 ];
 
 export const toCreateType = (type: EventType): CreateType => ({
-  slug: type.slug_prefix, name: type.name, emoji: type.emoji, themePreset: type.theme_preset,
+  slug: type.slug_prefix, name: type.name, emoji: type.emoji,
 });
 
-/** The event type as tiles (spec 5.5); the type only decides the theme preset. */
+/** The event type as tiles (spec 5.5); the type names the event and seeds its password. */
 export const EventTypeTiles: React.FC<{ types: CreateType[]; value: string; onChange: (slug: string) => void }> = ({ types, value, onChange }) => {
   const { t } = useTranslation();
   return (

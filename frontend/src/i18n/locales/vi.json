@@ -83,7 +83,7 @@
       },
       "custom_css": {
         "name": "CSS tùy chỉnh",
-        "configured": "CSS tùy chỉnh được cấu hình ở phạm vi toàn hệ thống hoặc áp dụng qua bộ sưu tập/giao diện/mẫu; nội dung CSS không được gửi đi.",
+        "configured": "CSS tùy chỉnh được cấu hình ở phạm vi toàn hệ thống hoặc cho trang công khai; nội dung CSS không được gửi đi.",
         "used": "Ghi nhận việc áp dụng CSS sau khi đồng ý, không quan sát khách xem ảnh."
       },
       "oauth": {
@@ -1820,9 +1820,6 @@
     "downloadingArchive": "Đang tải xuống file lưu trữ {{name}}...",
     "downloadStarted": "Đã bắt đầu tải xuống",
     "failedToDownloadArchive": "Không thể tải xuống file lưu trữ",
-    "galleryTheme": "Giao diện bộ sưu tập ảnh",
-    "noThemeSet": "Chưa cấu hình giao diện",
-    "customizingThemeFor": "Đang tùy chỉnh giao diện cho {{event}}",
     "customCssTemplate": "Mẫu CSS tùy chỉnh",
     "customCssTemplateDesc": "Áp dụng mẫu CSS tùy chỉnh để tạo kiểu cho bộ sưu tập ảnh với hiệu ứng hình ảnh độc đáo.",
     "noTemplate": "Không dùng mẫu",
@@ -3381,7 +3378,6 @@
     "title": "Thương hiệu & Giao diện",
     "subtitle": "Tùy chỉnh giao diện và cảm nhận của bộ sưu tập ảnh",
     "loadingBranding": "Đang tải cài đặt thương hiệu...",
-    "themeAndStyle": "Giao diện & Kiểu dáng",
     "companyInfo": "Thông tin công ty",
     "companyName": "Tên công ty",
     "companyNameHelp": "Hiển thị ở tiêu đề bộ sưu tập ảnh và trong email",
@@ -3416,8 +3412,8 @@
     "bottomRight": "Dưới bên phải",
     "watermarkOpacity": "Độ mờ watermark",
     "watermarkSize": "Kích thước watermark",
-    "theme": "Giao diện",
-    "galleryTheme": "Giao diện bộ sưu tập ảnh",
+    "brandStyle": "Phong cách thương hiệu",
+    "brandStyleHelp": "Màu sắc, phông chữ và hình dạng cho trang quản trị, cổng khách hàng và các trang công khai. Bộ sưu tập ảnh của khách giữ giao diện cố định riêng.",
     "colors": "Màu sắc",
     "accentColor": "Màu nhấn",
     "backgroundColor": "Màu nền",
@@ -3427,69 +3423,8 @@
     "colorModeDark": "Tối",
     "colorModeAuto": "Tự động",
     "colorModeHelp": "Tự động sẽ theo tùy chọn hệ thống của khách truy cập.",
-    "preview": "Xem trước",
     "saveChanges": "Lưu thay đổi",
     "applyLivePreview": "Áp dụng thay đổi ngay lập tức (Xem trước trực tiếp)",
-    "eventSpecificThemes": "Giao diện riêng theo sự kiện",
-    "eventThemesInfo": "Bạn có thể ghi đè các cài đặt giao diện chung này cho từng sự kiện riêng lẻ khi tạo hoặc chỉnh sửa sự kiện.",
-    "themePresets": "Giao diện dựng sẵn",
-    "galleryLayout": "Bố cục bộ sưu tập ảnh",
-    "layoutSettings": "Cài đặt bố cục",
-    "photoSpacing": "Khoảng cách ảnh",
-    "spacing": {
-      "tight": "Sát nhau",
-      "normal": "Bình thường",
-      "relaxed": "Thoáng"
-    },
-    "photoAnimation": "Hiệu ứng ảnh",
-    "animation": {
-      "none": "Không có",
-      "fade": "Mờ dần",
-      "scale": "Phóng to/thu nhỏ",
-      "slide": "Trượt"
-    },
-    "columns": "Số cột",
-    "mobile": "Di động",
-    "tablet": "Máy tính bảng",
-    "desktop": "Máy tính để bàn",
-    "enableAutoplay": "Bật tự động phát",
-    "autoplayInterval": "Khoảng thời gian tự động phát (giây)",
-    "groupPhotosBy": "Nhóm ảnh theo",
-    "grouping": {
-      "day": "Ngày",
-      "week": "Tuần",
-      "month": "Tháng"
-    },
-    "masonryMode": "Chế độ bố cục",
-    "masonryModeOptions": {
-      "columns": "Cột (kiểu Pinterest)",
-      "rows": "Hàng (tùy chỉnh căn đều)",
-      "flickr": "Flickr (căn đều đã kiểm chứng)",
-      "justified": "Google Photos (thuật toán Knuth-Plass)"
-    },
-    "masonryModeHint": {
-      "columns": "Các cột dọc kiểu Pinterest với chiều cao đa dạng",
-      "rows": "Bố cục căn đều theo hàng tùy chỉnh",
-      "flickr": "Thuật toán bố cục căn đều mã nguồn mở của Flickr",
-      "justified": "Các hàng kiểu Google Photos dùng thuật toán Knuth-Plass để ngắt hàng tối ưu"
-    },
-    "targetRowHeight": "Chiều cao hàng mục tiêu",
-    "targetRowHeightHint": "Chiều cao tính bằng pixel (150-400). Ảnh sẽ tự co giãn để vừa hàng.",
-    "lastRowBehavior": "Căn chỉnh hàng cuối",
-    "lastRowOptions": {
-      "left": "Căn trái",
-      "center": "Căn giữa",
-      "justify": "Căn đều (giãn ra)"
-    },
-    "thumbnailScale": "Tỷ lệ ảnh thu nhỏ",
-    "thumbnailScaleOptions": {
-      "xs": "XS: Nhiều ảnh nhất",
-      "sm": "SM: Nhiều ảnh hơn",
-      "md": "MD: Mặc định",
-      "lg": "LG: Ảnh lớn hơn",
-      "xl": "XL: Ảnh lớn nhất"
-    },
-    "thumbnailScaleHint": "Điều chỉnh số cột tương ứng với số cột lưới cơ bản",
     "typographyAndStyle": "Kiểu chữ & Phong cách",
     "bodyFont": "Phông chữ nội dung",
     "headingFont": "Phông chữ tiêu đề",
@@ -3514,37 +3449,13 @@
       "normal": "Bình thường",
       "dramatic": "Đậm"
     },
-    "backgroundPattern": "Nền",
-    "backgroundOptions": {
-      "none": "Không có",
-      "dots": "Chấm bi",
-      "grid": "Lưới",
-      "waves": "Sóng"
-    },
-    "customCSSHelp": "Nâng cao: Thêm CSS tùy chỉnh để tùy biến giao diện sâu hơn",
-    "cssInstructions": {
-      "title": "Cách sử dụng CSS tùy chỉnh",
-      "variables": "Biến CSS của giao diện",
-      "variablesDesc": "Dùng các biến CSS này để khớp với giao diện dựng sẵn của bạn:",
-      "layouts": "Bố cục bộ sưu tập ảnh tùy chỉnh",
-      "layoutsDesc": "Nhắm mục tiêu các phần tử của bộ sưu tập ảnh bằng các selector sau:",
-      "glassEffect": "Hiệu ứng Glassmorphism",
-      "glassEffectDesc": "Tạo hiệu ứng kính hiện đại:",
-      "tip": "Mẹo",
-      "tipText": "Dùng mẫu CSS từ Cài đặt > Mẫu CSS để có sẵn các thiết kế như Apple Liquid Glass."
-    },
     "resetToDefault": "Đặt lại về mặc định",
-    "applyTheme": "Áp dụng giao diện",
-    "saveTheme": "Lưu giao diện",
-    "previewLayout": "Xem trước bố cục",
-    "livePreview": "Xem trước trực tiếp",
     "pdfTypography": "Kiểu chữ PDF",
     "pdfTypographyHelp": "Dùng cho tiêu đề thư của hóa đơn và báo giá. Chọn một trong các phông chữ có sẵn, hoặc để mặc định để dùng Helvetica.",
     "pdfFontFamily": "Phông chữ nội dung",
     "pdfFontFamilyDefault": "Dùng Helvetica (mặc định)",
     "pdfFontFamilyMissing": "thiếu",
     "pdfFontSavedToast": "Đã lưu phông chữ PDF.",
-    "heroPlaceholderText": "Ảnh nổi bật của sự kiện sẽ hiển thị tại đây",
     "whiteLabel": "White Label",
     "hidePoweredBy": "Ẩn nhãn \"Powered by PicPeak\"",
     "hidePoweredByHelp": "Xóa ghi chú thuộc về PicPeak khỏi chân trang bộ sưu tập ảnh để có trải nghiệm white-label hoàn toàn",
@@ -3571,38 +3482,18 @@
     "showLogoInHeaderHelp": "Hiển thị logo trên thanh tiêu đề chính",
     "showLogoInHero": "Hiển thị logo ở phần nổi bật",
     "showLogoInHeroHelp": "Hiển thị logo trong phần nổi bật (đối với bố cục không dạng lưới)",
-    "headerStyle": "Kiểu tiêu đề",
-    "headerStyleDescription": "Chọn cách hiển thị tiêu đề bộ sưu tập ảnh. Kiểu tiêu đề độc lập với bố cục ảnh.",
-    "heroDividerStyle": "Kiểu đường phân cách",
-    "heroDividerDescription": "Chọn cách hiển thị phần chuyển tiếp giữa ảnh nổi bật và nội dung bộ sưu tập ảnh.",
-    "controlsStyle": "Kiểu điều khiển",
-    "controlsStyleDescription": "Chọn cách hiển thị bộ lọc và điều khiển của bộ sưu tập ảnh.",
-    "controlsStyleOptions": {
-      "classic": "Cổ điển",
-      "sidebar": "Thanh bên"
-    },
-    "controlsStyleDescriptions": {
-      "classic": "Thanh bộ lọc nội tuyến bên dưới tiêu đề",
-      "sidebar": "Nút menu mở thanh bên chứa bộ lọc"
-    },
-    "controlsStyleHeroWarning": "Khuyến nghị dùng thanh bên với tiêu đề dạng ảnh nổi bật để tránh điều khiển hiển thị đè lên ảnh nổi bật.",
-    "betaThumbnailWarningTitle": "Phát hiện ảnh thu nhỏ có độ phân giải thấp",
-    "betaThumbnailWarningText": "Ảnh thu nhỏ hiện tại của bạn có kích thước {{width}}×{{height}}px. Các giao diện thử nghiệm (beta) hiển thị ảnh ở kích thước lớn hơn và yêu cầu tối thiểu {{recommended}}×{{recommended}}px để có chất lượng tốt. Hãy tăng kích thước ảnh thu nhỏ trong Cài đặt > Ảnh thu nhỏ rồi tạo lại.",
-    "betaThumbnailWarningLink": "Đi đến Cài đặt ảnh thu nhỏ",
     "logoSize": "Kích thước logo",
     "surfaceColor": "Bề mặt",
     "elevatedColor": "Nổi bật",
     "borderColor": "Viền",
     "mutedTextColor": "Chữ mờ",
     "accentDarkColor": "Nhấn (tô đặc)",
-    "syncFromBranding": "Đồng bộ từ Thương hiệu",
     "forceColorMode": "Bắt buộc chế độ màu",
-    "forceColorModeHelp": "Khóa toàn bộ bảng quản trị và trang công khai theo chế độ tối hoặc sáng. Nút chuyển đổi tối/sáng dành cho người dùng sẽ bị ẩn khi khóa đang bật. Giao diện riêng theo sự kiện cố ghi đè chế độ màu cũng sẽ bị buộc tuân theo.",
+    "forceColorModeHelp": "Khóa toàn bộ bảng quản trị và trang công khai theo chế độ tối hoặc sáng. Nút chuyển đổi tối/sáng dành cho người dùng sẽ bị ẩn khi khóa đang bật.",
     "forceColorModeNone": "Không ép buộc (người dùng tự chọn)",
     "forceColorModeDark": "Ép buộc chế độ tối",
     "forceColorModeLight": "Ép buộc chế độ sáng",
-    "forcedModeBrandingHint": "Chế độ sáng/tối đang bị khóa trên toàn trang bởi điều khiển Ép buộc bên dưới; bộ chọn chế độ theo từng giao diện bị ẩn vì sẽ không có tác dụng.",
-    "forcedModeGalleryNote": "Đang có khóa màu áp dụng trên toàn trang, nên bộ sưu tập ảnh này sẽ theo chế độ sáng/tối đã bị khóa. Các tùy chọn màu sắc và sáng/tối bị ẩn ở đây và không thể ghi đè theo từng bộ sưu tập ảnh.",
+    "forcedModeBrandingHint": "Chế độ sáng/tối đang bị khóa trên toàn trang bởi điều khiển Ép buộc bên dưới, nên bộ chọn chế độ màu bị ẩn: nó sẽ không có tác dụng.",
     "colorGroupSurfaces": "Bề mặt",
     "colorGroupSurfacesHelp": "Các lớp nền trung tính phía sau nội dung của bạn. Nền (Background) nằm sâu nhất; Bề mặt (Surface) và Nổi bật (Elevated) xếp chồng lên trên.",
     "backgroundColorHelp": "Chính trang: màu nền phần thân của mọi bộ sưu tập ảnh, trang quản trị và trang CMS.",
@@ -3617,42 +3508,6 @@
     "colorGroupAccentHelp": "Màu thương hiệu làm nổi bật các phần tử tương tác. Dùng một cặp màu mạnh: Nhấn (Accent) dùng cho viền/chữ, Nhấn đậm (Accent Dark) dùng cho nút tô đặc.",
     "accentColorHelp": "Liên kết, biểu tượng, vòng focus, trạng thái hover trên nút chính, gạch chân mục thanh bên đang chọn. Cần rõ ràng trên cả Nền và Bề mặt.",
     "accentDarkColorHelp": "Nút CTA tô đặc, nền mục thanh bên đang chọn, huy hiệu và nhãn. Cần đủ độ tương phản để chữ trắng dễ đọc phía trên.",
-    "cssTemplate": "Mẫu CSS",
-    "cssTemplateDescription": "Chọn một mẫu CSS dựng sẵn để áp dụng kiểu dáng cho toàn ứng dụng vào bộ sưu tập ảnh này. Mẫu có thể được quản lý trong Cài đặt > Mẫu CSS.",
-    "noTemplate": "Không dùng mẫu",
-    "noTemplateDescription": "Chỉ dùng cài đặt giao diện, không dùng mẫu CSS",
-    "templateSlot": "Vị trí {{slot}}",
-    "eventCustomCSS": "CSS tùy chỉnh riêng cho sự kiện",
-    "layoutDescriptions": {
-      "grid": "Bố cục lưới cổ điển với kích thước ảnh đồng đều",
-      "masonry": "Bố cục kiểu Pinterest với chiều cao đa dạng",
-      "carousel": "Trình chiếu toàn màn hình có điều hướng",
-      "timeline": "Ảnh sắp xếp theo ngày",
-      "mosaic": "Bố cục nghệ thuật với kích thước đa dạng",
-      "gallery-premium": "Giao diện sáng thanh lịch với ảnh nổi bật và masonry (Thử nghiệm)",
-      "gallery-story": "Giao diện tối điện ảnh với các phân đoạn cảnh (Thử nghiệm)"
-    },
-    "headerStyleOptions": {
-      "hero": "Ảnh nổi bật",
-      "standard": "Tiêu chuẩn",
-      "banner": "Banner",
-      "minimal": "Tối giản",
-      "none": "Không có tiêu đề"
-    },
-    "headerStyleDescriptions": {
-      "hero": "Ảnh toàn chiều cao có lớp phủ thông tin sự kiện",
-      "standard": "Tiêu đề nội tuyến gọn gàng với chi tiết sự kiện",
-      "banner": "Tiêu đề tiêu chuẩn kèm banner màu phía trên",
-      "minimal": "Tiêu đề gọn gàng chỉ với thông tin thiết yếu",
-      "none": "Ẩn hoàn toàn tiêu đề"
-    },
-    "dividerOptions": {
-      "wave": "Sóng",
-      "straight": "Thẳng",
-      "angle": "Góc xiên",
-      "curve": "Cong",
-      "none": "Không có"
-    },
     "loginLogo": {
       "title": "Logo trang đăng nhập",
       "subtitle": "Chỉ kiểm soát /admin/login và /customer/login. Bộ sưu tập ảnh và giao diện quản trị dùng cài đặt logo phía trên.",
@@ -3826,13 +3681,7 @@
     "heroLogoPosition": "Vị trí logo trong phần hero",
     "heroLogoPositionHelp": "Áp dụng cho mọi gallery có phần đầu dạng hero.",
     "galleryPasswordLogo": "Hiện logo trên trang nhập mật khẩu của gallery",
-    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng.",
-    "storyGridMode": "Khung ảnh",
-    "storyGridModeOptions": {
-      "fixed": "Ô cố định (cắt cho vừa)",
-      "natural": "Tự nhiên (giữ nguyên tỷ lệ khung hình)"
-    },
-    "storyGridModeHint": "Chế độ Tự nhiên sắp xếp các cảnh theo hàng dựa trên kích thước của từng ảnh, nên ảnh dọc được hiển thị trọn vẹn thay vì bị cắt."
+    "galleryPasswordLogoHelp": "Áp dụng cho mọi gallery có mật khẩu và cho trang truy cập của khách hàng."
   },
   "admin": {
     "title": "Bảng quản trị",
@@ -5483,26 +5332,6 @@
       "S3_CONNECTION_FAILED": "Không thể kết nối tới bucket S3 với các cài đặt này. Hãy kiểm tra endpoint, bucket và thông tin xác thực."
     }
   },
-  "cssTemplates": {
-    "template": "Mẫu",
-    "templateName": "Tên mẫu",
-    "enableTemplate": "Bật mẫu này",
-    "enableHint": "Các mẫu đã bật có thể được chọn khi tạo sự kiện",
-    "cssContent": "Nội dung CSS",
-    "cssHint": "Dùng .gallery-page để giới hạn phạm vi kiểu dáng trong bộ sưu tập ảnh. Các biến khả dụng: --gallery-bg, --gallery-text, --gallery-accent",
-    "securityNotice": "Thông báo bảo mật",
-    "securityText": "CSS được làm sạch để ngăn chặn mã độc. URL bên ngoài, @import và biểu thức JavaScript đều bị chặn.",
-    "resetToDefault": "Đặt lại về mặc định",
-    "resetConfirm": "Đặt lại mẫu này về mặc định? Các thay đổi của bạn sẽ bị mất.",
-    "unsavedChanges": "Thay đổi chưa được lưu",
-    "saveTemplate": "Lưu mẫu",
-    "lastUpdated": "Cập nhật lần cuối",
-    "saved": "Lưu mẫu thành công",
-    "saveFailed": "Không thể lưu mẫu",
-    "sanitizationWarning": "Một số mẫu CSS đã bị chặn vì lý do bảo mật",
-    "reset": "Đã đặt lại mẫu về mặc định",
-    "resetFailed": "Không thể đặt lại mẫu"
-  },
   "maintenance": {
     "title": "Bảo trì hệ thống",
     "message": "Chúng tôi hiện đang thực hiện bảo trì theo lịch để cải thiện dịch vụ. Chúng tôi sẽ hoạt động trở lại trong thời gian ngắn.",
@@ -6063,7 +5892,10 @@
     "invalidPin": "PIN không hợp lệ. Vui lòng thử lại.",
     "pinHelperText": "Khách hàng sẽ dùng PIN này để truy cập trang duyệt ảnh. Tối thiểu 6 ký tự.",
     "pinUpdated": "Đã cập nhật PIN khách hàng",
-    "setPin": "Đặt PIN"
+    "setPin": "Đặt PIN",
+    "hiddenFromGuests": "Đã ẩn với khách",
+    "hideFromGuests": "Ẩn với khách",
+    "showToGuests": "Hiện cho khách"
   },
   "export": {
     "button": "Xuất",
@@ -10041,5 +9873,54 @@
     "subnav": {
       "approvals": "Phê duyệt"
     }
+  },
+  "clientGallery": {
+    "viewAlbum": "Xem album",
+    "expiresOn": "Album của bạn hết hạn vào <1>{{date}}</1>",
+    "like": "Thích",
+    "unlike": "Bỏ thích",
+    "pick": "Chọn",
+    "unpick": "Bỏ chọn",
+    "viewer": {
+      "fileName": "Tên file",
+      "dimensions": "Kích thước",
+      "size": "Dung lượng",
+      "back": "Quay lại",
+      "comments": "Bình luận",
+      "fileInfo": "Thông tin file",
+      "captured": "Ngày chụp",
+      "download": "Tải về"
+    },
+    "list": {
+      "action": "Thao tác"
+    },
+    "tabs": {
+      "total": "Tất cả",
+      "like": "Thích",
+      "pick": "Chọn"
+    },
+    "sort": {
+      "captureDate": "Thời gian chụp",
+      "fileName": "Tên file",
+      "lastUpload": "Tải lên gần nhất"
+    },
+    "download": "Tải về",
+    "downloadAll": "Tất cả",
+    "multiSelect": "Chọn nhiều",
+    "downloadSelected": "Tải ảnh đã chọn",
+    "selectedCount": "Đã chọn {{count}}",
+    "cancel": "Huỷ",
+    "changeSortDirection": "Đổi chiều sắp xếp",
+    "changeViewMode": "Đổi kiểu xem",
+    "share": "Chia sẻ",
+    "linkCopied": "Đã chép link",
+    "logout": "Đăng xuất",
+    "people": "Người trong ảnh",
+    "emptyLiked": "Chưa thích ảnh nào",
+    "emptyPicked": "Chưa chọn ảnh nào",
+    "backToTop": "Lên đầu trang",
+    "emptyAll": "Chưa có ảnh nào",
+    "copyFailed": "Không chép được link",
+    "select": "Chọn"
   }
 }

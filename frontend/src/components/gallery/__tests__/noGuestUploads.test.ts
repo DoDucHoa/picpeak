@@ -8,7 +8,19 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 
 const GALLERY = path.resolve(__dirname, '..');
-const read = (rel: string) => fs.readFileSync(path.join(GALLERY, rel), 'utf8');
+const CLIENT_GALLERY = path.resolve(__dirname, '../../../features/client-gallery');
+
+function walk(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === '__tests__' ? [] : walk(file);
+    return /\.tsx?$/.test(entry.name) ? [file] : [];
+  });
+}
+
+// Every source file of the client gallery.
+const SOURCES = walk(CLIENT_GALLERY);
+const label = (file: string) => path.relative(path.resolve(__dirname, '../../..'), file).split(path.sep).join('/');
 
 describe('gallery without guest uploads or reveal', () => {
   it('has no upload component or upload hook', () => {
@@ -16,11 +28,15 @@ describe('gallery without guest uploads or reveal', () => {
     expect(fs.existsSync(path.join(GALLERY, 'hooks/useGalleryUpload.ts'))).toBe(false);
   });
 
-  it.each(['GalleryView.tsx', 'GallerySidebar.tsx', 'index.ts'])('%s names no upload control', (rel) => {
-    expect(read(rel)).not.toMatch(/UserPhotoUpload|allow_user_uploads|allowUploads|onUploadClick|showUploadModal/);
+  it('scans the client gallery itself', () => {
+    expect(SOURCES.map(label)).toContain('features/client-gallery/ClientGallery.tsx');
   });
 
-  it('never renders the reveal screen or polls for a reveal', () => {
-    expect(read('GalleryView.tsx')).not.toMatch(/hidden_until_reveal|hiddenUntilReveal|reveal_armed|revealPending/);
+  it.each(SOURCES.map((file) => [label(file), file]))('%s names no upload control', (_name, file) => {
+    expect(fs.readFileSync(file, 'utf8')).not.toMatch(/UserPhotoUpload|allow_user_uploads|allowUploads|onUploadClick|showUploadModal/);
+  });
+
+  it.each(SOURCES.map((file) => [label(file), file]))('%s never renders the reveal screen or polls for a reveal', (_name, file) => {
+    expect(fs.readFileSync(file, 'utf8')).not.toMatch(/hidden_until_reveal|hiddenUntilReveal|reveal_armed|revealPending/);
   });
 });

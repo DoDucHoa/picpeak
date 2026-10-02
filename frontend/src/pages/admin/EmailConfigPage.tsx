@@ -885,8 +885,8 @@ export const EmailConfigPage: React.FC = () => {
             <p className="text-sm text-muted mb-6">{t('email.brandingDescription')}</p>
 
             {/* 8 email colour pickers. Each row uses the same compact label
-                + info-tooltip pattern as the gallery palette in
-                ThemeCustomizerEnhanced — keeps the two configurators visually
+                + info-tooltip pattern as the brand palette in
+                ColorCustomizationCard, which keeps the two configurators visually
                 consistent without sharing the React component (the email
                 state is local to this page and saved through a different
                 endpoint, so reuse would be more friction than value). */}

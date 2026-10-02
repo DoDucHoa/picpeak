@@ -75,7 +75,7 @@ const OPTIONAL = {
   event_require_customer_name: false, event_require_customer_email: false,
   event_require_event_date: false, event_require_expiration: false,
 };
-const OTHER = { id: 4, name: 'Other', slug_prefix: 'other', emoji: 'o', theme_preset: 'default', is_active: true };
+const OTHER = { id: 4, name: 'Other', slug_prefix: 'other', emoji: 'o', is_active: true };
 
 function renderCreate() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -110,7 +110,6 @@ beforeEach(() => {
 
 describe('the create screen', () => {
   it('sends the defaults: preselected type, a generated password, the expiry from Settings, no theme', async () => {
-    state.publicSettings = { ...state.publicSettings, theme_config: { headerStyle: 'hero', heroDividerStyle: 'curve' } };
     renderCreate();
     fireEvent.change(await name(), { target: { value: 'Anna' } });
     expect((screen.getByLabelText('events.galleryPassword') as HTMLInputElement).value.length).toBeGreaterThanOrEqual(6);
@@ -118,10 +117,10 @@ describe('the create screen', () => {
     await waitFor(() => expect(createEvent).toHaveBeenCalledTimes(1));
     expect(payload()).toMatchObject({
       event_type: 'other', event_name: 'Anna', require_password: true,
-      expires_at: expiryFromToday(45), header_style: 'hero', hero_divider_style: 'curve', source_mode: 'managed',
+      expires_at: expiryFromToday(45), source_mode: 'managed',
     });
     expect(payload().password.length).toBeGreaterThanOrEqual(6);
-    expect(payload()).not.toHaveProperty('color_theme');
+    expect(Object.keys(payload()).filter((key) => /theme|style|css/i.test(key))).toEqual([]);
     expect(payload()).not.toHaveProperty('expiration_days');
   });
 

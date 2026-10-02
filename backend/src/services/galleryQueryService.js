@@ -160,7 +160,7 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
     commentMap[c.photo_id] = parseInt(c.comment_count);
   });
 
-  // Per-viewer "is_liked" set (#590 follow-up). Hard refresh on the
+  // Per-viewer "is_liked" and "is_favorited" sets (#590 follow-up). Hard refresh on the
   // gallery grid used to reset every heart to empty because the lifted
   // likedPhotoIds state started as a fresh Set on mount — even photos
   // the viewer had actually liked. Surface a per-viewer flag so the
@@ -177,22 +177,27 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
   // choices. Same reasoning the colour-label block below already applies;
   // this was the one per-viewer field that disagreed with it.
   const likedPhotoIds = new Set();
+  const favoritedPhotoIds = new Set();
   if (photos.length > 0) {
-    const likeQuery = db('photo_feedback')
+    const ownQuery = db('photo_feedback')
     // Hidden rows are not there, for the viewer's OWN feedback as much as
     // anyone's (#1150). getPhotoFeedback drops them, the filter drops them
     // and updatePhotoFeedbackStats does not count them — leaving the heart
     // filled was the one place that disagreed, so a like the photographer
     // had hidden still showed as liked on a photo whose like_count was 0.
-      .where({ event_id: event.id, feedback_type: 'like', is_hidden: formatBoolean(false) })
+      .where({ event_id: event.id, is_hidden: formatBoolean(false) })
+      .whereIn('feedback_type', ['like', 'favorite'])
       .whereIn('photo_id', photos.map(p => p.id));
     if (identity.guestId) {
-      likeQuery.where('guest_id', identity.guestId);
+      ownQuery.where('guest_id', identity.guestId);
     } else {
-      likeQuery.where('guest_identifier', identity.guestIdentifier);
+      ownQuery.where('guest_identifier', identity.guestIdentifier);
     }
-    const likedRows = await likeQuery.select('photo_id');
-    likedRows.forEach(row => likedPhotoIds.add(row.photo_id));
+    const ownRows = await ownQuery.select('photo_id', 'feedback_type');
+    ownRows.forEach((row) => {
+      if (row.feedback_type === 'like') likedPhotoIds.add(row.photo_id);
+      else favoritedPhotoIds.add(row.photo_id);
+    });
   }
 
   // Per-viewer colour label (#1044), same identity resolution as the likes
@@ -412,7 +417,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       event_type: event.event_type,
       event_date: event.event_date,
       welcome_message: event.welcome_message,
-      color_theme: event.color_theme,
       expires_at: event.expires_at,
       hero_photo_id: event.hero_photo_id,
       // Defaults match /info: downloads on unless explicitly disabled,
@@ -448,8 +452,6 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
       hero_logo_size: heroLogo.hero_logo_size,
       hero_logo_position: heroLogo.hero_logo_position,
       hero_logo_url: event.hero_logo_url || null,
-      header_style: event.header_style || 'standard',
-      hero_divider_style: event.hero_divider_style || 'wave',
       hero_image_anchor: event.hero_image_anchor || 'center',
       default_photo_sort: event.default_photo_sort || 'upload_date_desc',
       // Promo banner override (#440). GalleryView has always read
@@ -579,6 +581,9 @@ async function getGalleryPhotos({ event, query = {}, identity, accessLevel, admi
         // Survives show_feedback_to_guests being off (#1286): the viewer's
         // own heart is theirs, and the like_count beside it stays hidden.
         is_liked: likedPhotoIds.has(photo.id),
+        // The viewer's own pick, same identity model and same reasoning as
+        // is_liked: it is their selection, so it survives sharing being off.
+        is_favorited: favoritedPhotoIds.has(photo.id),
         favorite_count: showFeedbackToGuests ? (photo.favorite_count || 0) : 0,
         // Colour labels (#1044). The COUNT is aggregate data and follows
         // show_feedback_to_guests like its siblings; the viewer's OWN label

@@ -63,10 +63,7 @@ maybe('product usage on Postgres', () => {
       t.string('key').primary(); t.boolean('value');
     });
     await db.schema.createTable('events', (t) => {
-      t.increments('id'); t.text('color_theme'); t.string('external_path'); t.integer('css_template_id');
-    });
-    await db.schema.createTable('css_templates', (t) => {
-      t.increments('id'); t.boolean('is_enabled'); t.text('css_content');
+      t.increments('id'); t.string('external_path');
     });
     for (const table of ['email_configs', 'mail_accounts']) {
       await db.schema.createTable(table, (t) => { t.increments('id'); t.string('smtp_host'); });
@@ -91,7 +88,6 @@ maybe('product usage on Postgres', () => {
     await db('product_usage_state').delete();
     await db('product_usage_state').insert({ id: 1 });
     await db('events').delete();
-    await db('css_templates').delete();
     await db('feature_flags').delete();
     await db('app_settings').delete();
   });
@@ -279,20 +275,15 @@ maybe('product usage on Postgres', () => {
     expect(report.features.newsletters.configured).toBe(false);
   });
 
-  it('resolves preset layouts and template CSS on this engine too', async () => {
-    const [tpl] = await db('css_templates').insert({ is_enabled: true, css_content: '.a{}' }).returning('id');
-    const templateId = typeof tpl === 'object' ? tpl.id : tpl;
-    await db('events').insert([
-      { color_theme: 'modernMasonry' },
-      { color_theme: null, css_template_id: templateId },
-    ]);
+  it('reports the fixed gallery design and global CSS on this engine too', async () => {
+    await db('events').insert([{ external_path: null }, { external_path: null }]);
     await db('app_settings').insert({
-      setting_key: 'theme_config',
-      setting_value: JSON.stringify({ galleryLayout: 'carousel' }),
+      setting_key: 'general_public_site_custom_css',
+      setting_value: JSON.stringify('body { color: red; }'),
     });
 
     const report = await service().snapshot();
-    expect(report.gallery_layouts.sort()).toEqual(['carousel', 'masonry']);
+    expect(report.gallery_layouts).toEqual(['masonry']);
     expect(report.features.custom_css.configured).toBe(true);
   });
 });

@@ -199,9 +199,9 @@ describe('peopleInScope', () => {
     expect(inFolder).toEqual([{ id: 3, face_count: 2 }]);
   });
 
-  // PeopleStrip only shows the first 12 inline, so keeping /people's event-wide
-  // ordering after rescoping could push a folder's most-photographed person
-  // behind "Show all".
+  // The people sheet lists people in this order, so keeping /people's
+  // event-wide ordering after rescoping would bury a folder's
+  // most-photographed person further down the list.
   it('re-sorts by the recomputed scoped count', () => {
     const people = [
       { id: 3, face_count: 99 }, // 2 in the folder
@@ -251,5 +251,14 @@ describe('URL round-trip', () => {
     writeFolderParam(null);
     expect(readFolderParam()).toBeNull();
     expect(new URLSearchParams(window.location.search).get('token')).toBe('abc');
+  });
+
+  it('adds a history entry by default and none in replace mode', () => {
+    const before = window.history.length;
+    writeFolderParam('selects');
+    expect(window.history.length).toBe(before + 1);
+    writeFolderParam('ceremony', 'replace');
+    expect(window.history.length).toBe(before + 1);
+    expect(readFolderParam()).toBe('ceremony');
   });
 });

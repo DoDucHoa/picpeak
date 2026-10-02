@@ -203,7 +203,7 @@
         "en": "Custom CSS"
       },
       "configured": {
-        "en": "Custom CSS is configured globally or applied through a gallery/theme/template; CSS text is not sent."
+        "en": "Custom CSS is configured globally or for the public site; CSS text is not sent."
       },
       "used": {
         "en": "Applied CSS observed after consent, without observing visitors."

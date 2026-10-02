@@ -78,7 +78,11 @@ export function useFeedbackLimitModal() {
     />
   ) : null;
 
-  return { handleError, modal };
+  // Read by callers that must step aside while it shows, such as the client
+  // gallery's viewer, which makes everything behind it inert.
+  const isOpen = state?.open === true;
+
+  return { handleError, modal, isOpen };
 }
 
 // Exported for unit tests; the hook above is the consumer-facing API.

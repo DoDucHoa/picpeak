@@ -18,7 +18,6 @@ export interface Archive {
 export interface ArchiveDetails extends Archive {
   adminEmail: string;
   welcomeMessage?: string;
-  colorTheme?: string;
   createdAt: string;
   photos: Array<{
     filename: string;

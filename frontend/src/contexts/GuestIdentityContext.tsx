@@ -126,12 +126,10 @@ export const GuestIdentityProvider: React.FC<GuestIdentityProviderProps> = ({
   // token. Reachable three ways now: another tab signing in or out, "Not
   // you?", and a ?invite= redemption over an existing identity.
   const previousIdentityId = useRef<number | null>(identity?.id ?? null);
-  // Invalidating queries is not enough on its own: six gallery layouts seed
-  // their liked-photo set behind a `likedSeededRef` that is deliberately
-  // mount-only ("so refetches don't clobber in-session optimistic toggles"),
-  // and PhotoLightbox holds its own copy. A refetch therefore leaves the
-  // previous guest's hearts on screen. Bumping this generation re-keys the
-  // subtree so every such consumer is rebuilt.
+  // Invalidating queries is not enough on its own: a consumer that seeds
+  // local feedback state once on mount keeps the previous guest's hearts on
+  // screen after a refetch. Bumping this generation re-keys the subtree so
+  // every such consumer is rebuilt.
   const [identityGeneration, setIdentityGeneration] = useState(0);
   useEffect(() => {
     const currentId = identity?.id ?? null;

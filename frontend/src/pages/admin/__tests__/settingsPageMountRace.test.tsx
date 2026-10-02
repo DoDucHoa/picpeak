@@ -45,7 +45,6 @@ vi.mock('../../../features/settings', () => {
     CategoriesTab: Stub,
     AnalyticsTab: Stub,
     ModerationTab: Stub,
-    StylingTab: Stub,
     SEOTab: Stub,
     ThumbnailsTab: Stub,
     DownloadsTab: Stub,

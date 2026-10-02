@@ -7,8 +7,8 @@ import { usePermission } from '../../../hooks/usePermission';
 
 /**
  * "Next steps" on the Overview while the event is a draft (spec 5.6), each
- * ticked from saved data: photos uploaded, a hero photo when the header uses
- * one, then publish through the page's existing dialog. A step the user may
+ * ticked from saved data: photos uploaded, a hero photo for the gallery cover,
+ * then publish through the page's existing dialog. A step the user may
  * not do stays visible, locked, with the reason (spec 5.3).
  */
 export const NextStepsChecklist: React.FC<{
@@ -27,10 +27,10 @@ export const NextStepsChecklist: React.FC<{
       key: 'photos', done: (event.photo_count ?? 0) > 0, onClick: onUploadPhotos, allowed: canUpload, permission: 'photos.upload',
       label: t('events.nextSteps.uploadPhotos', 'Upload photos'), action: t('events.nextSteps.uploadAction', 'Upload'),
     },
-    ...(event.header_style === 'hero' ? [{
+    {
       key: 'hero', done: !!event.hero_photo_id, onClick: onChooseHero, allowed: canEdit, permission: 'events.edit',
       label: t('events.nextSteps.chooseHero', 'Choose a hero photo'), action: t('events.nextSteps.chooseHeroAction', 'Choose'),
-    }] : []),
+    },
     {
       key: 'publish', done: false, onClick: onPublish, allowed: canEdit, permission: 'events.edit',
       label: t('events.nextSteps.publish', 'Publish and send to the client'), action: t('events.nextSteps.publishAction', 'Publish'),

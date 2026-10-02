@@ -57,12 +57,6 @@
       ],
       "reason": "Configuration boolean only; no actual download/selection behavior or resolution values."
     },
-    "styling": {
-      "signals": [
-        "custom_css"
-      ],
-      "reason": "Presence/application only plus controlled gallery-layout enums, never CSS/theme values."
-    },
     "email": {
       "signals": [
         "smtp",
@@ -435,20 +429,6 @@
         "GET /:id/audit-trail",
         "GET /:id/verify-integrity",
         "GET /:id/preview"
-      ]
-    },
-    "adminCssTemplates.js": {
-      "decision": "configuration",
-      "signals": [
-        "custom_css"
-      ],
-      "reason": "Only existence of enabled applied CSS and locally observed application, not editing/viewing templates or any CSS text.",
-      "route_signatures": [
-        "GET /",
-        "GET /enabled",
-        "GET /:slotNumber",
-        "PUT /:slotNumber",
-        "POST /:slotNumber/reset"
       ]
     },
     "adminCustomers.js": {
@@ -1725,14 +1705,6 @@
       "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
       "route_signatures": [
         "GET /:slug/stats"
-      ]
-    },
-    "gallery/styles.js": {
-      "decision": "excluded",
-      "signals": [],
-      "reason": "Public/customer/gallery/visitor surface or existing optional third-party analytics proxy: no product-usage middleware, callbacks, counters or report triggers.",
-      "route_signatures": [
-        "GET /:slug/css-template"
       ]
     },
     "gallery/uploads.js": {

@@ -11,12 +11,11 @@ export const GlobalThemeProvider: React.FC<GlobalThemeProviderProps> = ({ childr
   const themeAppliedRef = useRef(false);
   const { data: settingsData } = usePublicSettings();
 
-  // Apply global theme when settings are loaded (but not on gallery pages)
+  // Apply the instance brand once the settings are loaded. It sits on :root
+  // on every page, the client gallery included: the gallery scopes its own
+  // fixed tokens under .client-gallery, so the brand never reaches it.
   useEffect(() => {
-    // Skip if we're on a gallery page - gallery pages handle their own themes
-    const isGalleryPage = window.location.pathname.includes('/gallery/');
-
-    if (!themeAppliedRef.current && settingsData?.theme_config && !isGalleryPage) {
+    if (!themeAppliedRef.current && settingsData?.theme_config) {
       themeAppliedRef.current = true;
       // Instance-wide force color mode is enforced inside ThemeContext.applyTheme.
       setTheme(settingsData.theme_config);

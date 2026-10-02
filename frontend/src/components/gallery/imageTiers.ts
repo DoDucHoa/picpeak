@@ -70,7 +70,7 @@ export function viewportPreviewWidth(photo?: { width?: number | null; height?: n
  * this is a bonus rather than the mechanism — the viewport cap above is what
  * does the real work.
  */
-function applyDataSaver(width: number, tiers: readonly number[]): number {
+export function applyDataSaver(width: number, tiers: readonly number[]): number {
   const conn = (navigator as unknown as {
     connection?: { saveData?: boolean; effectiveType?: string };
   }).connection;
@@ -85,7 +85,7 @@ function applyDataSaver(width: number, tiers: readonly number[]): number {
 }
 
 /** Append ?w= to a derivative URL, preserving any existing query string. */
-function withWidth(url: string, width: number): string {
+export function withWidth(url: string, width: number): string {
   return `${url}${url.includes('?') ? '&' : '?'}w=${width}`;
 }
 

@@ -24,11 +24,12 @@ async function create(source, extra) {
   expect(response.status).toBe(source === 'admin' ? 200 : 201);
   return response.body;
 }
-it.each(['admin', 'v1', 'legacy'])('%s stores theme, owner, dates and feedback defaults through one use case', async source => {
-  const theme = JSON.stringify({ primaryColor: '#ff0066' });
-  const created = await create(source, { color_theme: theme, feedback_enabled: true });
+it.each(['admin', 'v1', 'legacy'])('%s stores owner, dates and feedback defaults through one use case', async source => {
+  // An older client still posts a gallery theme; it is ignored, not stored.
+  const created = await create(source, { color_theme: JSON.stringify({ primaryColor: '#ff0066' }), feedback_enabled: true });
   const row = await db('events').where({ id: created.id }).first();
-  expect(row).toMatchObject({ color_theme: theme, created_by: adminId, event_name: base.event_name, customer_email: base.customer_email });
+  expect(row).not.toHaveProperty('color_theme');
+  expect(row).toMatchObject({ created_by: adminId, event_name: base.event_name, customer_email: base.customer_email });
   expect(require('../../../utils/dateNormalize').toIso(row.expires_at)).toBe(base.expires_at);
   expect([false, 0]).toContain(row.require_password);
   expect(row.updated_at).toBeTruthy(); expect(row.share_token).toBeTruthy(); expect(row.password_hash).toBeTruthy();
@@ -82,4 +83,20 @@ it.each(['admin', 'v1', 'legacy'])('%s stores the default hero logo position wha
   const created = await create(source, { hero_logo_position: 'bottom' });
   const row = await db('events').where({ id: created.id }).first();
   expect(row.hero_logo_position).toBe('top');
+});
+it('strips the dropped gallery theme columns from an admin PUT and saves the real fields', async () => {
+  const created = await create('admin', {});
+  const before = await db('events').where({ id: created.id }).first();
+  // A tab opened before the deploy still sends the theme of its old editor.
+  const response = await request(app).put(`/admin/${created.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ welcome_message: 'Still saved', color_theme: 'modernMasonry', header_style: 'hero' });
+  expect(response.status).toBe(200);
+  const row = await db('events').where({ id: created.id }).first();
+  expect(row).not.toHaveProperty('color_theme');
+  expect(row).not.toHaveProperty('header_style');
+  const { welcome_message: newMessage, updated_at: _after, ...rest } = row;
+  const { welcome_message: _old, updated_at: _before, ...restBefore } = before;
+  expect(newMessage).toBe('Still saved');
+  expect(rest).toEqual(restBefore);
 });

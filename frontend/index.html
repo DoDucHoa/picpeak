@@ -46,29 +46,20 @@
     <meta name="twitter:title" content="${BRAND_TITLE}" />
     <meta name="twitter:description" content="${BRAND_DESCRIPTION}" />
 
-    <!-- Pre-React theme bootstrap (#358).
-         The browser may paint the very first frame before the bootstrap
-         <script> below fetches and runs, so we set OS-preference defaults
-         via CSS here in <head> — that gets applied before any paint. The
-         script then layers a per-gallery cache hit on top when one is
-         available. Without this CSS, the very first frame on first-
-         visit dark-OS devices flashed white briefly (see Rekoo-PS's
-         frame f1 in the issue). -->
+    <!-- First-paint background (#358).
+         The browser may paint the very first frame before React mounts and
+         applies the instance theme, so OS-preference defaults are set via
+         CSS here in <head>, which applies before any paint. Without it the
+         very first frame on dark-OS devices flashed white briefly (see
+         Rekoo-PS's frame f1 in the issue). -->
     <style>
       html, body { background-color: #fafafa; }
       @media (prefers-color-scheme: dark) {
         html, body { background-color: #171717; }
       }
-      /* Smooth out the cache → API theme transition for the rare case
-         where the cached colour drifts from the freshly fetched theme. */
+      /* Smooth out the default to API theme transition. */
       html { transition: background-color 200ms ease; }
     </style>
-
-    <!-- Pre-React theme bootstrap (#358). External rather than inline so a
-         strict CSP without 'unsafe-inline' / hash / nonce — like the one
-         Caddy puts in front of demo.picpeak.app — doesn't block it (#564).
-         No defer/async: must run before <body> paints. -->
-    <script src="/bootstrap.js"></script>
   </head>
   <body>
     <div id="root"></div>

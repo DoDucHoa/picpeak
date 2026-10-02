@@ -1,0 +1,294 @@
+/* Fonts are self-hosted on purpose: no third-party font requests, see index.css. */
+@import '@fontsource/red-hat-display/400.css';
+@import '@fontsource/red-hat-display/500.css';
+@import '@fontsource/red-hat-display/600.css';
+@import '@fontsource/red-hat-display/700.css';
+@import '@fontsource/dm-serif-display/400.css';
+
+/* Fixed client gallery look (spec 2026-10-01). Scoped so brand tokens on
+   :root, which style the admin and the portal, never reach the gallery and
+   the gallery never leaks into them.
+   .cg-tokens carries the variables only, without painting anything, for
+   gallery content portalled to <body> outside the gallery root (the
+   feedback limit modal). .client-gallery includes it and paints the page. */
+.client-gallery, .cg-tokens {
+  --cg-bg: #ffffff;
+  --cg-text: #1a1a1a;
+  --cg-muted: #6b6b6b;
+  --cg-divider: #e6e6e6;
+  --cg-accent: #f08a24;
+  --cg-like: #f0524f;
+  --cg-pick: #3b5bdb;
+  --cg-placeholder: #f2f2f2;
+  --cg-font: 'Red Hat Display', 'Inter', sans-serif;
+  --cg-title-font: 'DM Serif Display', Georgia, serif;
+  /* Shared components the gallery renders (Button, the guest modals, folder
+     tiles, the people sheet, comments) read the brand tokens. The brand sits
+     on :root on every page, so pin those tokens to the fixed palette here or
+     a dark or coloured brand would repaint them inside the white gallery. */
+  --color-background: var(--cg-bg);
+  --color-surface: var(--cg-bg);
+  --color-elevated: var(--cg-placeholder);
+  --color-surface-border: var(--cg-divider);
+  --color-text: var(--cg-text);
+  --color-muted-text: var(--cg-muted);
+  --color-accent: var(--cg-accent);
+  --color-accent-fg: #ffffff;
+  --color-accent-dark: var(--cg-accent);
+  --color-accent-dark-fg: #ffffff;
+  --color-primary: var(--cg-accent);
+  --color-primary-light: #ffbd57; /* lightenColor(accent, 20), as ThemeContext derives it */
+  --color-primary-dark: #bd5700;  /* darkenColor(accent, 20) */
+  --font-family: var(--cg-font);
+  --heading-font-family: var(--cg-font);
+  --border-radius: 0.5rem;
+  --font-size-base: 16px;
+  --shadow-default: 0 4px 6px rgba(0,0,0,0.1);
+}
+.client-gallery {
+  background: var(--cg-bg);
+  color: var(--cg-text);
+  font-family: var(--cg-font);
+  font-size: var(--font-size-base);
+  min-height: 100vh;
+}
+/* A dark brand on <body> must not show around the gallery, for instance
+   during overscroll. */
+body:has(.client-gallery) { background: #ffffff; }
+.client-gallery * { font-family: inherit; }
+.client-gallery .cg-title { font-family: var(--cg-title-font); }
+
+/* Masonry tiles. Hover is CSS only, so pointer movement renders nothing.
+   Visibility and hit testing move together through pointer-events (#1263):
+   a badge nobody can see can never swallow a tap meant for the photo. */
+.client-gallery .cg-tile { background: var(--cg-placeholder); overflow: hidden; cursor: pointer; contain: strict; }
+.client-gallery .cg-tile-img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 200ms ease; }
+.client-gallery .cg-tile-img[data-loaded], .client-gallery .cg-tile-img.loaded { opacity: 1; }
+.client-gallery .cg-tile-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.client-gallery .cg-tile-open:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+.client-gallery .cg-badges { position: absolute; inset: 0; pointer-events: none; }
+.client-gallery .cg-badge { position: absolute; top: 12px; display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 0; border: 0; background: none; color: #fff; pointer-events: none; opacity: 0; transition: opacity 120ms ease; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-badge-like { left: 12px; }
+.client-gallery .cg-badge-pick { right: 12px; }
+.client-gallery .cg-tile:hover .cg-badge,
+.client-gallery .cg-tile:has(:focus-visible) .cg-badge,
+.client-gallery .cg-badge-on { opacity: 1; pointer-events: auto; }
+/* A finger needs 44x44px. The extra hit area is an invisible ::before that
+   grows from the tile corner inwards, so the icon does not move and the area
+   is not clipped by the tile's own edge. It inherits pointer-events, so a
+   hidden badge stays untappable. */
+.client-gallery .cg-badges-touch .cg-badge::before { content: ''; position: absolute; top: -6px; min-width: 44px; min-height: 44px; width: calc(100% + 12px); height: calc(100% + 12px); }
+.client-gallery .cg-badges-touch .cg-badge-like::before { left: -6px; }
+.client-gallery .cg-badges-touch .cg-badge-pick::before { right: -6px; }
+.client-gallery .cg-select { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.15); }
+/* Already downloaded: a quiet corner mark, never a control, so it takes no taps. */
+.client-gallery .cg-delivered { position: absolute; left: 8px; bottom: 8px; display: flex; color: #fff; opacity: .8; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-delivered svg { width: 18px; height: 18px; }
+.client-gallery .cg-select-on { background: var(--cg-pick); border-color: var(--cg-pick); }
+/* Client mode (#172): a hidden photo is dimmed and marked, and every tile
+   carries the toggle bottom right, always visible: it is the client's tool. */
+.client-gallery .cg-tile-hidden .cg-tile-img.loaded, .client-gallery .cg-row-hidden .cg-tile-img.loaded { opacity: .4; }
+.client-gallery .cg-hidden-mark { position: absolute; right: 52px; bottom: 8px; display: flex; padding: 6px; border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; pointer-events: none; }
+.client-gallery .cg-row-thumb .cg-hidden-mark { right: 4px; bottom: 4px; }
+.client-gallery .cg-hidden-mark svg { width: 16px; height: 16px; }
+.client-gallery .cg-visibility { position: absolute; right: 4px; bottom: 4px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+.client-gallery .cg-visibility svg { width: 22px; height: 22px; }
+.client-gallery .cg-visibility-hidden { color: var(--cg-like); }
+.client-gallery .cg-visibility:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+@media (max-width: 767px) { .client-gallery .cg-badge { top: 6px; } .client-gallery .cg-badge-like { left: 6px; } .client-gallery .cg-badge-pick { right: 6px; } }
+
+/* List view. One grid template shared by the header and every row, so the
+   columns line up. The open button sits under the content and the text cells
+   let clicks through to it; only the action buttons catch them. */
+.client-gallery .cg-row-head, .client-gallery .cg-row { display: grid; grid-template-columns: 80px minmax(0, 1fr) 160px 120px 120px; align-items: center; column-gap: 24px; }
+.client-gallery .cg-row-head { padding: 12px 0; border-bottom: 1px solid var(--cg-divider); color: var(--cg-muted); font-size: 13px; font-weight: 600; }
+.client-gallery .cg-row { box-sizing: border-box; padding: 15px 0; border-bottom: 1px solid var(--cg-divider); }
+.client-gallery .cg-row-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.client-gallery .cg-row-open:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+.client-gallery .cg-row-thumb { position: relative; width: 80px; height: 120px; background: var(--cg-placeholder); overflow: hidden; pointer-events: none; }
+.client-gallery .cg-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.client-gallery .cg-row-dim, .client-gallery .cg-row-size { color: var(--cg-muted); font-size: 14px; pointer-events: none; }
+.client-gallery .cg-row-actions { position: relative; display: flex; gap: 16px; justify-content: flex-start; pointer-events: none; }
+.client-gallery .cg-row-btn { display: inline-flex; align-items: center; gap: 4px; min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-muted); cursor: pointer; pointer-events: auto; }
+.client-gallery .cg-row-btn.cg-badge-on { color: var(--cg-like); }
+.client-gallery .cg-row-btn.cg-badge-pick.cg-badge-on { color: var(--cg-pick); }
+.client-gallery .cg-row-btn:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+/* Three 44px buttons and two 16px gaps: like, pick and the visibility toggle. */
+.client-gallery .cg-list-client .cg-row-head, .client-gallery .cg-list-client .cg-row { grid-template-columns: 80px minmax(0, 1fr) 160px 120px 164px; }
+@media (max-width: 767px) {
+  .client-gallery .cg-row-head, .client-gallery .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; column-gap: 12px; }
+  .client-gallery .cg-list-client .cg-row-head, .client-gallery .cg-list-client .cg-row { grid-template-columns: 80px minmax(0, 1fr) auto; }
+  .client-gallery .cg-row-dim, .client-gallery .cg-row-size { display: none; }
+}
+
+/* Cover and expiry notice. 100vh first, 100svh over it where supported, so a
+   mobile address bar sliding away does not make the cover jump. */
+.client-gallery .cg-cover {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  background: #111;
+  overflow: hidden;
+  color: #fff;
+}
+.client-gallery .cg-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.client-gallery .cg-cover-shade {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0) 40%);
+}
+.client-gallery .cg-cover-logo { position: absolute; top: 40px; left: 40px; max-height: 40px; }
+.client-gallery .cg-cover-lang { position: absolute; top: 40px; right: 40px; }
+/* The cover's language switcher: the bare code in white, like the reference. */
+.client-gallery .cg-lang-trigger { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; margin: 0; padding: 0; border: 0; background: none; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.client-gallery .cg-lang-trigger svg { width: 14px; height: 14px; }
+.client-gallery .cg-lang-trigger:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.client-gallery .cg-cover-text { position: absolute; left: 40px; bottom: 40px; right: 220px; }
+.client-gallery .cg-cover-text h1 { margin: 0; font-size: clamp(40px, 5vw, 72px); line-height: 1.05; color: #fff; font-weight: 400; }
+.client-gallery .cg-cover-text p { margin: 8px 0 0; font-size: 18px; font-weight: 400; }
+.client-gallery .cg-cover-button {
+  position: absolute; right: 40px; bottom: 40px;
+  border: 1.5px solid #fff; border-radius: 999px; padding: 10px 20px;
+  background: transparent; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.client-gallery .cg-cover-button:hover { background: rgba(255, 255, 255, .15); }
+@media (max-width: 767px) {
+  .client-gallery .cg-cover-logo { top: 20px; left: 20px; }
+  .client-gallery .cg-cover-lang { top: 20px; right: 20px; }
+  .client-gallery .cg-cover-text { left: 20px; bottom: 20px; right: 150px; }
+  .client-gallery .cg-cover-button { right: 20px; bottom: 20px; }
+}
+
+.client-gallery .cg-expiry {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(32, 32, 32, .92); color: #fff; font-size: 14px;
+  border-radius: 8px; padding: 8px 16px;
+}
+.client-gallery .cg-expiry svg { width: 16px; height: 16px; flex: none; }
+.client-gallery .cg-expiry button { display: flex; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; margin-left: 4px; }
+/* One line, always: wrapped it grew to three and covered the toolbar. */
+.client-gallery .cg-expiry { white-space: nowrap; max-width: calc(100vw - 32px); box-sizing: border-box; }
+.client-gallery .cg-expiry > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 767px) { .client-gallery .cg-expiry { font-size: 12px; padding: 6px 12px; } }
+
+/* Toolbar. Two rows over a grid template; compact (cover scrolled past) puts
+   row two between the tabs and the share icon, as icons only. Labels are
+   hidden with CSS rather than unmounted, and every icon-only control carries
+   an aria-label, so the accessible names never change with the layout. */
+.client-gallery .cg-toolbar-sentinel { height: 0; }
+.client-gallery .cg-toolbar {
+  position: sticky; top: 0; z-index: 30; background: var(--cg-bg);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tabs end" "row2 row2";
+  align-items: center; column-gap: 24px; row-gap: 16px;
+  padding: 24px 60px 16px;
+}
+.client-gallery .cg-toolbar-compact { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tabs row2 end"; padding-top: 16px; padding-bottom: 12px; }
+.client-gallery .cg-tabs { grid-area: tabs; display: flex; align-items: center; gap: 24px; }
+.client-gallery .cg-tab { position: relative; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-text); font-size: 15px; cursor: pointer; white-space: nowrap; }
+.client-gallery .cg-tab-count { font-weight: 600; }
+.client-gallery .cg-tab-active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; background: var(--cg-accent); }
+.client-gallery .cg-tab-icon { display: inline-flex; }
+.client-gallery .cg-tab-icon svg { width: 20px; height: 20px; }
+.client-gallery .cg-tab-icon-mobile { display: none; }
+.client-gallery .cg-tb-row2 { grid-area: row2; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 20px; min-width: 0; }
+.client-gallery .cg-tb-end { grid-area: end; display: flex; align-items: center; gap: 16px; }
+.client-gallery .cg-tb-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin: 0; padding: 0; border: 0; background: none; color: var(--cg-text); font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.client-gallery .cg-tb-btn:disabled { color: var(--cg-muted); cursor: default; }
+.client-gallery .cg-tb-btn svg { width: 22px; height: 22px; }
+.client-gallery .cg-tb-dir { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: var(--cg-placeholder); color: var(--cg-text); cursor: pointer; }
+.client-gallery .cg-tb-dir svg { width: 18px; height: 18px; }
+.client-gallery .cg-tab:focus-visible, .client-gallery .cg-tb-btn:focus-visible, .client-gallery .cg-tb-dir:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+.client-gallery .cg-tb-icon-compact { display: none; }
+.client-gallery .cg-tb-dot { position: absolute; top: 0; right: -8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--cg-accent); color: #fff; font-size: 11px; line-height: 16px; text-align: center; }
+.client-gallery .cg-tb-crumb { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-tb-crumb-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cg-text); font-weight: 600; }
+.client-gallery .cg-tb-count { color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-menu { position: relative; display: inline-flex; }
+.client-gallery .cg-menu-list {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 31;
+  display: flex; flex-direction: column; min-width: 180px; padding: 6px 0;
+  background: var(--cg-bg); border: 1px solid var(--cg-divider); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.client-gallery .cg-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; padding: 10px 16px; border: 0; background: none; color: var(--cg-text); font-size: 14px; text-align: left; white-space: nowrap; cursor: pointer; }
+.client-gallery .cg-menu-item:hover, .client-gallery .cg-menu-item:focus-visible { background: var(--cg-placeholder); outline: none; }
+.client-gallery .cg-menu-item svg { width: 16px; height: 16px; color: var(--cg-accent); }
+.client-gallery .cg-menu-item:disabled { color: var(--cg-muted); cursor: default; background: none; }
+.client-gallery .cg-toolbar-compact .cg-tb-label { display: none; }
+.client-gallery .cg-toolbar-compact .cg-tb-icon-compact { display: inline-flex; }
+@media (max-width: 767px) {
+  .client-gallery .cg-toolbar { padding: 12px; column-gap: 12px; row-gap: 12px; }
+  .client-gallery .cg-tabs { gap: 14px; }
+  .client-gallery .cg-tab-label, .client-gallery .cg-tb-label { display: none; }
+  .client-gallery .cg-tab-icon-mobile, .client-gallery .cg-tb-icon-compact { display: inline-flex; }
+  .client-gallery .cg-tb-row2 { gap: 12px; }
+  .client-gallery .cg-tb-crumb-name { max-width: 96px; }
+  /* One row at phone width has no room for the allowance pill. */
+  .client-gallery .cg-toolbar-compact .cg-tb-quota { display: none; }
+}
+
+/* Page sections around the album: the client banner, folder tiles, the empty
+   tab line, the info and promo text, and the back to top button. */
+.client-gallery .cg-client-banner { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0 60px 16px; color: var(--cg-muted); font-size: 14px; }
+.client-gallery .cg-client-banner svg { width: 18px; height: 18px; flex: none; }
+.client-gallery .cg-folders { padding: 0 60px 24px; }
+.client-gallery .cg-empty { margin: 0; padding: 120px 24px; text-align: center; color: var(--cg-muted); font-size: 15px; }
+.client-gallery .cg-notes { padding: 60px; color: var(--cg-muted); font-size: 14px; line-height: 1.6; }
+.client-gallery .cg-note + .cg-note { margin-top: 24px; }
+.client-gallery .cg-note a { color: inherit; text-decoration: underline; }
+.client-gallery .cg-back-to-top {
+  position: fixed; right: 24px; bottom: 24px; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; margin: 0; padding: 0; border: 0; border-radius: 8px;
+  background: rgba(32, 32, 32, .92); color: #fff; cursor: pointer;
+}
+.client-gallery .cg-back-to-top:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+@media (max-width: 767px) {
+  .client-gallery .cg-client-banner, .client-gallery .cg-folders { padding-left: 12px; padding-right: 12px; }
+  .client-gallery .cg-notes { padding: 40px 12px; }
+  .client-gallery .cg-back-to-top { right: 16px; bottom: 16px; }
+}
+
+/* Photo viewer. YARL portals to <body>, outside the gallery's own root, so
+   its root carries .client-gallery itself to pick up the tokens above. The
+   rail, the side panel and the filmstrip all live inside it, because YARL
+   marks everything else on the page inert while it is open. */
+.cg-viewer {
+  min-height: 0;
+  --yarl__color_button: rgba(26, 26, 26, .55);
+  --yarl__color_button_active: #1a1a1a;
+  --yarl__color_button_disabled: rgba(26, 26, 26, .25);
+  --yarl__button_filter: none;
+}
+.cg-viewer .yarl__navigation_prev { left: 96px; }
+.cg-viewer-with-panel .yarl__navigation_next { right: 360px; }
+.client-gallery .cg-viewer-video { max-width: 100%; max-height: 100%; }
+.client-gallery .cg-viewer-rail { position: absolute; top: 0; left: 0; bottom: 72px; z-index: 1; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 54px; box-sizing: border-box; }
+.client-gallery .cg-viewer-btn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--cg-text); cursor: pointer; }
+.client-gallery .cg-viewer-btn:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 2px; }
+.client-gallery .cg-viewer-btn-on { background: var(--cg-placeholder); }
+.client-gallery .cg-viewer-back { color: var(--cg-accent); margin-bottom: 18px; }
+.client-gallery .cg-viewer-divider { flex: none; width: 32px; height: 1px; background: var(--cg-muted); }
+.client-gallery .cg-viewer-panel { position: absolute; top: 0; right: 0; bottom: 72px; z-index: 2; width: 360px; box-sizing: border-box; padding: 20px 24px; overflow-y: auto; background: var(--cg-bg); border-left: 1px solid var(--cg-divider); }
+.client-gallery .cg-viewer-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.client-gallery .cg-viewer-panel-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.client-gallery .cg-fileinfo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin: 0; font-size: 14px; }
+.client-gallery .cg-fileinfo dt { color: var(--cg-muted); }
+.client-gallery .cg-fileinfo dd { margin: 0; overflow-wrap: anywhere; }
+.client-gallery .cg-filmstrip { position: absolute; left: 96px; right: 0; bottom: 0; z-index: 1; height: 72px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.client-gallery .cg-filmstrip::-webkit-scrollbar { display: none; }
+.client-gallery .cg-filmstrip-thumb { position: absolute; top: 8px; left: 0; margin: 0; padding: 0; border: 0; overflow: hidden; background: var(--cg-placeholder); cursor: pointer; opacity: .7; }
+.client-gallery .cg-filmstrip-thumb:hover, .client-gallery .cg-filmstrip-current { opacity: 1; }
+.client-gallery .cg-filmstrip-current { outline: 2px solid var(--cg-text); outline-offset: -2px; }
+.client-gallery .cg-filmstrip-thumb:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: -2px; }
+.client-gallery .cg-filmstrip-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 767px) {
+  .cg-viewer .yarl__navigation_prev { left: 0; }
+  .cg-viewer-with-panel .yarl__navigation_next { right: 0; }
+  .client-gallery .cg-viewer-rail { right: 0; bottom: auto; width: auto; height: 56px; flex-direction: row; gap: 4px; padding: 0 8px; background: var(--cg-bg); }
+  .client-gallery .cg-viewer-back { margin: 0 auto 0 0; }
+  .client-gallery .cg-viewer-divider { width: 1px; height: 32px; margin: 0 4px; }
+  /* A bottom sheet over the filmstrip. */
+  .client-gallery .cg-viewer-panel { top: auto; left: 0; bottom: 0; width: auto; max-height: 60vh; border-left: 0; border-top: 1px solid var(--cg-divider); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, .08); }
+  .client-gallery .cg-filmstrip { left: 0; }
+}

@@ -65,10 +65,6 @@ vi.mock('../../../services/feedback.service', () => ({
   },
 }));
 
-vi.mock('../../../services/cssTemplates.service', () => ({
-  cssTemplatesService: { getEnabledTemplates: vi.fn().mockResolvedValue([]) },
-}));
-
 vi.mock('../../../hooks/usePublicSettings', () => ({
   PUBLIC_SETTINGS_QUERY_KEY: ['public-settings'],
   usePublicSettings: () => ({ data: {} }),

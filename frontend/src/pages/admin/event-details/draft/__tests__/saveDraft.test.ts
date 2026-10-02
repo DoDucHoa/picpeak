@@ -7,58 +7,46 @@ import type { Event } from '../../../../../types';
 const event = {
   id: 1, slug: 's', event_name: 'E', event_type: 'wedding', event_date: '2026-01-01',
   customer_name: 'Anna', customer_email: 'anna@example.com', require_password: true,
-  header_style: 'standard', hero_divider_style: 'wave', color_theme: null,
 } as unknown as Event;
 const server = eventFormValues(event);
-const theme = { config: { headerStyle: 'standard', heroDividerStyle: 'wave', primaryColor: '#111' } as never, preset: 'custom' };
 
 describe('buildEventPayload', () => {
   it('sends only the changed keys', () => {
     const form = { ...server, welcome_message: 'Hi' };
-    expect(buildEventPayload(new Set(['welcome_message']), form, theme, theme)).toEqual({ welcome_message: 'Hi' });
+    expect(buildEventPayload(new Set(['welcome_message']), form)).toEqual({ welcome_message: 'Hi' });
   });
   it('sends customer_account_ids only when the picker changed', () => {
     const form = { ...server, customer_accounts: [{ id: 3, email: 'c@x', displayName: null }] };
-    expect(buildEventPayload(new Set(['welcome_message']), form, theme, theme)).not.toHaveProperty('customer_account_ids');
-    expect(buildEventPayload(new Set(['customer_accounts']), form, theme, theme)).toEqual({ customer_account_ids: [3] });
+    expect(buildEventPayload(new Set(['welcome_message']), form)).not.toHaveProperty('customer_account_ids');
+    expect(buildEventPayload(new Set(['customer_accounts']), form)).toEqual({ customer_account_ids: [3] });
   });
   it('clears the customer email and name with null', () => {
     const form = { ...server, customer_email: '  ', customer_name: '' };
-    expect(buildEventPayload(new Set(['customer_email', 'customer_name']), form, theme, theme))
+    expect(buildEventPayload(new Set(['customer_email', 'customer_name']), form))
       .toEqual({ customer_email: null, customer_name: null });
   });
   it('sends a new password as password', () => {
     const form = { ...server, new_password: 'secret1' };
-    expect(buildEventPayload(new Set(['new_password']), form, theme, theme)).toEqual({ password: 'secret1' });
+    expect(buildEventPayload(new Set(['new_password']), form)).toEqual({ password: 'secret1' });
   });
   it('sends a changed type and date as they are', () => {
     const next = { ...server, event_date: '2026-06-01', event_type: 'birthday' };
-    expect(buildEventPayload(new Set(['event_date', 'event_type']), next, theme, theme)).toEqual({ event_date: '2026-06-01', event_type: 'birthday' });
+    expect(buildEventPayload(new Set(['event_date', 'event_type']), next)).toEqual({ event_date: '2026-06-01', event_type: 'birthday' });
   });
   it('sends a trimmed client password', () => {
     const form = { ...server, client_password: '  Wedding-2026 ' };
-    expect(buildEventPayload(new Set(['client_password']), form, theme, theme)).toEqual({ client_password: 'Wedding-2026' });
-  });
-  it('sends only the header style when only the header style changed', () => {
-    const next = { ...theme, config: { ...theme.config, headerStyle: 'hero' } as never };
-    expect(buildEventPayload(new Set(['__theme']), server, next, theme)).toEqual({ header_style: 'hero' });
-  });
-  it('sends the theme when the look changed', () => {
-    const next = { ...theme, config: { ...theme.config, primaryColor: '#222' } as never };
-    const out = buildEventPayload(new Set(['__theme']), server, next, theme);
-    expect(JSON.parse(out.color_theme as string).primaryColor).toBe('#222');
-    expect(out).not.toHaveProperty('header_style');
+    expect(buildEventPayload(new Set(['client_password']), form)).toEqual({ client_password: 'Wedding-2026' });
   });
   it('keeps the grouped fields consistent', () => {
     const form = { ...server, source_mode: 'reference' as const, external_path: ' /mnt/a ', external_watch: true };
-    expect(buildEventPayload(new Set(['external_path']), form, theme, theme))
+    expect(buildEventPayload(new Set(['external_path']), form))
       .toEqual({ source_mode: 'reference', external_path: '/mnt/a', external_watch: true });
     const promo = { ...server, promo_mode: 'off' as const, promo_markdown: 'x' };
-    expect(buildEventPayload(new Set(['promo_mode']), promo, theme, theme)).toEqual({ promo_mode: 'off', promo_markdown: null });
+    expect(buildEventPayload(new Set(['promo_mode']), promo)).toEqual({ promo_mode: 'off', promo_markdown: null });
   });
   it('turns an empty photo limit and expiry into null', () => {
     const form = { ...server, photo_cap: 0, expires_at: '' };
-    expect(buildEventPayload(new Set(['photo_cap', 'expires_at']), form, theme, theme)).toEqual({ photo_cap: null, expires_at: null });
+    expect(buildEventPayload(new Set(['photo_cap', 'expires_at']), form)).toEqual({ photo_cap: null, expires_at: null });
   });
 });
 

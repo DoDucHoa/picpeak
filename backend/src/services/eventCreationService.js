@@ -54,7 +54,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
     admin_email,
     password,
     welcome_message = '',
-    color_theme = null,
     expiration_days = 30,
     // Uploader names (#1561). undefined = take the Event Defaults value.
     guest_name_mode: guestNameModeInput,
@@ -89,13 +88,8 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
     // three. Unknown values fall back rather than reaching the column,
     // which on Postgres is guarded by a CHECK constraint.
     identity_mode: identityModeInput,
-    // CSS Template
-    css_template_id = null,
     // Hero logo settings
     hero_logo_visible = true,
-    // Header style settings
-    header_style = 'standard',
-    hero_divider_style = 'wave',
     // Hero image anchor position (#162)
     hero_image_anchor = 'center',
     // Photo cap
@@ -273,26 +267,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
   await fs.mkdir(path.join(eventPath, 'collages'), { recursive: true });
   await fs.mkdir(path.join(eventPath, 'individual'), { recursive: true });
     
-  // Sync header_style / hero_divider_style from color_theme JSON when not
-  // explicitly provided in the request body (#158).
-  let effectiveHeaderStyle = header_style;
-  let effectiveDividerStyle = hero_divider_style;
-  if (color_theme && (!input.header_style || !input.hero_divider_style)) {
-    try {
-      if (typeof color_theme === 'string' && color_theme.startsWith('{')) {
-        const parsed = JSON.parse(color_theme);
-        if (!input.header_style && parsed.headerStyle) {
-          effectiveHeaderStyle = parsed.headerStyle;
-        }
-        if (!input.hero_divider_style && parsed.heroDividerStyle) {
-          effectiveDividerStyle = parsed.heroDividerStyle;
-        }
-      }
-    } catch (_) {
-      // color_theme is not JSON – nothing to extract
-    }
-  }
-
   // hero_logo_visible: store NULL ("inherit") unless the admin explicitly
   // set it, so the global branding_logo_display_hero toggle keeps
   // controlling this gallery afterwards (#756). Only an explicit per-event
@@ -386,7 +360,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
       ...(client_access_enabled && client_password ? { clientPassword: client_password } : {}),
     })),
     welcome_message,
-    color_theme,
     share_link: shareLinkToStore,
     share_token: shareToken,
     expires_at: expires_at ? expires_at.toISOString() : null,
@@ -406,7 +379,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
     watermark_downloads: formatBoolean(watermark_downloads !== undefined ? watermark_downloads : false),
     watermark_text,
     require_password: formatBoolean(requirePassword),
-    css_template_id: css_template_id || null,
     // Already formatBoolean-coerced above, or null = inherit global (#756).
     hero_logo_visible: effectiveHeroLogoVisible,
     hero_logo_size: effectiveHeroLogoSize,
@@ -422,8 +394,6 @@ async function createEvent(data, { actor, source = 'admin', frontendUrl, canEnab
     info_mode: ['inherit', 'custom', 'off'].includes(info_mode) ? info_mode : 'inherit',
     info_markdown: info_mode === 'custom' && typeof info_markdown === 'string' && info_markdown.trim()
       ? info_markdown.trim() : null,
-    header_style: effectiveHeaderStyle || 'standard',
-    hero_divider_style: effectiveDividerStyle || 'wave',
     hero_image_anchor: hero_image_anchor || 'center',
     photo_cap: photo_cap || null,
     ...(photoSource ? {

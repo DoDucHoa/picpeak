@@ -14,7 +14,6 @@ export { CategoriesTab } from './tabs/CategoriesTab';
 export { AnalyticsTab } from './tabs/AnalyticsTab';
 export { ModerationTab } from './tabs/ModerationTab';
 export { TransfersTab } from './tabs/TransfersTab';
-export { StylingTab } from './tabs/StylingTab';
 export { SEOTab } from './tabs/SEOTab';
 export { ThumbnailsTab } from './tabs/ThumbnailsTab';
 export { DownloadsTab } from './tabs/DownloadsTab';

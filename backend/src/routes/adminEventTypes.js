@@ -96,8 +96,6 @@ router.post('/', adminAuth, requirePermission('event_types.manage'), [
     .matches(/^[a-z0-9-]+$/i)
     .withMessage('Slug prefix must be 2-50 characters and contain only letters, numbers, and hyphens'),
   body('emoji').optional().trim(),
-  body('theme_preset').optional().trim(),
-  body('theme_config').optional(),
   body('display_order').optional().isInt({ min: 0 })
 ], async (req, res) => {
   try {
@@ -110,8 +108,6 @@ router.post('/', adminAuth, requirePermission('event_types.manage'), [
       name,
       slug_prefix,
       emoji,
-      theme_preset,
-      theme_config,
       display_order
     } = req.body;
 
@@ -119,8 +115,6 @@ router.post('/', adminAuth, requirePermission('event_types.manage'), [
       name,
       slug_prefix,
       emoji,
-      theme_preset,
-      theme_config,
       display_order
     });
 
@@ -158,8 +152,6 @@ router.put('/:id', adminAuth, requirePermission('event_types.manage'), [
     .matches(/^[a-z0-9-]+$/i)
     .withMessage('Slug prefix must be 2-50 characters and contain only letters, numbers, and hyphens'),
   body('emoji').optional().trim(),
-  body('theme_preset').optional().trim(),
-  body('theme_config').optional(),
   body('display_order').optional().isInt({ min: 0 }),
   body('is_active').optional().isBoolean()
 ], async (req, res) => {
@@ -175,7 +167,7 @@ router.put('/:id', adminAuth, requirePermission('event_types.manage'), [
     const before = await eventTypeService.getEventTypeById(parseInt(id));
     const eventType = await eventTypeService.updateEventType(parseInt(id), updates, req.admin?.id ?? null);
     changedEvidence(res, 'event_type_editing', before, eventType,
-      ['name', 'slug_prefix', 'emoji', 'theme_preset', 'theme_config', 'display_order', 'is_active']);
+      ['name', 'slug_prefix', 'emoji', 'display_order', 'is_active']);
 
     // Log activity
     await logActivity('event_type_updated',

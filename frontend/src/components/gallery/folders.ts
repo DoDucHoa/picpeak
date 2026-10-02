@@ -156,8 +156,8 @@ export function peopleInScope<T extends { id: number; face_count: number }>(
   });
 
   // Re-sorted, not just recounted: /people orders by the EVENT-wide count, and
-  // PeopleStrip only shows the first 12 inline. Keeping that order after
-  // rescoping can push the folder's most-photographed person behind "Show all".
+  // the people sheet lists people in this order. Keeping it after rescoping
+  // would bury the folder's most-photographed person further down the list.
   return list
     .map((person) => ({ ...person, face_count: counts.get(person.id) || 0 }))
     .filter((person) => person.face_count > 0)
@@ -179,8 +179,12 @@ export function readFolderParam(): string | null {
  * Reflect the open folder in the address bar so a folder is linkable and the
  * back button leaves it. Preserves every other param — `token` and
  * `admin_preview` (#868) both ride on gallery URLs.
+ *
+ * `replace` rewrites the current entry instead of adding one: a deep link that
+ * has to enter a folder must not leave a folder-less entry behind it, or Back
+ * would land there and resolve the link into the folder all over again.
  */
-export function writeFolderParam(slug: string | null): void {
+export function writeFolderParam(slug: string | null, mode: 'push' | 'replace' = 'push'): void {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   if (slug) {
@@ -188,5 +192,9 @@ export function writeFolderParam(slug: string | null): void {
   } else {
     url.searchParams.delete(FOLDER_QUERY_PARAM);
   }
-  window.history.pushState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  if (mode === 'replace') {
+    window.history.replaceState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  } else {
+    window.history.pushState({ [FOLDER_QUERY_PARAM]: slug }, '', url.toString());
+  }
 }

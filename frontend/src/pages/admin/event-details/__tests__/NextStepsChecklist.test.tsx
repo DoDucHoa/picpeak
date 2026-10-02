@@ -13,7 +13,7 @@ vi.mock('react-i18next', async () => ({
 const allowed = vi.fn((_p: string) => true);
 vi.mock('../../../../hooks/usePermission', () => ({ usePermission: (p: string) => allowed(p) }));
 
-const draft = { id: 1, event_name: 'Anna', is_draft: true, is_archived: false, photo_count: 0, header_style: 'standard', hero_photo_id: null } as unknown as Event;
+const draft = { id: 1, event_name: 'Anna', is_draft: true, is_archived: false, photo_count: 0, hero_photo_id: null } as unknown as Event;
 const handlers = () => ({ onUploadPhotos: vi.fn(), onChooseHero: vi.fn(), onPublish: vi.fn() });
 const list = () => within(screen.getByRole('region', { name: 'Next steps' }));
 
@@ -37,12 +37,12 @@ describe('NextStepsChecklist (spec 5.6)', () => {
     expect(list().getByText(/\(done\)/)).toBeInTheDocument();
   });
 
-  it('asks for a hero photo only when the header uses one', () => {
-    const { rerender } = render(<NextStepsChecklist event={draft} {...handlers()} />);
-    expect(list().queryByText('Choose a hero photo')).toBeNull();
-    rerender(<NextStepsChecklist event={{ ...draft, header_style: 'hero' }} {...handlers()} />);
-    expect(list().getByRole('button', { name: 'Choose' })).toBeInTheDocument();
-    rerender(<NextStepsChecklist event={{ ...draft, header_style: 'hero', hero_photo_id: 5 }} {...handlers()} />);
+  it('asks for a hero photo for the cover, then ticks the step once one is chosen', () => {
+    const h = handlers();
+    const { rerender } = render(<NextStepsChecklist event={draft} {...h} />);
+    fireEvent.click(list().getByRole('button', { name: 'Choose' }));
+    expect(h.onChooseHero).toHaveBeenCalled();
+    rerender(<NextStepsChecklist event={{ ...draft, hero_photo_id: 5 }} {...h} />);
     expect(list().queryByRole('button', { name: 'Choose' })).toBeNull();
   });
 

@@ -3,19 +3,21 @@
  *
  * A canvas pins a backing store of naturalWidth × naturalHeight × 4 bytes
  * that the browser is not allowed to evict, and iOS Safari has a hard
- * budget for canvas memory that fails silently when exceeded — blank
+ * budget for canvas memory that fails silently when exceeded: blank
  * tiles, no error. A gallery is hundreds of tiles and one lightbox image,
- * so the tiles render <img> whatever the protection level says, and the
- * lightbox follows the Image security switch.
+ * so the tiles, the list rows and the viewer's filmstrip render <img>
+ * whatever the protection level says, and the viewer's current slide
+ * follows the Image security switch.
  *
- * Source-level pin: nothing under components/gallery except the lightbox renderers
- * may hand `useCanvasRendering` to AuthenticatedImage.
+ * Source-level pin: nothing under components/gallery or features/client-gallery
+ * except the viewer may hand `useCanvasRendering` to AuthenticatedImage.
  */
 import fs from 'fs';
 import path from 'path';
 import { describe, it, expect } from 'vitest';
 
-const root = path.resolve(__dirname, '..');
+const src = path.resolve(__dirname, '../../..');
+const roots = [path.join(src, 'components/gallery'), path.join(src, 'features/client-gallery')];
 function walk(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(dir, entry.name);
@@ -25,29 +27,23 @@ function walk(dir: string): string[] {
 }
 
 describe('canvas rendering stays in the lightbox', () => {
-  const files = walk(root);
-  const lightbox = path.join(root, 'PhotoLightbox.tsx');
-  const lightboxRenderers = [lightbox, path.join(root, 'layouts/PremiumLightboxImage.tsx')];
+  const files = roots.flatMap(walk);
+  const viewer = path.join(src, 'features/client-gallery/viewer/PhotoViewer.tsx');
 
-  /** The JSX props of every <AuthenticatedImage> in a file, plus every
-   *  `imageProps={{ ... }}` object a layout hands to PhotoCard to spread in. */
-  const imageProps = (source: string) => [
-    ...source.split('<AuthenticatedImage').slice(1).map((chunk) => chunk.split('/>')[0]),
-    ...source.split('imageProps={{').slice(1).map((chunk) => chunk.split('}}')[0]),
-  ];
+  /** The JSX props of every <AuthenticatedImage> in a file. */
+  const imageProps = (source: string) =>
+    source.split('<AuthenticatedImage').slice(1).map((chunk) => chunk.split('/>')[0]);
 
-  it('only lightbox renderers pass useCanvasRendering to AuthenticatedImage', () => {
-    const offenders = files.filter((file) => !lightboxRenderers.includes(file)
+  it('only the viewer passes useCanvasRendering to AuthenticatedImage', () => {
+    const offenders = files.filter((file) => file !== viewer
       && imageProps(fs.readFileSync(file, 'utf8')).some((props) => props.includes('useCanvasRendering')));
-    expect(offenders.map((f) => path.relative(root, f))).toEqual([]);
-    // The pin has teeth: the lightbox itself is caught by the same probe.
-    for (const renderer of lightboxRenderers) {
-      expect(imageProps(fs.readFileSync(renderer, 'utf8')).some((props) => props.includes('useCanvasRendering'))).toBe(true);
-    }
+    expect(offenders.map((f) => path.relative(src, f).split(path.sep).join('/'))).toEqual([]);
+    // The pin has teeth: the viewer itself is caught by the same probe.
+    expect(imageProps(fs.readFileSync(viewer, 'utf8')).some((props) => props.includes('useCanvasRendering'))).toBe(true);
   });
 
-  it('the lightbox passes the canvas switch through', () => {
-    const source = fs.readFileSync(lightbox, 'utf8');
-    expect(source).toMatch(/useCanvasRendering=\{useCanvasRendering\}/);
+  it('the viewer draws a canvas from the event switch', () => {
+    const source = fs.readFileSync(viewer, 'utf8');
+    expect(source).toMatch(/useCanvasRendering: c\.protection\.canvas/);
   });
 });

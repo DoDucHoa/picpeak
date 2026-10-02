@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildCreatePayload, createDefaults, createRequirements, createThemeFields, generatedPassword,
+  buildCreatePayload, createDefaults, createRequirements, generatedPassword,
   initialCreateForm, validateCreateForm, type CreateType,
 } from '../createForm';
 import { expiryFromToday } from '../../event-details/settings/ExpiryField';
 
 const today = new Date(2026, 9, 1);
 const types: CreateType[] = [
-  { slug: 'birthday', name: 'Birthday', emoji: 'b', themePreset: 'birthdayFun' },
-  { slug: 'wedding', name: 'Wedding', emoji: 'w', themePreset: 'elegantWedding' },
-  { slug: 'other', name: 'Other', emoji: 'o', themePreset: 'default' },
+  { slug: 'birthday', name: 'Birthday', emoji: 'b' },
+  { slug: 'wedding', name: 'Wedding', emoji: 'w' },
+  { slug: 'other', name: 'Other', emoji: 'o' },
 ];
 const none = { customerName: false, customerEmail: false, eventDate: false, expiration: false };
 const all = { customerName: true, customerEmail: true, eventDate: true, expiration: true };
@@ -109,35 +109,17 @@ describe('validateCreateForm', () => {
   });
 });
 
-describe('createThemeFields (spec 5.5)', () => {
-  const branding = { headerStyle: 'hero' as const, heroDividerStyle: 'curve' as const };
-
-  it('stores no theme for a default type, and copies the header styles from Branding', () => {
-    expect(createThemeFields('default', branding)).toEqual({ header_style: 'hero', hero_divider_style: 'curve' });
-    expect(createThemeFields(undefined, null)).toEqual({});
-  });
-
-  it('stores the preset name and its header styles for a type with a preset', () => {
-    const fields = createThemeFields('elegantWedding', branding);
-    expect(fields.color_theme).toBe('elegantWedding');
-    expect(fields).not.toHaveProperty('color_theme', expect.stringContaining('{'));
-  });
-
-  it('treats a preset this build does not know as no preset', () => {
-    expect(createThemeFields('removedPreset', branding)).toEqual({ header_style: 'hero', hero_divider_style: 'curve' });
-  });
-});
-
 describe('buildCreatePayload', () => {
-  const ctx = { phoneFieldEnabled: false, themePreset: 'default', brandingTheme: null };
+  const ctx = { phoneFieldEnabled: false };
   const form = () => ({ ...initialCreateForm(createDefaults({}, {}, types, today)), event_name: ' Anna ' });
 
-  it('sends a date for the expiry, never expiration_days, and no theme for a default type', () => {
+  it('sends a date for the expiry, never expiration_days, and no theme fields', () => {
     const f = form();
     const payload = buildCreatePayload(f, ctx);
     expect(payload).toMatchObject({ event_type: 'wedding', event_name: 'Anna', require_password: true, source_mode: 'managed', expires_at: f.expires_at });
     expect(payload).not.toHaveProperty('expiration_days');
-    expect(payload).not.toHaveProperty('color_theme');
+    // The gallery has one fixed look: nothing about themes, styles or CSS is sent.
+    expect(Object.keys(payload).filter((key) => /theme|style|css/i.test(key))).toEqual([]);
     expect(payload).not.toHaveProperty('customer_account_ids');
     expect(payload).not.toHaveProperty('client_password');
   });

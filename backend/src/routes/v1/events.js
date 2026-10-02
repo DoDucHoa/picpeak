@@ -153,7 +153,6 @@ const photoUpload = async (req, res, next) => {
  *               require_password: { type: boolean, nullable: true, description: "When omitted, falls back to the global event_default_require_password setting." }
  *               password: { type: string, nullable: true, description: "Required when require_password resolves to true." }
  *               expires_at: { type: string, format: date-time, nullable: true }
- *               color_theme: { type: string, nullable: true, description: "Preset name (e.g. 'default') or JSON-encoded ThemeConfig. Persisted as-is on the event row." }
  *               feedback_enabled: { type: boolean, nullable: true, description: "Enable guest feedback for this gallery. When omitted, falls back to the global event_default_feedback_enabled setting." }
  *               enable_devtools_protection: { type: boolean, nullable: true, description: "Block right-click / devtools shortcuts in the gallery. When omitted, falls back to the global enable_devtools_protection setting." }
  *               protection_level: { type: string, nullable: true, enum: [basic, standard, enhanced, maximum], description: "Image protection level. When omitted, falls back to the global default_protection_level setting." }
@@ -201,7 +200,6 @@ router.post(
     body('require_password').optional().isBoolean(),
     body('password').optional({ nullable: true }).isString().isLength({ min: 6 }),
     body('expires_at').optional({ nullable: true, checkFalsy: true }).isISO8601(),
-    body('color_theme').optional({ nullable: true }).isString().trim(),
     body('feedback_enabled').optional().isBoolean(),
     body('enable_devtools_protection').optional().isBoolean(),
     body('protection_level').optional().not().isArray().isIn(['basic', 'standard', 'enhanced', 'maximum']),

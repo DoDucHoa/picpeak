@@ -2,8 +2,9 @@
  * Report accuracy (#1110).
  *
  * Two signals were wrong in ways that only show up in the aggregate, where
- * nobody can tell the number is wrong: preset-themed installs all reported
- * `grid`, and CSS applied through a template reported no custom CSS at all.
+ * nobody can tell the number is wrong. Both used to read gallery themes; with
+ * gallery theming gone (migration 263) they read what is left: whether any
+ * gallery exists, and the two global CSS settings.
  *
  * Also covers status() surviving a misconfigured collector URL — it used to
  * throw, which took down the settings tab that is the only way to withdraw.
@@ -49,11 +50,7 @@ async function bootDb() {
     t.string('key').primary(); t.boolean('value');
   });
   await db.schema.createTable('events', (t) => {
-    t.increments('id'); t.text('color_theme'); t.string('external_path');
-    t.integer('css_template_id');
-  });
-  await db.schema.createTable('css_templates', (t) => {
-    t.increments('id'); t.boolean('is_enabled'); t.text('css_content');
+    t.increments('id'); t.string('external_path');
   });
   for (const table of ['email_configs', 'mail_accounts']) {
     await db.schema.createTable(table, (t) => { t.increments('id'); t.string('smtp_host'); });
@@ -67,69 +64,45 @@ async function bootDb() {
 const service = (db, over = {}) =>
   new UsageService(db, { secret: 'q'.repeat(48), ...over });
 
-describe('gallery_layouts resolves what the gallery actually renders', () => {
+describe('gallery_layouts after gallery theming was removed', () => {
   let db;
   afterEach(async () => { if (db) await db.destroy(); db = null; });
 
-  it('maps preset NAMES to their layouts instead of calling them all grid', async () => {
+  it('is empty when there is no gallery', async () => {
     db = await bootDb();
-    await db('events').insert([
-      { color_theme: 'modernMasonry' },
-      { color_theme: 'corporateTimeline' },
-      { color_theme: 'galleryStory' },
-    ]);
-    const report = await service(db).snapshot();
-    expect(report.gallery_layouts.sort()).toEqual(
-      ['gallery-story', 'masonry', 'timeline'].sort()
-    );
+    expect((await service(db).snapshot()).gallery_layouts).toEqual([]);
   });
 
-  it('still reads a theme object', async () => {
-    db = await bootDb();
-    await db('events').insert([{ color_theme: JSON.stringify({ galleryLayout: 'mosaic' }) }]);
-    expect((await service(db).snapshot()).gallery_layouts).toEqual(['mosaic']);
-  });
-
-  it('reports an unknown preset as other, not as grid', async () => {
-    // A preset added on the frontend must not silently inflate the grid count.
-    db = await bootDb();
-    await db('events').insert([{ color_theme: 'somePresetAddedLater' }]);
-    expect((await service(db).snapshot()).gallery_layouts).toEqual(['other']);
-  });
-
-  it('uses the global theme for an event that has none of its own', async () => {
+  it('reports the one fixed design as masonry, whatever the old theme said', async () => {
     db = await bootDb();
     await db('app_settings').insert({
       setting_key: 'theme_config',
       setting_value: JSON.stringify({ galleryLayout: 'carousel' }),
     });
-    await db('events').insert([{ color_theme: null }]);
-    expect((await service(db).snapshot()).gallery_layouts).toEqual(['carousel']);
+    await db('events').insert([{ external_path: null }, { external_path: null }]);
+    expect((await service(db).snapshot()).gallery_layouts).toEqual(['masonry']);
   });
 });
 
-describe('custom_css counts CSS applied through a template', () => {
+describe('custom_css reads the global CSS settings only', () => {
   let db;
   afterEach(async () => { if (db) await db.destroy(); db = null; });
 
-  it('is configured when an enabled template is applied to an event', async () => {
+  it('is configured when the public site carries custom CSS', async () => {
     db = await bootDb();
-    const [id] = await db('css_templates').insert({ is_enabled: true, css_content: '.a{}' });
-    await db('events').insert([{ color_theme: null, css_template_id: id }]);
+    await db('app_settings').insert({
+      setting_key: 'general_public_site_custom_css',
+      setting_value: JSON.stringify('body { color: red; }'),
+    });
     expect((await service(db).snapshot()).features.custom_css.configured).toBe(true);
   });
 
-  it('is not configured when the applied template is disabled', async () => {
+  it('ignores a customCss key left in the brand theme', async () => {
     db = await bootDb();
-    const [id] = await db('css_templates').insert({ is_enabled: false, css_content: '.a{}' });
-    await db('events').insert([{ color_theme: null, css_template_id: id }]);
-    expect((await service(db).snapshot()).features.custom_css.configured).toBe(false);
-  });
-
-  it('is not configured when an enabled template is applied to nothing', async () => {
-    db = await bootDb();
-    await db('css_templates').insert({ is_enabled: true, css_content: '.a{}' });
-    await db('events').insert([{ color_theme: null }]);
+    await db('app_settings').insert({
+      setting_key: 'theme_config',
+      setting_value: JSON.stringify({ customCss: '.a{}' }),
+    });
     expect((await service(db).snapshot()).features.custom_css.configured).toBe(false);
   });
 });
@@ -348,7 +321,6 @@ describe('v2 technical configuration and privacy boundaries', () => {
     await db('app_settings').insert(Object.entries(settings).map(([setting_key, value]) => ({ setting_key, setting_value: JSON.stringify(value) })));
     await db('events').insert({
       event_name: 'PRIVATE PERSON', customer_email: 'PRIVATE@example.test', external_path: '/PRIVATE/path',
-      color_theme: JSON.stringify({ galleryLayout: 'gallery-story', privateName: 'PRIVATE' }),
       allow_user_uploads: true, allow_downloads: true, client_access_enabled: true, watermark_downloads: true,
       reveal_mode: true, download_resolution_picker_enabled: true, disable_right_click: true,
       expires_at: '2028-01-01T00:00:00.000Z'

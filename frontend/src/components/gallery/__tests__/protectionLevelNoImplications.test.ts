@@ -7,15 +7,20 @@ import fs from 'fs';
 import path from 'path';
 import { describe, it, expect } from 'vitest';
 
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '../../../features/client-gallery');
 const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
 
 describe('protection level implies nothing about devtools or canvas', () => {
-  it.each(['GalleryView.tsx', 'PhotoLightbox.tsx'])('%s enables devtools detection from its switch only', (rel) => {
-    expect(read(rel)).toMatch(/const devToolsEnabled = enableDevtoolsProtection;/);
+  it('the gallery controller enables devtools detection from its switch only', () => {
+    expect(read('state/useGalleryController.ts')).toMatch(/const devToolsEnabled = enableDevtoolsProtection;/);
   });
 
-  it.each(['PhotoLightbox.tsx', 'layouts/PremiumLightboxImage.tsx'])('%s draws a canvas from its switch only', (rel) => {
+  it('the gallery controller reads the canvas switch and nothing else', () => {
+    expect(read('state/useGalleryController.ts')).toMatch(/const useCanvasRendering = data\?\.event\?\.use_canvas_rendering === true;/);
+  });
+
+  it.each(['state/useGalleryController.ts', 'viewer/PhotoViewer.tsx'])('%s draws a canvas from its switch only', (rel) => {
     expect(read(rel)).not.toMatch(/useCanvasRendering \|\| protectionLevel === 'maximum'/);
+    expect(read(rel)).not.toMatch(/canvas \|\| .*level === 'maximum'/);
   });
 });
