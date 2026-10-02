@@ -23,8 +23,19 @@ const MAX_PHOTOS = 20000;
 // A ceiling on what the map can hold, so a stream of planning requests can
 // never grow it without bound. The oldest parts go first.
 const MAX_PARTS = 5000;
+// And on the ids they hold together, which is what actually costs memory: a
+// gallery whose photos carry no size packs into one part of every id.
+const MAX_STORED_IDS = 200000;
 
 const parts = new Map();
+let storedIds = 0;
+
+function drop(token) {
+  const part = parts.get(token);
+  if (!part) return;
+  storedIds -= part.photoIds.length;
+  parts.delete(token);
+}
 
 function partBytes() {
   const configured = parseInt(process.env.DOWNLOAD_BUNDLE_PART_BYTES, 10);
@@ -56,11 +67,11 @@ function splitBySize(photos, limit) {
 
 function purge(now) {
   for (const [token, part] of parts) {
-    if (part.expiresAt <= now) parts.delete(token);
+    if (part.expiresAt <= now) drop(token);
   }
   // Map iteration follows insertion order, so the first keys are the oldest.
-  while (parts.size > MAX_PARTS) {
-    parts.delete(parts.keys().next().value);
+  while (parts.size > MAX_PARTS || storedIds > MAX_STORED_IDS) {
+    drop(parts.keys().next().value);
   }
 }
 
@@ -82,6 +93,7 @@ function createBundle({ eventId, scope, photos, resolution }) {
       count: groups.length,
       expiresAt: now + TTL_MS,
     });
+    storedIds += group.photoIds.length;
     return { token, photo_count: group.photoIds.length, size_bytes: group.sizeBytes };
   });
   purge(now);
@@ -93,7 +105,7 @@ function getPart(token) {
   const part = parts.get(token);
   if (!part) return null;
   if (part.expiresAt <= Date.now()) {
-    parts.delete(token);
+    drop(token);
     return null;
   }
   return part;
@@ -104,5 +116,6 @@ module.exports = {
   createBundle,
   getPart,
   splitBySize,
-  _reset: () => parts.clear(),
+  _storedIds: () => storedIds,
+  _reset: () => { parts.clear(); storedIds = 0; },
 };

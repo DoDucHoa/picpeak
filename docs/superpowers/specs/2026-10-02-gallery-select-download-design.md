@@ -66,7 +66,8 @@ progress still running.
   allowance is claimed here, before the first byte, exactly like `download-selected`.
   A `HEAD` probe checks the allowance without claiming it.
 - Parts live in an in-memory map. The backend is a single process, and a lost token
-  after a restart answers 410, which the client reports as a failed download.
+  after a restart answers 404, which the client reports as a failed download. The
+  map is capped at 5000 parts and 200,000 stored ids together, oldest first.
 - The streaming body is shared with `download-selected` rather than copied.
 
 Archives stream without a Content-Length, so the progress of a ZIP is shown by the

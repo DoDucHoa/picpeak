@@ -1,4 +1,4 @@
-import { createElement, useCallback, useMemo, useState } from 'react';
+import { createElement, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
@@ -207,6 +207,11 @@ export function useGalleryDownloads({
     shouldOfferFullPackage(notDeliveredCount, downloadQuota?.remaining ?? null);
 
   const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
+  // The guard itself is a ref: two clicks in one tick both read the same
+  // state, before the button has had a chance to disable.
+  const downloadingRef = useRef(false);
+  // Set when the size picker is closed while its parts are still going out.
+  const pickerCancelledRef = useRef(false);
 
   /**
    * Two or more photos: plan the bundle, then hand each part to the browser.
@@ -215,28 +220,43 @@ export function useGalleryDownloads({
    * another with a short gap; a browser that blocks the later ones still has
    * every part as a button in the toast.
    */
-  const downloadBundle = useCallback(async (photoIds: number[], resolution?: string) => {
+  const downloadBundle = useCallback(async (
+    photoIds: number[],
+    resolution?: string,
+    isCancelled: () => boolean = () => false,
+  ): Promise<boolean> => {
     const parts = await galleryService.planDownloadBundle(slug, photoIds, resolution);
-    for (let i = 0; i < parts.length; i += 1) {
-      if (i > 0) await new Promise((resolve) => setTimeout(resolve, BUNDLE_PART_GAP_MS));
-      await galleryService.probeBundlePart(slug, parts[i].token);
-      galleryService.triggerDirectDownload(galleryService.bundlePartUrl(slug, parts[i].token), bundlePartName(slug, i, parts.length));
+    const handedOver: { href: string; name: string }[] = [];
+    try {
+      for (let i = 0; i < parts.length; i += 1) {
+        if (i > 0) await new Promise((resolve) => setTimeout(resolve, BUNDLE_PART_GAP_MS));
+        if (isCancelled()) return false;
+        await galleryService.probeBundlePart(slug, parts[i].token);
+        const href = galleryService.bundlePartUrl(slug, parts[i].token);
+        const name = bundlePartName(slug, i, parts.length);
+        galleryService.triggerDirectDownload(href, name);
+        handedOver.push({ href, name });
+      }
+    } finally {
+      if (handedOver.length > 0) {
+        // Also after a later part failed: the parts already handed over
+        // claimed their slots, and their links must not be lost.
+        if (parts.length > 1) {
+          toast.info(createElement(BundlePartsNotice, { parts: handedOver }), { autoClose: false, closeOnClick: false });
+        }
+        // A native download gives no completion to await. Each part claims
+        // its slots the moment the browser's request arrives, before any byte
+        // is sent, so a re-read shortly after the last hand-off sees the
+        // charged ledger. A browser holding the later parts behind a "multiple
+        // downloads" prompt sends them only once the guest answers, which
+        // they do from this tab, so the allowance is read again on its return.
+        setTimeout(() => refreshDownloadQuota(slug), QUOTA_REREAD_DELAY_MS);
+        if (handedOver.length > 1) {
+          window.addEventListener('focus', () => refreshDownloadQuota(slug), { once: true });
+        }
+      }
     }
-    if (parts.length > 1) {
-      toast.info(
-        createElement(BundlePartsNotice, {
-          parts: parts.map((part, i) => ({
-            href: galleryService.bundlePartUrl(slug, part.token),
-            name: bundlePartName(slug, i, parts.length),
-          })),
-        }),
-        { autoClose: false, closeOnClick: false },
-      );
-    }
-    // A native download gives no completion to await. Each part claims its
-    // slots the moment the browser's request arrives, before any byte is sent,
-    // so a re-read shortly after the last hand-off sees the charged ledger.
-    setTimeout(() => refreshDownloadQuota(slug), QUOTA_REREAD_DELAY_MS);
+    return true;
   }, [slug, refreshDownloadQuota]);
 
   /**
@@ -255,7 +275,7 @@ export function useGalleryDownloads({
   }, [failBulkDownload, refetchDownloadQuota]);
 
   const handleDownloadSelected = useCallback(async () => {
-    if (selectedPhotos.size === 0 || isDownloadingSelected) return;
+    if (selectedPhotos.size === 0 || downloadingRef.current) return;
 
     // Prevent downloads if gallery is expired or downloads disabled
     if (!allowDownloads) {
@@ -278,6 +298,7 @@ export function useGalleryDownloads({
       photo_count: ids.length,
     });
 
+    downloadingRef.current = true;
     setIsDownloadingSelected(true);
     try {
       if (ids.length === 1) {
@@ -295,6 +316,7 @@ export function useGalleryDownloads({
       await failBundleDownload(error);
       return;
     } finally {
+      downloadingRef.current = false;
       setIsDownloadingSelected(false);
     }
 
@@ -302,24 +324,31 @@ export function useGalleryDownloads({
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
   }, [
-    selectedPhotos, isDownloadingSelected, allowDownloads, downloadChoices.length, slug, data?.photos,
+    selectedPhotos, allowDownloads, downloadChoices.length, slug, data?.photos,
     t, refreshDownloadQuota, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode,
   ]);
 
   // The picker's own download of a selection, at the size it chose.
   const downloadPickedSelection = useCallback(async (resolution: string) => {
     if (!resolutionPickerIds) return;
+    pickerCancelledRef.current = false;
+    let finished: boolean;
     try {
-      await downloadBundle(resolutionPickerIds, resolution);
+      finished = await downloadBundle(resolutionPickerIds, resolution, () => pickerCancelledRef.current);
     } catch (error) {
       await failBundleDownload(error);
       return;
     }
+    // Closed half way: the guest may already be choosing something else.
+    if (!finished) return;
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
   }, [resolutionPickerIds, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode]);
 
-  const closeResolutionPicker = useCallback(() => setResolutionPickerIds(null), []);
+  const closeResolutionPicker = useCallback(() => {
+    pickerCancelledRef.current = true;
+    setResolutionPickerIds(null);
+  }, []);
   const resolutionPicker = useMemo(() => ({
     open: resolutionPickerIds !== null,
     ids: resolutionPickerIds,

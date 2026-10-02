@@ -57,6 +57,8 @@ function input(patch: Partial<GalleryDownloadsInput> = {}): GalleryDownloadsInpu
 const part = (token: string) => ({ token, photo_count: 1, size_bytes: 1 });
 
 beforeEach(() => {
+  // A multi-part bundle leaves a one-off focus listener behind; spend it here.
+  window.dispatchEvent(new Event('focus'));
   vi.useFakeTimers();
   [refreshDownloadQuota, refetchDownloadQuota, downloadPhoto, planDownloadBundle, probeBundlePart,
     triggerDirectDownload, toastError, toastInfo, toastSuccess].forEach((fn) => fn.mockReset());
@@ -155,4 +157,57 @@ it('hands a selection to the size picker, which downloads it at the chosen size'
   expect(result.current.resolutionPicker).toMatchObject({ open: true, ids: [1, 2] });
   await settle(() => result.current.resolutionPicker.downloadSelection('2048'));
   expect(planDownloadBundle).toHaveBeenCalledWith('s', [1, 2], '2048');
+});
+
+it('re-reads the allowance and keeps the handed-over links when a later part fails', async () => {
+  planDownloadBundle.mockResolvedValue([part('a'), part('b'), part('c')]);
+  probeBundlePart.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ response: { status: 503 } });
+  const { result } = renderHook(() => useGalleryDownloads(input({ selectedPhotos: new Set([1, 2, 3]) })));
+  await settle(() => result.current.handleDownloadSelected());
+  expect(triggerDirectDownload).toHaveBeenCalledTimes(1);
+  // Part a went out and claimed its slots, so the badge must move.
+  expect(refreshDownloadQuota).toHaveBeenCalledWith('s');
+  expect(toastInfo).toHaveBeenCalledTimes(1);
+  expect(toastError).toHaveBeenCalledWith('Some photos failed to download');
+});
+
+it('re-reads the allowance when the guest comes back to the tab after a multi-part bundle', async () => {
+  planDownloadBundle.mockResolvedValue([part('a'), part('b')]);
+  const { result } = renderHook(() => useGalleryDownloads(input()));
+  await settle(() => result.current.handleDownloadSelected());
+  refreshDownloadQuota.mockClear();
+  window.dispatchEvent(new Event('focus'));
+  expect(refreshDownloadQuota).toHaveBeenCalledWith('s');
+  window.dispatchEvent(new Event('focus'));
+  expect(refreshDownloadQuota).toHaveBeenCalledTimes(1);
+});
+
+it('plans only one bundle for two presses in the same tick', async () => {
+  planDownloadBundle.mockResolvedValue([part('a')]);
+  const { result } = renderHook(() => useGalleryDownloads(input()));
+  await settle(async () => {
+    await Promise.all([result.current.handleDownloadSelected(), result.current.handleDownloadSelected()]);
+  });
+  expect(planDownloadBundle).toHaveBeenCalledTimes(1);
+});
+
+it('stops handing parts over once the size picker is closed, and keeps the selection', async () => {
+  planDownloadBundle.mockResolvedValue([part('a'), part('b'), part('c')]);
+  const setSelectedPhotos = vi.fn();
+  const data = {
+    event: { allow_downloads: true, download_resolution: { picker_enabled: true, choices: [{ id: 'original' }, { id: '2048' }] } },
+    photos,
+  } as unknown as GalleryData;
+  const { result } = renderHook(() => useGalleryDownloads(input({ data, setSelectedPhotos })));
+  await settle(() => result.current.handleDownloadSelected());
+  let running: Promise<void> = Promise.resolve();
+  await act(async () => {
+    running = result.current.resolutionPicker.downloadSelection('2048');
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(triggerDirectDownload).toHaveBeenCalledTimes(1);
+  act(() => result.current.resolutionPicker.close());
+  await settle(() => running);
+  expect(triggerDirectDownload).toHaveBeenCalledTimes(1);
+  expect(setSelectedPhotos).not.toHaveBeenCalled();
 });

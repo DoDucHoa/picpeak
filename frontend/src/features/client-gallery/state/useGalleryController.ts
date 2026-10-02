@@ -409,8 +409,10 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
   // Locks Hide and Show while a change is on its way, so a second press
   // never sends the same change twice.
   const [bulkVisibilityPending, setBulkVisibilityPending] = useState(false);
+  const bulkVisibilityRef = useRef(false);
   const handleBulkVisibility = useCallback(async (visibility: 'visible' | 'hidden') => {
-    if (selectedPhotos.size === 0 || bulkVisibilityPending) return;
+    if (selectedPhotos.size === 0 || bulkVisibilityRef.current) return;
+    bulkVisibilityRef.current = true;
     setBulkVisibilityPending(true);
     try {
       await galleryService.bulkToggleVisibility(slug, Array.from(selectedPhotos), visibility);
@@ -420,9 +422,10 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     } catch (error) {
       console.error('Failed to bulk toggle visibility:', error);
     } finally {
+      bulkVisibilityRef.current = false;
       setBulkVisibilityPending(false);
     }
-  }, [selectedPhotos, bulkVisibilityPending, slug, setSelectedPhotos, setIsSelectionMode, queryClient]);
+  }, [selectedPhotos, slug, setSelectedPhotos, setIsSelectionMode, queryClient]);
 
   // Client visibility stats
   const visibleCount = useMemo(() => {

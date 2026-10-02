@@ -194,6 +194,19 @@ describe('download bundles', () => {
   });
 });
 
+describe('bundle store', () => {
+  beforeEach(() => downloadBundleService._reset());
+
+  it('evicts the oldest parts once the ids they hold pass the cap', () => {
+    const many = Array.from({ length: 150000 }, (_, i) => ({ id: i + 1, size_bytes: 0 }));
+    const first = downloadBundleService.createBundle({ eventId: 1, scope: 'public', photos: many });
+    const second = downloadBundleService.createBundle({ eventId: 1, scope: 'public', photos: many });
+    expect(downloadBundleService.getPart(first[0].token)).toBeNull();
+    expect(downloadBundleService.getPart(second[0].token)).not.toBeNull();
+    expect(downloadBundleService._storedIds()).toBe(150000);
+  });
+});
+
 describe('splitBySize', () => {
   const { splitBySize } = downloadBundleService;
 
