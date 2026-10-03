@@ -14,6 +14,7 @@ import { Button, Input, Card, ReCaptcha, PoweredBy, SupportContact } from '../..
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { customerService } from '../../services/customer.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
+import { useBrandSettings } from '../../hooks/useBrandSettings';
 import { usePublicDarkMode } from '../../hooks/usePublicDarkMode';
 import { resolveLoginLogoClasses } from '../../utils/loginLogoSize';
 
@@ -44,15 +45,16 @@ export const CustomerLoginPage: React.FC = () => {
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const { data: settingsData } = usePublicSettings();
+  const { brand } = useBrandSettings();
   // Customer surface follows branding_force_color_mode (+ OS fallback); isDark
   // drives the theme-aware logo pick. A framed logo sits on a fixed cream
   // plate (see render), so the light (dark-ink) logo always reads there;
   // only the frameless logo sits on the themed (possibly dark) page bg.
   const { isDark } = usePublicDarkMode();
-  const companyName = settingsData?.branding_company_name?.trim() || 'PicPeak';
-  const lightLogo = settingsData?.branding_logo_url?.trim();
-  const darkLogo = settingsData?.branding_logo_url_dark?.trim();
-  const loginFrameEnabled = settingsData?.branding_login_logo_frame_enabled !== false;
+  const companyName = brand?.branding_company_name?.trim() || 'PicPeak';
+  const lightLogo = brand?.branding_logo_url?.trim();
+  const darkLogo = brand?.branding_logo_url_dark?.trim();
+  const loginFrameEnabled = brand?.branding_login_logo_frame_enabled !== false;
   const themedLogo = isDark ? (darkLogo || lightLogo) : (lightLogo || darkLogo);
   const logoUrl = loginFrameEnabled ? (lightLogo || darkLogo) : themedLogo;
   const resolvedLogoUrl = logoUrl || '/picpeak-logo-transparent.png';
@@ -146,8 +148,8 @@ export const CustomerLoginPage: React.FC = () => {
             own logo_size). */}
         <div className="text-center mb-8">
           {(() => {
-            const cls = resolveLoginLogoClasses(settingsData?.branding_login_logo_size);
-            const showFrame = settingsData?.branding_login_logo_frame_enabled !== false;
+            const cls = resolveLoginLogoClasses(brand?.branding_login_logo_size);
+            const showFrame = brand?.branding_login_logo_frame_enabled !== false;
             return showFrame ? (
               <div
                 className={`${cls.frameOuter} mx-auto mb-6 rounded-2xl flex items-center justify-center`}

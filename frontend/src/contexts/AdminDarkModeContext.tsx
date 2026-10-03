@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { usePublicSettings } from '../hooks/usePublicSettings';
+import { getBootBrandSnapshot } from '../utils/brandSnapshot';
 
 type DarkModePreference = 'light' | 'dark' | 'system';
 
@@ -36,7 +37,8 @@ export const AdminDarkModeProvider: React.FC<{ children: React.ReactNode }> = ({
   // wins over user preference and system preference. Refetches every 30s so
   // toggling it in the Branding tab propagates to other open tabs without
   // needing a full reload.
-  const { data: publicSettings } = usePublicSettings({ refetchInterval: 30_000 });
+  const { data: livePublicSettings } = usePublicSettings({ refetchInterval: 30_000 });
+  const publicSettings = livePublicSettings ?? getBootBrandSnapshot();
   const forcedMode: 'dark' | 'light' | null = publicSettings?.branding_force_color_mode === 'dark'
     ? 'dark'
     : publicSettings?.branding_force_color_mode === 'light'
