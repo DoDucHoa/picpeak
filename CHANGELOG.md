@@ -5,6 +5,14 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.1.1-beta.0...v1.1.2-beta.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **branding:** stop the PicPeak logo and green theme flashing before the instance brand ([332a224](https://github.com/DoDucHoa/picpeak/commit/332a2241511fab4a0c17b8f2d43acb3ec070a295))
+* **branding:** stop the PicPeak logo and green theme flashing before the instance brand ([80e2323](https://github.com/DoDucHoa/picpeak/commit/80e2323c87e4b683f6d05522cb5c01d2db3e1a73))
+
 ## [1.1.1-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.1.0-beta.0...v1.1.1-beta.0) (2026-10-02)
 
 
