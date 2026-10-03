@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePublicSettings } from '../hooks/usePublicSettings';
+import { useBrandSettings } from '../hooks/useBrandSettings';
 import { buildResourceUrl } from '../utils/url';
 
 export const MaintenanceMode: React.FC = () => {
   const { t, i18n } = useTranslation();
 
   const { data: settings } = usePublicSettings({ retry: false });
+  const { brand } = useBrandSettings();
 
   // Set language based on system settings
   useEffect(() => {
@@ -22,14 +24,14 @@ export const MaintenanceMode: React.FC = () => {
       <div className="bg-white border-b border-neutral-200 py-4">
         <div className="container">
           <div className="flex items-center justify-center">
-            <img 
-              src={settings?.branding_logo_url ? 
-                (settings.branding_logo_url.startsWith('http') 
-                  ? settings.branding_logo_url 
-                  : buildResourceUrl(settings.branding_logo_url))
+            <img
+              src={brand?.branding_logo_url ?
+                (brand.branding_logo_url.startsWith('http')
+                  ? brand.branding_logo_url
+                  : buildResourceUrl(brand.branding_logo_url))
                 : '/picpeak-logo-transparent.png'
-              } 
-              alt={settings?.branding_company_name || 'PicPeak'}
+              }
+              alt={brand?.branding_company_name || 'PicPeak'}
               className="h-12 w-auto object-contain"
             />
             {settings?.branding_company_name && settings.branding_company_name !== 'PicPeak' && (

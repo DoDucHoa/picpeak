@@ -5,6 +5,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useLocalizedDate } from '../hooks/useLocalizedDate';
 import { usePublicSettings } from '../hooks/usePublicSettings';
+import { useBrandSettings } from '../hooks/useBrandSettings';
 
 import { Card, CardContent, Input, Button, ReCaptcha, CMSContentBlock, PoweredBy } from '../components/common';
 import { LanguageSelector } from '../components/common/LanguageSelector';
@@ -132,6 +133,7 @@ export const GalleryPage: React.FC = () => {
   }, [resolvedSlug]);
   
   const { data: settingsData, isLoading: isLoadingSettings } = usePublicSettings();
+  const { brand } = useBrandSettings();
 
   // Admin preview seed (#868), memoised: the gallery controller memoises its
   // whole result on the seed's identity, so a fresh object per render would
@@ -434,11 +436,11 @@ export const GalleryPage: React.FC = () => {
           <div className="text-center mb-4 sm:mb-6">
             {galleryInfo?.login_logo_visible !== false && (
               <img
-                src={settingsData?.branding_logo_url ?
-                  buildResourceUrl(settingsData.branding_logo_url) :
+                src={brand?.branding_logo_url ?
+                  buildResourceUrl(brand.branding_logo_url) :
                   '/picpeak-logo-transparent.png'
                 }
-                alt={settingsData?.branding_company_name || 'PicPeak'}
+                alt={brand?.branding_company_name || 'PicPeak'}
                 className="h-12 sm:h-16 lg:h-20 w-auto object-contain mx-auto mb-3 sm:mb-4"
               />
             )}

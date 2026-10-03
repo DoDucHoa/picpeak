@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { BrandTheme } from '../types/theme.types';
 import { fontsService, extractFamilyName, type FontDefinition } from '../services/fonts.service';
 import { applyForceColorMode } from '../utils/themeMigration';
 import { getReadableForeground } from '../utils/contrast';
 import { usePublicSettings } from '../hooks/usePublicSettings';
+import { getBootBrandSnapshot } from '../utils/brandSnapshot';
 
 // Self-hosted font loader. Resolves the available-fonts list once (cached for
 // 5 minutes) and lazily injects @font-face blocks into <head> only for the
@@ -103,11 +104,18 @@ interface ThemeProviderProps {
   initialTheme?: BrandTheme;
 }
 
+// The theme this browser saw on its last visit, so a reload paints the
+// instance brand instead of flashing the PicPeak defaults first.
+function bootTheme(): BrandTheme {
+  const saved = getBootBrandSnapshot()?.theme_config;
+  return saved && typeof saved === 'object' ? (saved as BrandTheme) : DEFAULT_BRAND_THEME;
+}
+
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  initialTheme = DEFAULT_BRAND_THEME,
+  initialTheme,
 }) => {
-  const [theme, setTheme] = useState<BrandTheme>(initialTheme);
+  const [theme, setTheme] = useState<BrandTheme>(() => initialTheme ?? bootTheme());
 
   // Subscribe to the instance-wide force color mode setting. When an admin
   // toggles "Force dark / light" in Branding, all open tabs re-apply the
@@ -115,7 +123,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   // the lock takes effect without a full reload.
   // Refetch is best-effort: a stale cached value just means a delayed flip,
   // not a broken state.
-  const { data: publicSettings } = usePublicSettings({ refetchInterval: 30_000 });
+  const { data: livePublicSettings } = usePublicSettings({ refetchInterval: 30_000 });
+  const publicSettings = livePublicSettings ?? getBootBrandSnapshot();
   const forcedMode = publicSettings?.branding_force_color_mode === 'dark'
     ? 'dark'
     : publicSettings?.branding_force_color_mode === 'light'
@@ -286,8 +295,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // Apply theme when it changes, OR when force-mode changes (so an admin
   // toggling Force dark / light in Branding flips every open tab on the
-  // next public-settings refetch tick, no reload needed).
-  useEffect(() => {
+  // next public-settings refetch tick, no reload needed). A layout effect, so
+  // the brand is on :root before the browser paints the first frame.
+  useLayoutEffect(() => {
     applyTheme(theme);
   }, [theme, applyTheme]);
 

@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button, Input, Card, Loading } from '../../components/common';
 import { customerService } from '../../services/customer.service';
-import { usePublicSettings } from '../../hooks/usePublicSettings';
+import { useBrandSettings } from '../../hooks/useBrandSettings';
 import { usePublicDarkMode } from '../../hooks/usePublicDarkMode';
 
 export const CustomerResetPasswordPage: React.FC = () => {
@@ -33,14 +33,14 @@ export const CustomerResetPasswordPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: settingsData } = usePublicSettings();
+  const { brand } = useBrandSettings();
   // Theme-aware logo: page renders on the themed customer surface (dark when
   // branding_force_color_mode is dark / OS dark). No frame — logo sits on the
   // page bg, so pick the dark variant when dark.
   const { isDark } = usePublicDarkMode();
-  const companyName = settingsData?.branding_company_name?.trim() || 'PicPeak';
-  const lightLogo = settingsData?.branding_logo_url?.trim();
-  const darkLogo = settingsData?.branding_logo_url_dark?.trim();
+  const companyName = brand?.branding_company_name?.trim() || 'PicPeak';
+  const lightLogo = brand?.branding_logo_url?.trim();
+  const darkLogo = brand?.branding_logo_url_dark?.trim();
   const logoUrl = isDark ? (darkLogo || lightLogo) : (lightLogo || darkLogo);
   const resolvedLogoUrl = logoUrl || '/picpeak-logo-transparent.png';
 

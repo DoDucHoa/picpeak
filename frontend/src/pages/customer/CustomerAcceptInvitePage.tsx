@@ -27,7 +27,7 @@ import {
   type CustomerInvitationInfo,
   type CustomerProfilePrefill,
 } from '../../services/customer.service';
-import { usePublicSettings } from '../../hooks/usePublicSettings';
+import { useBrandSettings } from '../../hooks/useBrandSettings';
 import { usePublicDarkMode } from '../../hooks/usePublicDarkMode';
 
 interface FormState {
@@ -76,14 +76,14 @@ export const CustomerAcceptInvitePage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: settingsData } = usePublicSettings();
+  const { brand } = useBrandSettings();
   // Theme-aware logo: the page renders on the themed customer surface
   // (dark when branding_force_color_mode is dark / OS dark), so pick the
   // dark logo variant accordingly. No frame here — logo sits on the page bg.
   const { isDark } = usePublicDarkMode();
-  const companyName = settingsData?.branding_company_name?.trim() || 'PicPeak';
-  const lightLogo = settingsData?.branding_logo_url?.trim();
-  const darkLogo = settingsData?.branding_logo_url_dark?.trim();
+  const companyName = brand?.branding_company_name?.trim() || 'PicPeak';
+  const lightLogo = brand?.branding_logo_url?.trim();
+  const darkLogo = brand?.branding_logo_url_dark?.trim();
   const logoUrl = isDark ? (darkLogo || lightLogo) : (lightLogo || darkLogo);
   const resolvedLogoUrl = logoUrl || '/picpeak-logo-transparent.png';
 

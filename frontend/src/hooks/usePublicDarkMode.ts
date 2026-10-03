@@ -16,6 +16,7 @@
  */
 import { useEffect, useState } from 'react';
 import { usePublicSettings } from './usePublicSettings';
+import { getBootBrandSnapshot } from '../utils/brandSnapshot';
 
 /**
  * Returns `{ isDark }` (reactive) in addition to applying the `.dark`
@@ -24,7 +25,7 @@ import { usePublicSettings } from './usePublicSettings';
  */
 export function usePublicDarkMode(): { isDark: boolean } {
   const { data: publicSettings } = usePublicSettings();
-  const forced = publicSettings?.branding_force_color_mode;
+  const forced = (publicSettings ?? getBootBrandSnapshot())?.branding_force_color_mode;
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (forced === 'dark') return true;
     if (forced === 'light') return false;

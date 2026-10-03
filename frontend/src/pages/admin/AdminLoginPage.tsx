@@ -11,6 +11,7 @@ import { authService } from '../../services/auth.service';
 import { isMfaChallenge } from '../../types';
 import { setupService } from '../../services/setup.service';
 import { usePublicSettings } from '../../hooks/usePublicSettings';
+import { useBrandSettings } from '../../hooks/useBrandSettings';
 import { useAdminDarkMode } from '../../contexts/AdminDarkModeContext';
 import { resolveLoginLogoClasses } from '../../utils/loginLogoSize';
 import { buildResourceUrl } from '../../utils/url';
@@ -41,17 +42,18 @@ export const AdminLoginPage: React.FC = () => {
   const [mfaError, setMfaError] = useState<string | null>(null);
 
   const { data: settingsData } = usePublicSettings();
+  const { brand } = useBrandSettings();
   const { isDark } = useAdminDarkMode();
 
-  const companyName = settingsData?.branding_company_name?.trim() || 'PicPeak';
+  const companyName = brand?.branding_company_name?.trim() || 'PicPeak';
   // Theme-aware logo: the login page honours the admin dark-mode preference
   // (and any branding_force_color_mode). NOTE the frame nuance — a framed
   // logo sits on a fixed cream plate (see render), so the light (dark-ink)
   // logo always reads there; only the frameless logo sits on the themed
   // (possibly dark) page background and needs the dark variant.
-  const lightLogo = settingsData?.branding_logo_url?.trim();
-  const darkLogo = settingsData?.branding_logo_url_dark?.trim();
-  const loginFrameEnabled = settingsData?.branding_login_logo_frame_enabled !== false;
+  const lightLogo = brand?.branding_logo_url?.trim();
+  const darkLogo = brand?.branding_logo_url_dark?.trim();
+  const loginFrameEnabled = brand?.branding_login_logo_frame_enabled !== false;
   const themedLogo = isDark ? (darkLogo || lightLogo) : (lightLogo || darkLogo);
   const logoUrl = loginFrameEnabled ? (lightLogo || darkLogo) : themedLogo;
   const resolvedLogoUrl = logoUrl || '/picpeak-logo-transparent.png';
@@ -238,8 +240,8 @@ export const AdminLoginPage: React.FC = () => {
             to /admin/login and /customer/login exclusively. */}
         <div className="text-center mb-8">
           {(() => {
-            const cls = resolveLoginLogoClasses(settingsData?.branding_login_logo_size);
-            const showFrame = settingsData?.branding_login_logo_frame_enabled !== false;
+            const cls = resolveLoginLogoClasses(brand?.branding_login_logo_size);
+            const showFrame = brand?.branding_login_logo_frame_enabled !== false;
             return showFrame ? (
               <div
                 className={`${cls.frameOuter} mx-auto mb-6 rounded-2xl flex items-center justify-center`}
