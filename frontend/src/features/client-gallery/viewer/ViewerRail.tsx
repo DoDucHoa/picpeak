@@ -59,11 +59,18 @@ export function ViewerRail({ photo, c, panel, onPanel, onBack, onToggle }: Viewe
     const { id, filename } = photo;
     const slug = c.slug;
     startPhotoDownload(id);
-    galleryService.downloadPhoto(slug, id, filename, (fraction) => updatePhotoDownload(id, fraction))
-      .then(() => {
-        toast.success(t('clientGallery.viewer.downloaded', 'Photo downloaded'));
-        refreshDownloadQuota(slug);
-      })
+    const onProgress = (fraction: number | null) => updatePhotoDownload(id, fraction);
+    // On iOS the photo goes to the share sheet, whose Save Image writes it
+    // into Photos; a plain download would land in the Files app instead.
+    const saving = c.deviceSave.mode === 'photos'
+      ? c.deviceSave.run([{ id, filename, size: photo.size }], { quiet: true, onProgress })
+          .then(() => refreshDownloadQuota(slug))
+      : galleryService.downloadPhoto(slug, id, filename, onProgress)
+          .then(() => {
+            toast.success(t('clientGallery.viewer.downloaded', 'Photo downloaded'));
+            refreshDownloadQuota(slug);
+          });
+    saving
       .catch(async (error) => {
         // A refusal for role or allowance is answered by the gate (the quota
         // dialog, or a "clients only" notice); only anything else gets the

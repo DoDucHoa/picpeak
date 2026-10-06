@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { normalizeRequirePassword } from '../utils/accessControl';
 import { parseContentDispositionFilename } from '../utils/contentDisposition';
+import { isIOSDevice } from '../utils/deviceSave';
 
 /** One ZIP of a download bundle, as the server planned it. */
 export interface DownloadBundlePart {
@@ -31,20 +32,11 @@ function withAdminPreview(url: string): string {
 // first-party "Save Image" / "Save to Photos" action for files
 // shared via navigator.share(). On Android the share sheet only
 // lists installed apps that registered an image/* intent (WhatsApp,
-// Telegram, etc.) — there is no built-in save-to-gallery action,
+// Telegram, etc.), there is no built-in save-to-gallery action,
 // so the share path produces a useless app-picker for users who
 // just wanted to save the photo (#554). UA-sniff is the only signal
 // available because feature detection (canShare) is true on both.
-//
-// The MacIntel + maxTouchPoints clause covers iPadOS 13+ which
-// identifies as Mac in navigator.userAgent but supports the same
-// share-to-Photos flow as iOS Safari.
-function isIOS(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent || '';
-  if (/iPad|iPhone|iPod/.test(ua)) return true;
-  return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
-}
+const isIOS = () => isIOSDevice();
 
 // Hard cap on the multi-file Web Share path (#557). iOS Safari's share
 // sheet starts to choke and silently fail beyond ~25–30 files in
@@ -209,10 +201,15 @@ export const galleryService = {
   //
   // `onProgress` receives the share downloaded so far, 0 to 1, or null while
   // the size is unknown (the server sent no Content-Length).
+  //
+  // `resolution` asks for one of the gallery's download sizes (#858), the
+  // same choice a bundle takes; `signal` cancels the transfer, and the server
+  // refunds the allowance slot of a download the client walked away from.
   async fetchPhotoBlob(
     slug: string,
     photoId: number,
     onProgress?: (fraction: number | null) => void,
+    options?: { resolution?: string; signal?: AbortSignal },
   ): Promise<{ blob: Blob; serverFilename: string | null }> {
     const onDownloadProgress = onProgress
       ? (event: { loaded: number; total?: number }) => {
@@ -232,6 +229,8 @@ export const galleryService = {
       const response = await api.get<Blob>(`/gallery/${slug}/download/${photoId}`, {
         responseType: 'blob',
         onDownloadProgress,
+        signal: options?.signal,
+        ...(options?.resolution ? { params: { resolution: options.resolution } } : {}),
       });
       return readResponse(response);
     } catch (error) {
@@ -252,6 +251,7 @@ export const galleryService = {
       const response = await api.get<Blob>(`/gallery/${slug}/photo/${photoId}`, {
         responseType: 'blob',
         onDownloadProgress,
+        signal: options?.signal,
       });
       return readResponse(response);
     }

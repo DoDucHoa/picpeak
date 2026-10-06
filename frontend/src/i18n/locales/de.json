@@ -9932,6 +9932,20 @@
       "started": "Ihre Fotos werden in {{count}} Teilen heruntergeladen.",
       "blockedHint": "Falls ein Teil nicht startet, laden Sie ihn hier herunter:",
       "part": "Teil {{index}} von {{count}}"
+    },
+    "deviceSave": {
+      "preparingTitle": "Ihre Fotos werden vorbereitet",
+      "downloadingTitle": "Ihre Fotos werden heruntergeladen",
+      "readyTitle": "Bereit zum Sichern",
+      "batch": "Teil {{index}} von {{batches}}",
+      "progress": "{{done}} von {{total}}",
+      "range": "Fotos {{from}} bis {{to}} von {{total}}",
+      "single": "Foto {{index}} von {{total}}",
+      "dismissed": "Noch nichts gesichert.",
+      "hint": "Tippen Sie im folgenden Menü auf „Bild sichern“.",
+      "save": "In Fotos sichern",
+      "stop": "Abbrechen",
+      "downloaded": "Fotos heruntergeladen: {{total}}"
     }
   }
 }

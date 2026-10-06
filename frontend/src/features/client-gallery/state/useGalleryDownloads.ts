@@ -12,6 +12,8 @@ import { galleryService } from '../../../services/gallery.service';
 import { analyticsService } from '../../../services/analytics.service';
 import type { DownloadResolutionChoice, GalleryData } from '../../../types';
 import { BundlePartsNotice } from '../toolbar/BundlePartsNotice';
+import { useDeviceSave } from './useDeviceSave';
+import type { DeviceSave, SavePhoto } from './useDeviceSave';
 
 export type QuotaOffer = { exceeded: QuotaExceededPayload | null } | null;
 
@@ -42,6 +44,8 @@ export interface GalleryDownloads {
   downloadCurrency: string;
   pendingDownloadOrder: DownloadOrder | null;
   resolutionPicker: ResolutionPicker;
+  /** Saving to the phone itself: Photos on iOS, separate files on Android. */
+  deviceSave: DeviceSave;
 }
 
 export interface ResolutionPicker {
@@ -274,6 +278,40 @@ export function useGalleryDownloads({
     await failBulkDownload(error);
   }, [failBulkDownload, refetchDownloadQuota]);
 
+  const deviceSave = useDeviceSave(slug);
+
+  /**
+   * A selection on a phone: into Photos on iOS, as separate files on Android,
+   * never as a ZIP the phone cannot open into its gallery. Photos whose folder
+   * does not allow downloads are left out, as the bundle would leave them out.
+   * Returns true once every photo went out, false when the guest stopped.
+   */
+  const saveOnDevice = useCallback(async (ids: number[], resolution?: string): Promise<boolean> => {
+    const byId = new Map((data?.photos || []).map((photo) => [photo.id, photo]));
+    const photos = ids.flatMap((id): SavePhoto[] => {
+      const photo = byId.get(id);
+      if (!photo || photo.category_allow_downloads === false) return [];
+      return [{ id, filename: photo.filename || `photo-${id}.jpg`, size: photo.size }];
+    });
+    if (photos.length === 0) return true;
+    // Planning a bundle is read-only on the allowance, so it refuses a
+    // selection that no longer fits before a single photo is fetched, with the
+    // same 402 the quota dialog already answers.
+    if (photos.length > 1) {
+      await galleryService.planDownloadBundle(slug, photos.map((photo) => photo.id), resolution);
+    }
+    try {
+      const outcome = await deviceSave.run(photos, { resolution });
+      if (outcome === 'done' && deviceSave.mode === 'files') {
+        toast.success(t('clientGallery.deviceSave.downloaded', 'Photos downloaded: {{total}}', { total: photos.length }));
+      }
+      return outcome === 'done';
+    } finally {
+      // Each photo claimed its slot when its request arrived, finished or not.
+      refreshDownloadQuota(slug);
+    }
+  }, [data?.photos, slug, deviceSave, t, refreshDownloadQuota]);
+
   const handleDownloadSelected = useCallback(async () => {
     if (selectedPhotos.size === 0 || downloadingRef.current) return;
 
@@ -298,10 +336,15 @@ export function useGalleryDownloads({
       photo_count: ids.length,
     });
 
+    // A single photo on Android is a plain file already: the path below.
+    const onDevice = deviceSave.mode === 'photos' || (deviceSave.mode === 'files' && ids.length > 1);
+
     downloadingRef.current = true;
     setIsDownloadingSelected(true);
     try {
-      if (ids.length === 1) {
+      if (onDevice) {
+        if (!(await saveOnDevice(ids))) return;
+      } else if (ids.length === 1) {
         const photo = data?.photos.find((p) => p.id === ids[0]);
         await galleryService.downloadPhoto(slug, ids[0], photo?.filename || `photo-${ids[0]}.jpg`);
         toast.success(t('clientGallery.viewer.downloaded', 'Photo downloaded'));
@@ -324,7 +367,7 @@ export function useGalleryDownloads({
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
   }, [
-    selectedPhotos, allowDownloads, downloadChoices.length, slug, data?.photos,
+    selectedPhotos, allowDownloads, downloadChoices.length, slug, data?.photos, deviceSave.mode, saveOnDevice,
     t, refreshDownloadQuota, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode,
   ]);
 
@@ -334,7 +377,13 @@ export function useGalleryDownloads({
     pickerCancelledRef.current = false;
     let finished: boolean;
     try {
-      finished = await downloadBundle(resolutionPickerIds, resolution, () => pickerCancelledRef.current);
+      if (deviceSave.mode === 'archive') {
+        finished = await downloadBundle(resolutionPickerIds, resolution, () => pickerCancelledRef.current);
+      } else {
+        // The save sheet takes over from here, with its own progress and Stop.
+        setResolutionPickerIds(null);
+        finished = await saveOnDevice(resolutionPickerIds, resolution);
+      }
     } catch (error) {
       await failBundleDownload(error);
       return;
@@ -343,7 +392,10 @@ export function useGalleryDownloads({
     if (!finished) return;
     setSelectedPhotos(new Set());
     setIsSelectionMode(false);
-  }, [resolutionPickerIds, downloadBundle, failBundleDownload, setSelectedPhotos, setIsSelectionMode]);
+  }, [
+    resolutionPickerIds, deviceSave.mode, downloadBundle, saveOnDevice, failBundleDownload,
+    setSelectedPhotos, setIsSelectionMode,
+  ]);
 
   const closeResolutionPicker = useCallback(() => {
     pickerCancelledRef.current = true;
@@ -361,6 +413,6 @@ export function useGalleryDownloads({
     handleDownloadSelected, isDownloadingSelected,
     quota: downloadQuota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
-    resolutionPicker,
+    resolutionPicker, deviceSave,
   };
 }

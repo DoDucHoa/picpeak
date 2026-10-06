@@ -40,6 +40,7 @@ export function fakeController(overrides: Partial<GalleryController> = {}): Gall
     deliveredPhotoIds: new Set<number>(),
     downloadPackages: [], downloadCurrency: 'EUR', pendingDownloadOrder: null,
     resolutionPicker: { open: false, ids: null, close: vi.fn(), downloadSelection: vi.fn(async () => {}) },
+    deviceSave: { mode: 'archive', sheet: null, run: vi.fn(async () => 'done' as const), confirm: vi.fn(), stop: vi.fn() },
     people: {
       enabled: false, list: [], selectedIds: [], toggle: vi.fn(),
       sheetOpen: false, setSheetOpen: vi.fn(),
