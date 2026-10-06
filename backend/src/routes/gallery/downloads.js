@@ -40,7 +40,7 @@ const {
 } = require('../../services/downloadFilenameService');
 const { buildContentDisposition } = require('../../utils/filenameSanitizer');
 const { getStorage } = require('../../services/storage');
-const { createArchiveStreamGuard } = require('../../utils/archiveStreamGuard');
+const { createArchiveStreamGuard, streamingArchiveAdmission } = require('../../utils/archiveStreamGuard');
 const fs = require('fs');
 function parseByteRange(header, size) {
   if (!header || typeof header !== 'string' || !size) return null;
@@ -451,6 +451,30 @@ function abortStreamingArchive({ archive, guard, res, err, eventId, route }) {
   }
 }
 
+/**
+ * Admission to the synchronous archive routes (archiveStreamGuard). Returns the
+ * release function, or null after answering 429 when the process already has
+ * its share of archives running and waiting. The slot is released when the
+ * response closes, however it ends; a caller that leaves before streaming
+ * releases it itself (the release is idempotent).
+ */
+async function admitStreamingArchive(res) {
+  const release = await streamingArchiveAdmission.acquire();
+  if (!release) {
+    res.set('Retry-After', '10');
+    res.status(429).json({ error: 'Too many downloads are being prepared right now — please try again shortly' });
+    return null;
+  }
+  // A client that left while this request waited in the queue has already
+  // closed; 'close' will not fire again.
+  if (res.destroyed || res.closed) {
+    release();
+    return null;
+  }
+  res.once('close', release);
+  return release;
+}
+
 // finalize() settles on the archive's end or error, and an aborted archive may
 // emit neither; the response closing ends the wait too.
 async function finalizeOrClose(archive, res) {
@@ -479,6 +503,7 @@ async function bumpEventDownloadCounts(eventId) {
 router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, blockHiddenGallery, async (req, res) => {
   // Hoisted so the catch can reclaim reads opened before the failure.
   let guard = null;
+  let admission = null;
   // The client hung up. An aborted archive rejects finalize() with ABORTED,
   // and the catch would then try to send JSON over a response whose ZIP
   // headers already went out — ERR_HTTP_HEADERS_SENT, unhandled, on an
@@ -588,6 +613,12 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     if (photos.length === 0) {
       return res.status(404).json({ error: 'No photos found' });
     }
+
+    // One of a bounded number of archives this process builds at once. The
+    // allowance was claimed above, and a 429 here refunds it like any other
+    // early exit, through the settlement registered with the claim.
+    admission = await admitStreamingArchive(res);
+    if (!admission) return;
 
     // Count unique types
     const uniqueTypes = new Set(photos.map(p => p.type)).size;
@@ -736,6 +767,7 @@ router.get('/:slug/download-all', verifyGalleryAccess, denySlideshowToken, block
     }
   } catch (error) {
     if (guard) guard.destroyAll();
+    if (admission) admission();
     // Nothing to say to a client that already left, and the headers are gone.
     // A half-sent archive must not be left open or ended as if complete.
     if (cancelled || res.headersSent) {
@@ -785,6 +817,7 @@ async function sendSelectionArchive(req, res, photoIds, { resolution, archiveNam
   let selectedGuard = null;
   let selectedCancelled = false;
   const isProbe = req.method === 'HEAD';
+  let selectedAdmission = null;
   try {
     // The same deliverable-photos query the whole-gallery paths use, narrowed to
     // the requested ids. Ids the filter drops here are never charged either: the
@@ -820,6 +853,10 @@ async function sendSelectionArchive(req, res, photoIds, { resolution, archiveNam
     if (isProbe) {
       return res.status(200).end();
     }
+
+    // One of a bounded number of archives this process builds at once.
+    selectedAdmission = await admitStreamingArchive(res);
+    if (!selectedAdmission) return;
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${archiveName}"`);
@@ -937,6 +974,7 @@ async function sendSelectionArchive(req, res, photoIds, { resolution, archiveNam
     }
   } catch (error) {
     if (selectedGuard) selectedGuard.destroyAll();
+    if (selectedAdmission) selectedAdmission();
     if (selectedCancelled || res.headersSent) {
       if (!res.destroyed) res.destroy();
       return;
