@@ -1,5 +1,6 @@
 const { isGalleryAvailable } = require('../utils/galleryLifecycle');
 const express = require('express');
+const { toDateOnly } = require('../utils/dateOnly');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -146,8 +147,10 @@ router.post('/admin/login', [
       return res.status(403).json({ error: 'Local login is disabled — sign in through SSO', code: 'LOCAL_LOGIN_DISABLED' });
     }
 
-    // Check account lockout first
-    const lockoutStatus = await checkAccountLockout(username);
+    // Check account lockout first. Scoped to identifier + source IP like the
+    // gallery/client paths: anonymous failures from one address must not
+    // deny a correct login from every other address.
+    const lockoutStatus = await checkAccountLockout(username, ipAddress);
     if (lockoutStatus.isLocked) {
       logger.warn('Login attempt on locked account', { username, ipAddress });
       return res.status(423).json({ 
@@ -205,9 +208,10 @@ router.post('/admin/login', [
     // Second factor: if this admin has TOTP enabled, do NOT complete the login
     // yet. Issue a short-lived, single-purpose mfa_pending token and require the
     // code via /admin/login/mfa. We deliberately don't reset the lockout counter
-    // (trackSuccessfulLogin) or stamp last_login until the second factor passes,
-    // so MFA brute-force is still gated by the account lockout. `loginId` carries
-    // the typed identifier so the verify step tracks the same lockout bucket.
+    // (trackSuccessfulLogin) or stamp last_login until the second factor passes.
+    // MFA guessing is gated by the verify step's own account-wide bucket
+    // (`mfa:<id>`); `loginId` carries the typed identifier for the success
+    // record once the second factor passes.
     if (mfaService.isEnrolled(admin)) {
       const mfaToken = jwt.sign({
         id: admin.id,
@@ -274,7 +278,14 @@ router.post('/admin/login/mfa', [
     }
 
     const lockoutKey = decoded.loginId || decoded.username;
-    const lockoutStatus = await checkAccountLockout(lockoutKey);
+    // The second factor has a bucket of its own, counted across every source
+    // address. Per-IP (like the password step) would hand a holder of the
+    // mfa_pending token a fresh batch of six-digit guesses for each address
+    // they rotate to; sharing the password step's bucket would let anonymous
+    // password failures lock the owner out of this step. Only someone who
+    // already passed the password can add to it.
+    const mfaLockoutKey = `mfa:${decoded.id}`;
+    const lockoutStatus = await checkAccountLockout(mfaLockoutKey);
     if (lockoutStatus.isLocked) {
       return res.status(423).json({
         error: 'Account temporarily locked due to too many failed attempts',
@@ -325,7 +336,7 @@ router.post('/admin/login/mfa', [
     }
 
     if (!ok) {
-      await trackFailedAttempt(lockoutKey, ipAddress, userAgent);
+      await trackFailedAttempt(mfaLockoutKey, ipAddress, userAgent);
       return res.status(401).json({ error: 'Invalid verification code', code: 'MFA_INVALID' });
     }
 
@@ -345,7 +356,7 @@ router.post('/admin/login/mfa', [
           updated_at: new Date()
         });
       if (consumed !== 1) {
-        await trackFailedAttempt(lockoutKey, ipAddress, userAgent);
+        await trackFailedAttempt(mfaLockoutKey, ipAddress, userAgent);
         return res.status(401).json({ error: 'Invalid verification code', code: 'MFA_INVALID' });
       }
       await logActivity('admin_mfa_recovery_used',
@@ -547,7 +558,7 @@ router.post('/gallery/verify', [
         id: event.id,
         event_name: event.event_name,
         event_type: event.event_type,
-        event_date: event.event_date,
+        event_date: toDateOnly(event.event_date),
         welcome_message: event.welcome_message,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.
@@ -625,7 +636,7 @@ router.post('/gallery/:slug/client-login', [
         id: event.id,
         event_name: event.event_name,
         event_type: event.event_type,
-        event_date: event.event_date,
+        event_date: toDateOnly(event.event_date),
         welcome_message: event.welcome_message,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.
@@ -724,7 +735,7 @@ router.post('/gallery/share-login', [
         id: event.id,
         event_name: event.event_name,
         event_type: event.event_type,
-        event_date: event.event_date,
+        event_date: toDateOnly(event.event_date),
         welcome_message: event.welcome_message,
         expires_at: event.expires_at,
         // Guest uploads are removed (P3); the fields stay for old clients.

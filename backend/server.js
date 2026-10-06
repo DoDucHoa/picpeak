@@ -301,6 +301,13 @@ app.get(['/health', '/api/health'], async (req, res) => {
 
 // Initialize rate limiters (they will be created dynamically)
 
+// The stylesheet below is interpolated into a raw-text <style> element, where
+// the HTML parser ends the element at the first `</style` regardless of CSS
+// structure. Every segment — palette, base CSS, operator CSS — is settings
+// data, so the whole thing is escaped at the sink rather than trusting each
+// producer. `<` → `\3c ` is the same character to a CSS parser.
+const { escapeCssForStyleElement } = require('./src/utils/cssSanitizer');
+
 function composeInlineStyles(payload) {
   const { branding } = payload;
   const cssSegments = [];
@@ -324,7 +331,7 @@ function composeInlineStyles(payload) {
     cssSegments.push(`/* Custom styles */\n${payload.css}`);
   }
 
-  return cssSegments.join('\n\n');
+  return escapeCssForStyleElement(cssSegments.join('\n\n'));
 }
 
 function escapeHtml(str) {
@@ -414,6 +421,18 @@ function buildSeoMetaTags(seoSettings) {
   return tags.join('\n  ');
 }
 
+// Inter for the landing page, served from the /fonts mount below — the same
+// files frontend/src/index.css declares for the SPA. The document used to
+// link fonts.googleapis.com for this, which leaked every visitor's IP to
+// Google even though the rest of the app had already moved to self-hosted
+// fonts for exactly that reason. 500 is not shipped; the browser falls back
+// to the nearest declared weight, as it already does in the SPA.
+const PUBLIC_SITE_FONT_FACES = `
+    @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/Inter/400.woff2') format('woff2'); }
+    @font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/Inter/600.woff2') format('woff2'); }
+    @font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/Inter/700.woff2') format('woff2'); }
+  `;
+
 function buildPublicSiteDocument(payload) {
   const inlineStyles = composeInlineStyles(payload);
   const header = renderBrandHeader(payload.branding);
@@ -429,9 +448,7 @@ function buildPublicSiteDocument(payload) {
   <title>${escapeHtml(payload.title)}</title>
   <meta name="description" content="Curated photo galleries and stories from unforgettable celebrations." />
   ${seoMeta}
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>${PUBLIC_SITE_FONT_FACES}</style>
   <style>${inlineStyles}</style>
 </head>
 <body>
@@ -455,11 +472,6 @@ async function handlePublicSiteRequest(req, res, next) {
       return;
     }
 
-    if (payload.etag && req.headers['if-none-match'] === payload.etag) {
-      res.status(304).end();
-      return;
-    }
-
     // Inject SEO meta settings into payload
     try {
       const seoRows = await db('app_settings')
@@ -477,9 +489,20 @@ async function handlePublicSiteRequest(req, res, next) {
 
     const document = buildPublicSiteDocument(payload);
 
+    // The validator covers the whole document, not only the settings behind
+    // payload.etag: a template change (this PR swapped the Google Fonts
+    // link for self-hosted faces) or a SEO toggle must stop answering 304 to
+    // clients that cached the previous HTML, or they keep it until a
+    // settings change happens to move the payload hash.
+    const etag = `W/"${require('crypto').createHash('sha1').update(document).digest('hex')}"`;
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end();
+      return;
+    }
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=30, must-revalidate');
-    res.setHeader('ETag', payload.etag);
+    res.setHeader('ETag', etag);
     res.setHeader('Vary', 'Accept-Encoding');
     res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; object-src 'none'; script-src 'self'; form-action 'self'");
 
@@ -630,7 +653,17 @@ app.use('/uploads/favicons', setCorsHeaders, secureStatic(path.join(storagePath,
 // (set by express.static from file mtime), browsers send If-Modified-Since
 // after expiry and pick up the new version automatically. See https://docs.picpeak.app/guides/custom-fonts
 // "Replacing an existing font" for the documented rollout strategy.
-const fontStaticOpts = { maxAge: '7d' };
+//
+// Only font formats leave these mounts (isPublicFontFile): the storage tree is
+// admin-writable and a restored backup can populate it, so anything else in
+// it must not be served from the app origin. nosniff keeps a browser from
+// promoting a font response to another type.
+const { isPublicFontFile } = require('./src/middleware/secureStatic');
+const fontStaticOpts = {
+  maxAge: '7d',
+  onlyServe: isPublicFontFile,
+  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+};
 app.use(
   '/fonts',
   setCorsHeaders,

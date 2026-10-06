@@ -9,7 +9,7 @@ const { resolveAdapter } = require('../services/trackers');
 const logger = require('../utils/logger');
 const { errorResponse, getPagination } = require('../utils/routeHelpers');
 const { measureLocalStorageUsage } = require('../services/localStorageUsage');
-const { queueTimestamp } = require('../utils/queueTimestamps');
+const { queueTimestamp, toUtcIso } = require('../utils/queueTimestamps');
 const { IS_VIDEO_SQL } = require('../utils/mediaTypeSql');
 const router = express.Router();
 
@@ -259,7 +259,8 @@ router.get('/activity', adminAuth, requirePermission('analytics.view'), async (r
           return {};
         }
       })(),
-      createdAt: activity.created_at
+      // Zone-less UTC from the column default on SQLite; see toUtcIso.
+      createdAt: toUtcIso(activity.created_at)
     }));
 
     res.json(formattedActivities);
@@ -402,11 +403,13 @@ router.get('/analytics', adminAuth, requirePermission('analytics.view'), async (
       if (dateObj) dateObj.uniqueVisitors = Number(row.count) || 0;
     });
 
-    // Get top galleries by views with additional metrics
+    // Get top galleries by views with additional metrics. The camelCase
+    // alias is quoted because Postgres folds an unquoted identifier to
+    // lower case, and the frontend reads `uniqueVisitors`, not `uniquevisitors`.
     const topGalleries = await applyEventScope(db('access_logs'), req.admin, 'access_logs.event_id')
       .select('events.id', 'events.event_name', 'events.slug')
       .select(db.raw('COUNT(CASE WHEN action = \'view\' THEN 1 END) as views'))
-      .select(db.raw('COUNT(DISTINCT CASE WHEN action = \'view\' THEN ip_address END) as uniqueVisitors'))
+      .select(db.raw('COUNT(DISTINCT CASE WHEN action = \'view\' THEN ip_address END) as "uniqueVisitors"'))
       .select(db.raw('COUNT(CASE WHEN action IN (\'download\', \'download_all\', \'download_all_presigned\', \'download_selected\') THEN 1 END) as downloads'))
       .join('events', 'access_logs.event_id', 'events.id')
       .where('access_logs.timestamp', '>=', startDateStr)

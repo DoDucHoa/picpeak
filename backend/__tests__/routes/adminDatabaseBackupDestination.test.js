@@ -21,6 +21,7 @@ process.env.STORAGE_PATH = fs.mkdtempSync(path.join(os.tmpdir(), 'picpeak-dbdest
 const request = require('supertest');
 const { bootCrmDb, seedMinimal, assignAdminRole, mintAdminToken, buildRouteApp } = require('../integration/helpers/crmDb');
 const { clearPermissionCache } = require('../../src/middleware/permissions');
+const { decodeSettingValue } = require('../helpers/settingValue');
 
 const KEY = 'database_backup_destination_path';
 
@@ -30,7 +31,7 @@ describe('PUT /api/admin/database-backup/config — destination is super-admin o
   const as = (who) => request(app).put('/api/admin/database-backup/config').set('Authorization', `Bearer ${tok[who]}`);
   const stored = async () => {
     const row = await db('app_settings').where({ setting_key: KEY }).first();
-    return row ? JSON.parse(row.setting_value) : undefined;
+    return row ? decodeSettingValue(db, row.setting_value) : undefined;
   };
 
   beforeAll(async () => {
@@ -63,7 +64,7 @@ describe('PUT /api/admin/database-backup/config — destination is super-admin o
     const res = await as('admin').send({ [KEY]: '/var/backups/picpeak-db', database_backup_compress: false });
     expect(res.status).toBe(200);
     const compress = await db('app_settings').where({ setting_key: 'database_backup_compress' }).first();
-    expect(JSON.parse(compress.setting_value)).toBe(false);
+    expect(decodeSettingValue(db, compress.setting_value)).toBe(false);
     expect(await stored()).toBe('/var/backups/picpeak-db');
   });
 
@@ -71,5 +72,33 @@ describe('PUT /api/admin/database-backup/config — destination is super-admin o
     const res = await as('super').send({ [KEY]: '/var/backups/picpeak-db-2' });
     expect(res.status).toBe(200);
     expect(await stored()).toBe('/var/backups/picpeak-db-2');
+  });
+
+  // The path used to be interpolated into `sqlite3 .backup '<path>'`, which
+  // sqlite3 re-parses itself: a quote or a line break ends the filename and
+  // the rest runs as a second dot-command (scanner finding d499ed38).
+  describe('sqlite3 dot-command characters are refused at save time', () => {
+    it.each([
+      ['single quote', '/var/backups/x\' .shell id ; \''],
+      ['double quote', '/var/backups/x" .shell id'],
+      ['backtick', '/var/backups/x`id`'],
+      ['backslash', '/var/backups/x\\y'],
+      ['newline', '/var/backups/x\n.shell id'],
+      ['carriage return', '/var/backups/x\r.shell id'],
+      ['tab', '/var/backups/x\t.shell id'],
+      ['NUL', '/var/backups/x\u0000.shell id'],
+    ])('%s', async (_label, value) => {
+      const before = await stored();
+      const res = await as('super').send({ [KEY]: value });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/quotes, backslashes or control characters/);
+      expect(await stored()).toBe(before);
+    });
+
+    it('still accepts an ordinary absolute path with dots, dashes and spaces', async () => {
+      const res = await as('super').send({ [KEY]: '/mnt/nas share/picpeak.backups-v2' });
+      expect(res.status).toBe(200);
+      expect(await stored()).toBe('/mnt/nas share/picpeak.backups-v2');
+    });
   });
 });
