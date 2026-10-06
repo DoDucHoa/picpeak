@@ -35,6 +35,7 @@ import type { GalleryTab, SortField, UrlState, ViewMode } from './urlState';
 import { tabCounts, tabPhotos } from './tabs';
 import { useGalleryDownloads } from './useGalleryDownloads';
 import type { GalleryDownloads, ResolutionPicker } from './useGalleryDownloads';
+import type { DeviceSave } from './useDeviceSave';
 
 /**
  * The event as the gallery page already knows it from /gallery/:slug/info,
@@ -93,6 +94,7 @@ export interface GalleryController {
   downloadGate: DownloadGate; deliveredPhotoIds: Set<number>;
   downloadPackages: DownloadPackage[]; downloadCurrency: string; pendingDownloadOrder: DownloadOrder | null;
   resolutionPicker: ResolutionPicker;
+  deviceSave: DeviceSave;
   people: {
     enabled: boolean; list: GalleryPerson[]; selectedIds: number[]; toggle: (id: number) => void;
     sheetOpen: boolean; setSheetOpen: (v: boolean) => void;
@@ -654,7 +656,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     allowDownloads, downloadChoices, downloadStandard,
     handleDownloadSelected, isDownloadingSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
-    resolutionPicker,
+    resolutionPicker, deviceSave,
   } = downloads;
 
   return useMemo<GalleryController>(() => ({
@@ -675,7 +677,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds,
     downloadPackages, downloadCurrency, pendingDownloadOrder,
-    resolutionPicker,
+    resolutionPicker, deviceSave,
     people: peopleGroup,
     folders: foldersGroup,
     client: clientGroup,
@@ -691,7 +693,7 @@ export function useGalleryController(slug: string, event: GalleryEventSeed, requ
     allowDownloads, downloadChoices, downloadStandard,
     selection, handleDownloadSelected, isDownloadingSelected, quota, offerFullPackage, quotaOffer, setQuotaOffer,
     downloadGate, deliveredPhotoIds, downloadPackages, downloadCurrency, pendingDownloadOrder,
-    resolutionPicker, peopleGroup, foldersGroup, clientGroup, expiry,
+    resolutionPicker, deviceSave, peopleGroup, foldersGroup, clientGroup, expiry,
     showLogoutControl, logout, promoMarkdown, infoMarkdown,
   ]);
 }

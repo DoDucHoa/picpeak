@@ -41,6 +41,13 @@ vi.mock('../../../services/gallery.service', () => ({
   },
 }));
 vi.mock('../../../services/analytics.service', () => ({ analyticsService: { trackGalleryEvent: vi.fn() } }));
+// The device is a desktop unless a test says otherwise: the bundle tests below
+// describe the archive path, which a desktop keeps.
+let deviceMode: 'photos' | 'files' | 'archive' = 'archive';
+const deviceRun = vi.fn();
+vi.mock('../state/useDeviceSave', () => ({
+  useDeviceSave: () => ({ mode: deviceMode, sheet: null, run: deviceRun, confirm: vi.fn(), stop: vi.fn() }),
+}));
 
 const photos = [1, 2, 3].map((id) => ({ id, filename: `p${id}.jpg` })) as Photo[];
 
@@ -61,8 +68,10 @@ beforeEach(() => {
   window.dispatchEvent(new Event('focus'));
   vi.useFakeTimers();
   [refreshDownloadQuota, refetchDownloadQuota, downloadPhoto, planDownloadBundle, probeBundlePart,
-    triggerDirectDownload, toastError, toastInfo, toastSuccess].forEach((fn) => fn.mockReset());
+    triggerDirectDownload, toastError, toastInfo, toastSuccess, deviceRun].forEach((fn) => fn.mockReset());
   probeBundlePart.mockResolvedValue(undefined);
+  deviceMode = 'archive';
+  deviceRun.mockResolvedValue('done');
 });
 afterEach(() => { vi.useRealTimers(); });
 
@@ -210,4 +219,102 @@ it('stops handing parts over once the size picker is closed, and keeps the selec
   await settle(() => running);
   expect(triggerDirectDownload).toHaveBeenCalledTimes(1);
   expect(setSelectedPhotos).not.toHaveBeenCalled();
+});
+
+describe('on a phone', () => {
+  const pickerData = {
+    event: { allow_downloads: true, download_resolution: { picker_enabled: true, choices: [{ id: 'original' }, { id: '2048' }] } },
+    photos,
+  } as unknown as GalleryData;
+
+  it('saves a selection to Photos on iOS instead of zipping it, after checking the allowance', async () => {
+    deviceMode = 'photos';
+    planDownloadBundle.mockResolvedValue([part('a')]);
+    const setSelectedPhotos = vi.fn();
+    const { result } = renderHook(() => useGalleryDownloads(input({ selectedPhotos: new Set([1, 3]), setSelectedPhotos })));
+    await settle(() => result.current.handleDownloadSelected());
+    // Planned only to let the server refuse early; no part is collected.
+    expect(planDownloadBundle).toHaveBeenCalledWith('s', [1, 3], undefined);
+    expect(triggerDirectDownload).not.toHaveBeenCalled();
+    expect(deviceRun).toHaveBeenCalledWith(
+      [{ id: 1, filename: 'p1.jpg', size: undefined }, { id: 3, filename: 'p3.jpg', size: undefined }],
+      { resolution: undefined },
+    );
+    expect(refreshDownloadQuota).toHaveBeenCalledWith('s');
+    expect(setSelectedPhotos).toHaveBeenCalledWith(new Set());
+  });
+
+  it('sends a single selected photo through Photos on iOS too', async () => {
+    deviceMode = 'photos';
+    const { result } = renderHook(() => useGalleryDownloads(input({ selectedPhotos: new Set([2]) })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(downloadPhoto).not.toHaveBeenCalled();
+    expect(planDownloadBundle).not.toHaveBeenCalled();
+    expect(deviceRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads a selection photo by photo on Android, and says so when done', async () => {
+    deviceMode = 'files';
+    planDownloadBundle.mockResolvedValue([part('a')]);
+    const { result } = renderHook(() => useGalleryDownloads(input()));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(deviceRun).toHaveBeenCalledTimes(1);
+    expect(triggerDirectDownload).not.toHaveBeenCalled();
+    expect(toastSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a single photo on Android on the plain download', async () => {
+    deviceMode = 'files';
+    downloadPhoto.mockResolvedValue(undefined);
+    const { result } = renderHook(() => useGalleryDownloads(input({ selectedPhotos: new Set([2]) })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(downloadPhoto).toHaveBeenCalledWith('s', 2, 'p2.jpg');
+    expect(deviceRun).not.toHaveBeenCalled();
+  });
+
+  it('leaves out photos whose folder does not allow downloads', async () => {
+    deviceMode = 'photos';
+    planDownloadBundle.mockResolvedValue([part('a')]);
+    const data = {
+      event: { allow_downloads: true },
+      photos: [{ id: 1, filename: 'p1.jpg' }, { id: 2, filename: 'p2.jpg', category_allow_downloads: false }, { id: 3, filename: 'p3.jpg' }],
+    } as unknown as GalleryData;
+    const { result } = renderHook(() => useGalleryDownloads(input({ data, selectedPhotos: new Set([1, 2, 3]) })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(deviceRun.mock.calls[0][0].map((p: { id: number }) => p.id)).toEqual([1, 3]);
+  });
+
+  it('opens the offer when the selection no longer fits, before fetching a photo', async () => {
+    deviceMode = 'photos';
+    planDownloadBundle.mockRejectedValue({ response: { status: 402 } });
+    const setSelectedPhotos = vi.fn();
+    const { result } = renderHook(() => useGalleryDownloads(input({ setSelectedPhotos })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(deviceRun).not.toHaveBeenCalled();
+    expect(result.current.quotaOffer).toEqual({ exceeded: null });
+    expect(setSelectedPhotos).not.toHaveBeenCalled();
+  });
+
+  it('keeps the selection when the guest stops half way', async () => {
+    deviceMode = 'photos';
+    planDownloadBundle.mockResolvedValue([part('a')]);
+    deviceRun.mockResolvedValue('stopped');
+    const setSelectedPhotos = vi.fn();
+    const { result } = renderHook(() => useGalleryDownloads(input({ setSelectedPhotos })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(setSelectedPhotos).not.toHaveBeenCalled();
+    expect(refreshDownloadQuota).toHaveBeenCalledWith('s');
+  });
+
+  it('closes the size picker and saves at the chosen size', async () => {
+    deviceMode = 'photos';
+    planDownloadBundle.mockResolvedValue([part('a')]);
+    const { result } = renderHook(() => useGalleryDownloads(input({ data: pickerData })));
+    await settle(() => result.current.handleDownloadSelected());
+    expect(result.current.resolutionPicker.open).toBe(true);
+    await settle(() => result.current.resolutionPicker.downloadSelection('2048'));
+    expect(result.current.resolutionPicker.open).toBe(false);
+    expect(deviceRun).toHaveBeenCalledWith(expect.any(Array), { resolution: '2048' });
+    expect(triggerDirectDownload).not.toHaveBeenCalled();
+  });
 });

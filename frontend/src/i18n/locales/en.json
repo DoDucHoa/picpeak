@@ -9966,6 +9966,20 @@
       "started": "Your photos are downloading in {{count}} parts.",
       "blockedHint": "If a part did not start, download it here:",
       "part": "Part {{index}} of {{count}}"
+    },
+    "deviceSave": {
+      "preparingTitle": "Preparing your photos",
+      "downloadingTitle": "Downloading your photos",
+      "readyTitle": "Ready to save",
+      "batch": "Batch {{index}} of {{batches}}",
+      "progress": "{{done}} of {{total}}",
+      "range": "Photos {{from}} to {{to}} of {{total}}",
+      "single": "Photo {{index}} of {{total}}",
+      "dismissed": "Nothing was saved yet.",
+      "hint": "In the menu that opens, tap Save Image.",
+      "save": "Save to Photos",
+      "stop": "Stop",
+      "downloaded": "Photos downloaded: {{total}}"
     }
   }
 }

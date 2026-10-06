@@ -11,6 +11,7 @@ import { GalleryFolderTiles } from '../../components/gallery/GalleryFolderTiles'
 import { GuestNamePromptModal } from '../../components/gallery/GuestNamePromptModal';
 import { GuestRecoveryModal } from '../../components/gallery/GuestRecoveryModal';
 import { DownloadResolutionModal } from '../../components/gallery/DownloadResolutionModal';
+import { DeviceSaveSheet } from './toolbar/DeviceSaveSheet';
 import { DownloadQuotaDialog } from '../../components/gallery/DownloadQuotaDialog';
 import { PeopleSheet } from '../../components/gallery/PeopleSheet';
 import { GuestIdentityProvider } from '../../contexts/GuestIdentityContext';
@@ -352,6 +353,9 @@ function ClientGalleryBody({ c }: { c: GalleryController }) {
           onClose={c.resolutionPicker.close}
         />
       )}
+
+      {/* Saving to a phone: progress, and the tap iOS needs per batch. */}
+      <DeviceSaveSheet deviceSave={c.deviceSave} />
 
       {/* Out of allowance (#download-quota). Raised by a refused download,
           or opened from the toolbar when the gallery no longer fits. */}

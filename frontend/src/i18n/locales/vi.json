@@ -9958,6 +9958,20 @@
       "started": "Ảnh của bạn đang được tải xuống thành {{count}} phần.",
       "blockedHint": "Nếu có phần chưa tự tải, hãy tải tại đây:",
       "part": "Phần {{index}}/{{count}}"
+    },
+    "deviceSave": {
+      "preparingTitle": "Đang chuẩn bị ảnh",
+      "downloadingTitle": "Đang tải ảnh xuống",
+      "readyTitle": "Sẵn sàng lưu",
+      "batch": "Đợt {{index}}/{{batches}}",
+      "progress": "{{done}}/{{total}}",
+      "range": "Ảnh {{from}} đến {{to}} trong {{total}}",
+      "single": "Ảnh {{index}} trong {{total}}",
+      "dismissed": "Chưa có ảnh nào được lưu.",
+      "hint": "Trong menu hiện ra, chọn Lưu hình ảnh.",
+      "save": "Lưu vào Ảnh",
+      "stop": "Dừng",
+      "downloaded": "Đã tải xuống {{total}} ảnh"
     }
   }
 }
