@@ -5,6 +5,14 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.1.2-beta.0...v1.2.0-beta.0) (2026-10-06)
+
+
+### Features
+
+* **gallery:** save photos straight to the phone gallery instead of a ZIP ([aadc733](https://github.com/DoDucHoa/picpeak/commit/aadc733cc56df779ba03ac16a600c61b99aefa04))
+* **gallery:** save photos straight to the phone gallery instead of a ZIP ([a8ef073](https://github.com/DoDucHoa/picpeak/commit/a8ef07374e9d6b061a964c14218fc3ad5bdab046))
+
 ## [1.1.2-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.1.1-beta.0...v1.1.2-beta.0) (2026-10-03)
 
 
