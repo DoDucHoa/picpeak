@@ -5,6 +5,21 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.2.0-beta.0...v1.2.1-beta.0) (2026-10-06)
+
+
+### Bug Fixes
+
+* **archives:** clear the event's child rows before deleting it ([#1790](https://github.com/DoDucHoa/picpeak/issues/1790)) ([0e11f37](https://github.com/DoDucHoa/picpeak/commit/0e11f37de7fce271c56b3a43844ff4065205a3e2))
+* **db:** four PostgreSQL-only query defects (audit trail, XMP label, visitors alias, case-insensitive search) ([#1791](https://github.com/DoDucHoa/picpeak/issues/1791)) ([48bb5b8](https://github.com/DoDucHoa/picpeak/commit/48bb5b8b2585a743af7cbc206778458645b26903))
+* **deps:** close the sixteen open Trivy findings on the aio image ([#1757](https://github.com/DoDucHoa/picpeak/issues/1757)) ([9030451](https://github.com/DoDucHoa/picpeak/commit/90304512fa8e445121d933effc0c57a7f3f1e10a))
+* **downloads:** invalidate in-flight zips and answer a failed single-file send ([#1792](https://github.com/DoDucHoa/picpeak/issues/1792)) ([e437120](https://github.com/DoDucHoa/picpeak/commit/e43712032c2a3ffc182eeb54751417acfb3330bf))
+* **gallery:** send the event date as a calendar date, not a timestamp ([#1801](https://github.com/DoDucHoa/picpeak/issues/1801)) ([1ba4563](https://github.com/DoDucHoa/picpeak/commit/1ba4563deccd15357d080332ec2a5d93a3cb0441))
+* **notifications:** send activity timestamps as UTC so the bell and dashboard do not show them in the future ([#1816](https://github.com/DoDucHoa/picpeak/issues/1816)) ([343bf36](https://github.com/DoDucHoa/picpeak/commit/343bf3627014ba2612a35b4e01ab16a0eb8bc8e1))
+* **public-site:** self-host Inter instead of loading it from Google Fonts ([#1787](https://github.com/DoDucHoa/picpeak/issues/1787)) ([9c2910b](https://github.com/DoDucHoa/picpeak/commit/9c2910ba81b22790d3ff772fe7e25d08f956157a))
+* **security:** port upstream's October security scan and recent bug fixes ([8d67980](https://github.com/DoDucHoa/picpeak/commit/8d679806a40ce3072f8d52b64fe9a9c87fdd9d38))
+* **security:** port upstream's October security scan fixes ([4a8013c](https://github.com/DoDucHoa/picpeak/commit/4a8013c9febf74b00efc2a44eaf366beefbc94a1))
+
 ## [1.2.0-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.1.2-beta.0...v1.2.0-beta.0) (2026-10-06)
 
 
