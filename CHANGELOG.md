@@ -5,6 +5,13 @@ All notable changes to PicPeak will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.2.1-beta.0...v1.2.2-beta.0) (2026-10-06)
+
+
+### Documentation
+
+* record upstream sync rounds and how to find what is new ([2b3a28b](https://github.com/DoDucHoa/picpeak/commit/2b3a28be8907c4ae8a454e176c384b70a5b0c223))
+
 ## [1.2.1-beta.0](https://github.com/DoDucHoa/picpeak/compare/v1.2.0-beta.0...v1.2.1-beta.0) (2026-10-06)
 
 
